@@ -1,0 +1,20 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    schema: "internal/db/migrations"
+    queries: "internal/db/queries"
+    gen:
+      go:
+        package: "sqlc" # Will be used in your Go code as `import "yourmodule/db"`
+        out: "internal/db/sqlc"
+        sql_package: "pgx/v5" # Output directory for generated Go code
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+        emit_json_tags: true # Add `json` tags to structs for API serialization
+        emit_prepared_queries: true # Use prepared statements for better performance
+        emit_interface: true # Generate a Querier interface for easier mocking/testing
+        emit_exact_table_names: false # Use Go-idiomatic CamelCase for struct names

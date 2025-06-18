@@ -1,0 +1,53 @@
+# Dev tools
+.air
+.air.toml
+*.test
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of `go build`
+/bin/
+/build/
+/dist/
+*.o
+*.a
+
+# Output of `go test`
+*.coverprofile
+*.testresult
+*.tmp
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories (if using vendoring)
+/vendor/
+
+# IDE/editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Module cache
+/pkg/mod/
+# Docker
+docker-compose.override.yml
+*.env
+.env.local
+.env.development.local
