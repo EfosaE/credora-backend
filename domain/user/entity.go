@@ -1,4 +1,5 @@
-package domain
+package user
+
 import (
 	"time"
 	"github.com/google/uuid"

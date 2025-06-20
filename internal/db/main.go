@@ -20,7 +20,6 @@ type DB struct {
 }
 
 func InitDB(ctx context.Context) (*DB, error) {
-    fmt.Println(config.App.DbUrl)
     // Create a connection pool
     pool, err := pgxpool.New(ctx, config.App.DbUrl)
     if err != nil {
