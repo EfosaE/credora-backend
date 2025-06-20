@@ -67,10 +67,10 @@ func ValidationError(message string) *ErrorResponse {
 	return New(http.StatusUnprocessableEntity, "Validation error", message)
 }
 
-// // SendError is a convenience function to send an error response
-// func SendError(w http.ResponseWriter, r *http.Request, err *ErrorResponse) {
-// 	render.Render(w, r, err)
-// }
+// SendError is a convenience function to send an error response
+func SendError(w http.ResponseWriter, r *http.Request, err *ErrorResponse) {
+	render.Render(w, r, err)
+}
 
 
 // NotFoundHandler returns a custom 404 handler that responds with JSON

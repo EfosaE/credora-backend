@@ -2,12 +2,14 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/validation"
 	"github.com/EfosaE/credora-backend/service"
+	"github.com/go-chi/render"
 )
 
 type UserHandler struct {
@@ -35,22 +37,28 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 // 	json.NewEncoder(w).Encode(user)
 // }
 
-
-
 func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-    var req user.CreateUserRequest
+	var req user.CreateUserRequest
 
-    // Decode JSON body into the struct
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+	// Decode JSON
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		fmt.Println("Error decoding JSON:", err)
+		response.SendError(w, r, response.BadRequest(err, "Invalid request body"))
+		return
+	}
 
-    // Optionally: log the struct
-    fmt.Printf("%+v\n", req)
+	// Validate request
+	if err := validation.Validate.Struct(&req); err != nil {
+		response.SendError(w, r, response.BadRequest(err, err.Error()))
+		return
+	}
 
-    // Respond
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
+	// Call service
+	user, err := h.userService.CreateUser(r.Context(), &req)
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, "could not create user"))
+		return
+	}
+
+	response.SendSuccess(w, r, response.Created(user, "User created successfully"))
 }
-

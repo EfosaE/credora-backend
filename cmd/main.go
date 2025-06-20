@@ -7,6 +7,7 @@ import (
 
 	// "net/http"
 
+	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/db"
@@ -20,6 +21,23 @@ func main() {
 
 	ctx := context.Background()
 	config.Load()
+	// Create logger configuration
+	loggerConfig := logger.LoggerConfig{
+		LogFilePath:   "logs/app.log",
+		LogLevel:      logger.INFO,
+		EnableConsole: true,
+		EnableFile:    true,
+		MaxFileSize:   1024 * 1024, // 1MB for demo
+		MaxFiles:      3,
+		IncludeSource: true,
+	}
+	// Create logger
+	logger, err := logger.NewLogger(loggerConfig)
+	if err != nil {
+		log.Fatal("Failed to create logger:", err)
+	}
+	defer logger.Close()
+
 	db, err := db.InitDB(ctx)
 
 	if err != nil {
@@ -28,18 +46,8 @@ func main() {
 	defer db.Pool.Close()
 
 	userRepo := infrastructure.NewSqlcUserRepository(ctx, db.Queries)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, logger)
 	userHandler := handler.NewUserHandler(userService)
-
-	// user, err := userService.CreateUser(ctx, &domain.CreateUserRequest{
-	// 	Name:  "John Doe",
-	// 	Email: "john.doe@example.com",
-	// })
-	// if err != nil {
-	// 	log.Fatalf("Failed to create user: %v", err)
-	// }
-
-	// fmt.Printf("User created: %+v\n", user)
 
 	r := router.SetupRouter(userHandler)
 
