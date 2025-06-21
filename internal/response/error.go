@@ -10,7 +10,7 @@ import (
 // ErrorResponse represents a standard error response structure
 type ErrorResponse struct {
 	StatusCode int    `json:"-"`
-	Error      string `json:"error"`
+	Error      any    `json:"error"`
 	Message    string `json:"message,omitempty"`
 }
 
@@ -21,21 +21,18 @@ func (e *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 // New creates a new ErrorResponse
-func New(statusCode int, errorMsg string, message string) *ErrorResponse {
+func New(statusCode int, data any, message string) *ErrorResponse {
 	return &ErrorResponse{
 		StatusCode: statusCode,
-		Error:      errorMsg,
+		Error:      data,
 		Message:    message,
 	}
 }
 
 // BadRequest returns a 400 Bad Request error
-func BadRequest(err error, message string) *ErrorResponse {
-	errMsg := "Bad request"
-	if err != nil {
-		message = err.Error()
-	}
-	return New(http.StatusBadRequest, errMsg, message)
+func BadRequest(data any, message string) *ErrorResponse {
+
+	return New(http.StatusBadRequest, data, message)
 }
 
 // NotFound returns a 404 Not Found error
@@ -71,7 +68,6 @@ func ValidationError(message string) *ErrorResponse {
 func SendError(w http.ResponseWriter, r *http.Request, err *ErrorResponse) {
 	render.Render(w, r, err)
 }
-
 
 // NotFoundHandler returns a custom 404 handler that responds with JSON
 func NotFoundHandler() http.HandlerFunc {

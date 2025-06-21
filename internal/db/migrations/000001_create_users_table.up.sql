@@ -5,7 +5,7 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    password TEXT NOT NULL,
     is_verified BOOLEAN DEFAULT FALSE,
     paystack_customer_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW(),

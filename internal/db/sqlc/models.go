@@ -38,7 +38,7 @@ type User struct {
 	FullName           string           `json:"full_name"`
 	Email              pgtype.Text      `json:"email"`
 	PhoneNumber        string           `json:"phone_number"`
-	PasswordHash       string           `json:"password_hash"`
+	Password           string           `json:"password"`
 	IsVerified         pgtype.Bool      `json:"is_verified"`
 	PaystackCustomerID pgtype.Text      `json:"paystack_customer_id"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`

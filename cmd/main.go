@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	// "net/http"
 
 	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/infrastructure"

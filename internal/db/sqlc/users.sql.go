@@ -13,16 +13,16 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, full_name, phone_number, password_hash)
+INSERT INTO users (email, full_name, phone_number, password)
 VALUES ($1, $2, $3, $4)
-RETURNING id, full_name, email, phone_number, password_hash, is_verified, paystack_customer_id, created_at, updated_at
+RETURNING id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Email        pgtype.Text `json:"email"`
-	FullName     string      `json:"full_name"`
-	PhoneNumber  string      `json:"phone_number"`
-	PasswordHash string      `json:"password_hash"`
+	Email       pgtype.Text `json:"email"`
+	FullName    string      `json:"full_name"`
+	PhoneNumber string      `json:"phone_number"`
+	Password    string      `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -30,7 +30,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.FullName,
 		arg.PhoneNumber,
-		arg.PasswordHash,
+		arg.Password,
 	)
 	var i User
 	err := row.Scan(
@@ -38,7 +38,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.FullName,
 		&i.Email,
 		&i.PhoneNumber,
-		&i.PasswordHash,
+		&i.Password,
 		&i.IsVerified,
 		&i.PaystackCustomerID,
 		&i.CreatedAt,
@@ -66,7 +66,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, full_name, email, phone_number, password_hash, is_verified, paystack_customer_id, created_at, updated_at FROM users
+SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
 WHERE id = $1
 `
 
@@ -78,7 +78,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.FullName,
 		&i.Email,
 		&i.PhoneNumber,
-		&i.PasswordHash,
+		&i.Password,
 		&i.IsVerified,
 		&i.PaystackCustomerID,
 		&i.CreatedAt,
@@ -88,7 +88,7 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, phone_number, password_hash, is_verified, paystack_customer_id, created_at, updated_at FROM users
+SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
 WHERE phone_number = $1
 `
 
@@ -100,7 +100,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, phoneNumber string) (User,
 		&i.FullName,
 		&i.Email,
 		&i.PhoneNumber,
-		&i.PasswordHash,
+		&i.Password,
 		&i.IsVerified,
 		&i.PaystackCustomerID,
 		&i.CreatedAt,
@@ -110,7 +110,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, phoneNumber string) (User,
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, full_name, email, phone_number, password_hash, is_verified, paystack_customer_id, created_at, updated_at FROM users
+SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -134,7 +134,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.FullName,
 			&i.Email,
 			&i.PhoneNumber,
-			&i.PasswordHash,
+			&i.Password,
 			&i.IsVerified,
 			&i.PaystackCustomerID,
 			&i.CreatedAt,
@@ -154,7 +154,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET full_name = $2, email = $3
 WHERE id = $1
-RETURNING id, full_name, email, phone_number, password_hash, is_verified, paystack_customer_id, created_at, updated_at
+RETURNING id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -171,7 +171,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.FullName,
 		&i.Email,
 		&i.PhoneNumber,
-		&i.PasswordHash,
+		&i.Password,
 		&i.IsVerified,
 		&i.PaystackCustomerID,
 		&i.CreatedAt,

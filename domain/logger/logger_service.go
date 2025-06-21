@@ -77,13 +77,22 @@ type LoggerConfig struct {
 	MaxFileSize   int64 // in bytes
 	MaxFiles      int
 	IncludeSource bool
+	Env           string // Environment (e.g., "dev", "test", "prod")
 }
 
-// NewLogger creates a new logger instance
+
 func NewLogger(config LoggerConfig) (*Logger, error) {
+	// Determine default log file path if not provided
 	if config.LogFilePath == "" {
-		config.LogFilePath = "app.log"
+		// base := "app"
+		// if config.Env != "" {
+		// 	base = config.Env // "test", "prod", "dev"
+		// }
+		// config.LogFilePath = fmt.Sprintf("%s.log", base)
+		config.LogFilePath = "logs/app.log" // Default log file path
 	}
+
+	// Set sane defaults
 	if config.MaxFileSize == 0 {
 		config.MaxFileSize = 10 * 1024 * 1024 // 10MB
 	}

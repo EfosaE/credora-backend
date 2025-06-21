@@ -5,6 +5,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/google/uuid"
 )
 
@@ -30,12 +31,11 @@ func (s *SqlcUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.U
 }
 
 // this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-func (s *SqlcUserRepository) Create(ctx context.Context, req *user.CreateUserRequest) (*user.User, error) {
+func (s *SqlcUserRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
 	sqlcUser, err := s.q.CreateUser(ctx, sqlc.CreateUserParams{
-		FullName: req.Name,
-		// Email:    req.Email,
-		// PasswordHash: req.PasswordHash, // Assuming you handle password hashing elsewhere
-		// InternalNotes: req.InternalNotes, // If you have internal notes, handle them accordingly
+		FullName: user.Name,
+		Email:    utils.ToPgText(user.Email),
+		Password: user.Password,
 	})
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
 	"github.com/EfosaE/credora-backend/service"
 	"github.com/go-chi/render"
@@ -49,7 +50,8 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	// Validate request
 	if err := validation.Validate.Struct(&req); err != nil {
-		response.SendError(w, r, response.BadRequest(err, err.Error()))
+		errs := utils.ParseValidationErrors(err)
+		response.SendError(w, r, response.BadRequest(errs, "Validation Failed"))
 		return
 	}
 
