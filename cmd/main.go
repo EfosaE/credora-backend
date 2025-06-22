@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 	"net/http"
-
+	"time"
 
 	"github.com/EfosaE/credora-backend/domain/logger"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/db"
@@ -44,8 +45,20 @@ func main() {
 	}
 	defer db.Pool.Close()
 
+	// Initialize Monnify configuration
+	monnifyConfig := &monnify.MonnifyConfig{
+		ApiKey:       config.App.MonnifyApiKey,
+		SecretKey:    config.App.MonnifySecretKey,
+		ContractCode: config.App.MonnifyContractCode,
+		BaseURL:      config.App.MonnifyBaseURL,
+	}
+	
+	// Initialize Monnify client
+	client := infrastructure.NewMonnifyClient(monnifyConfig, &http.Client{Timeout: 10 * time.Second})
+	monnifySvc := service.NewMonnifyService(client, logger)
+
 	userRepo := infrastructure.NewSqlcUserRepository(ctx, db.Queries)
-	userService := service.NewUserService(userRepo, logger)
+	userService := service.NewUserService(userRepo, logger, monnifySvc)
 	userHandler := handler.NewUserHandler(userService)
 
 	r := router.SetupRouter(userHandler)

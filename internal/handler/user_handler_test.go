@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/service"
 	"github.com/EfosaE/credora-backend/test"
 	"github.com/EfosaE/credora-backend/test/mocks"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestCreateUserHandler_Success(t *testing.T) {
-	mockRepo := &mocks.MockUserRepo{
+	mockUserRepo := &mocks.MockUserRepo{
 		CreateFunc: func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error) {
 			return &user.User{
 				ID:   uuid.New(),
@@ -27,8 +28,25 @@ func TestCreateUserHandler_Success(t *testing.T) {
 		},
 	}
 
+	mockMonnifyRepo := &mocks.MockMonnifyRepo{
+	CreateReservedAccountFunc: func(req *monnify.CreateCustomerRequest) (*monnify.CreateCustomerResponse, error) {
+		return &monnify.CreateCustomerResponse{
+			RequestSuccessful: true,
+			ResponseMessage:   "Account created successfully",
+			ResponseBody: monnify.CustomerResponseBody{
+				AccountReference: "REF123",
+				AccountName:      "John Doe",
+				AccountNumber:    "1234567890",
+				BankName:         "Wema Bank",
+			},
+		}, nil
+	},
+}
+
 	log := test.SetupTestLogger()
-	service := service.NewUserService(mockRepo, log)
+	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
+	// monnifyClient := test.SetupTestMonnifyClient()
+	service := service.NewUserService(mockUserRepo, log, mockMonnifySvc)
 
 	handler := NewUserHandler(service)
 
