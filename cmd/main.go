@@ -19,7 +19,8 @@ import (
 
 func main() {
 
-	ctx := context.Background()
+	dbCtx := context.Background()
+	qCtx := context.Background()
 	config.Load()
 	// Create logger configuration
 	loggerConfig := logger.LoggerConfig{
@@ -38,7 +39,7 @@ func main() {
 	}
 	defer logger.Close()
 
-	db, err := db.InitDB(ctx)
+	db, err := db.InitDB(dbCtx)
 
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -57,7 +58,7 @@ func main() {
 	client := infrastructure.NewMonnifyClient(monnifyConfig, &http.Client{Timeout: 10 * time.Second})
 	monnifySvc := service.NewMonnifyService(client, logger)
 
-	userRepo := infrastructure.NewSqlcUserRepository(ctx, db.Queries)
+	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
 	userService := service.NewUserService(userRepo, logger, monnifySvc)
 	userHandler := handler.NewUserHandler(userService)
 

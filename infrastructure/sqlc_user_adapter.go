@@ -6,36 +6,38 @@ import (
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 )
 
 type SqlcUserRepository struct {
-	q   *sqlc.Queries
+	q *sqlc.Queries
 }
 
 func NewSqlcUserRepository(ctx context.Context, q *sqlc.Queries) *SqlcUserRepository {
 	return &SqlcUserRepository{
-		q:   q,
+		q: q,
 	}
 }
 
-// this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-func (s *SqlcUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
-	sqlcUser, err := s.q.GetUser(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+// // this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
+// func (s *SqlcUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
+// 	sqlcUser, err := s.q.GetUserByEmail(ctx, id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Convert sqlc.User to User
-	return toDomainUser(sqlcUser), nil
-}
+// 	// Convert sqlc.User to User
+// 	return toDomainUser(sqlcUser), nil
+// }
 
 // this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
 func (s *SqlcUserRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
 	sqlcUser, err := s.q.CreateUser(ctx, sqlc.CreateUserParams{
-		FullName: user.Name,
-		Email:    utils.ToPgText(user.Email),
-		Password: user.Password,
+		FullName:    user.Name,
+		Email:       utils.ToPgText(user.Email),
+		Password:    user.Password,
+		PhoneNumber: user.PhoneNumber,
+		Nin:         user.Nin,
 	})
 	if err != nil {
 		return nil, err

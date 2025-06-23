@@ -29,7 +29,15 @@ migrate-down-all:
 	migrate -database $(DB_URL) -path internal/db/migrations down -all
 
 migrate-force:
-	migrate -database $(DB_URL) -path internal/db/migrations force $(VERSION)
+	@echo "Enter the version to force (e.g., 4, 5, 6):"
+	@read -p "> " version; \
+	if [ -z "$$version" ]; then \
+		echo "Error: Version cannot be empty"; \
+		exit 1; \
+	fi; \
+	migrate -database $(DB_URL) -path internal/db/migrations force $$version; \
+	echo "Database forced to version $$version successfully!"
+
 
 migrate-version:
 	migrate -database $(DB_URL) -path internal/db/migrations version

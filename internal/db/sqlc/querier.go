@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -20,8 +21,8 @@ type Querier interface {
 	// WHERE id = $1
 	// RETURNING *;
 	DeleteUser(ctx context.Context, id uuid.UUID) error
-	GetUser(ctx context.Context, id uuid.UUID) (User, error)
-	GetUserByEmail(ctx context.Context, phoneNumber string) (User, error)
+	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
+	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }

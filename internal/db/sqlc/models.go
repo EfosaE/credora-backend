@@ -10,15 +10,16 @@ import (
 )
 
 type Account struct {
-	ID                    uuid.UUID        `json:"id"`
-	UserID                pgtype.UUID      `json:"user_id"`
-	AccountNumber         string           `json:"account_number"`
-	AccountType           string           `json:"account_type"`
-	Balance               pgtype.Numeric   `json:"balance"`
-	Currency              string           `json:"currency"`
-	PaystackRecipientCode pgtype.Text      `json:"paystack_recipient_code"`
-	CreatedAt             pgtype.Timestamp `json:"created_at"`
-	UpdatedAt             pgtype.Timestamp `json:"updated_at"`
+	ID                 uuid.UUID        `json:"id"`
+	UserID             pgtype.UUID      `json:"user_id"`
+	AccountNumber      string           `json:"account_number"`
+	AccountType        string           `json:"account_type"`
+	Balance            pgtype.Numeric   `json:"balance"`
+	Currency           string           `json:"currency"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	VirtualAccountBank pgtype.Text      `json:"virtual_account_bank"`
+	MonnifyCustomerRef pgtype.Text      `json:"monnify_customer_ref"`
 }
 
 type Transaction struct {
@@ -40,7 +41,9 @@ type User struct {
 	PhoneNumber        string           `json:"phone_number"`
 	Password           string           `json:"password"`
 	IsVerified         pgtype.Bool      `json:"is_verified"`
-	PaystackCustomerID pgtype.Text      `json:"paystack_customer_id"`
 	CreatedAt          pgtype.Timestamp `json:"created_at"`
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	Nin                string           `json:"nin"`
+	ExpiresAt          pgtype.Timestamp `json:"expires_at"`
+	MonnifyCustomerRef pgtype.Text      `json:"monnify_customer_ref"`
 }

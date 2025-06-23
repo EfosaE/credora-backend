@@ -13,9 +13,9 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, full_name, phone_number, password)
-VALUES ($1, $2, $3, $4)
-RETURNING id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at
+INSERT INTO users (email, full_name, phone_number, password, nin)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref
 `
 
 type CreateUserParams struct {
@@ -23,6 +23,7 @@ type CreateUserParams struct {
 	FullName    string      `json:"full_name"`
 	PhoneNumber string      `json:"phone_number"`
 	Password    string      `json:"password"`
+	Nin         string      `json:"nin"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.FullName,
 		arg.PhoneNumber,
 		arg.Password,
+		arg.Nin,
 	)
 	var i User
 	err := row.Scan(
@@ -40,9 +42,11 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PhoneNumber,
 		&i.Password,
 		&i.IsVerified,
-		&i.PaystackCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nin,
+		&i.ExpiresAt,
+		&i.MonnifyCustomerRef,
 	)
 	return i, err
 }
@@ -65,13 +69,13 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getUser = `-- name: GetUser :one
-SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
-WHERE id = $1
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref FROM users
+WHERE email = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -80,20 +84,22 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.PhoneNumber,
 		&i.Password,
 		&i.IsVerified,
-		&i.PaystackCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nin,
+		&i.ExpiresAt,
+		&i.MonnifyCustomerRef,
 	)
 	return i, err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
+const getUserByPhone = `-- name: GetUserByPhone :one
+SELECT id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref FROM users
 WHERE phone_number = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, phoneNumber string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, phoneNumber)
+func (q *Queries) GetUserByPhone(ctx context.Context, phoneNumber string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByPhone, phoneNumber)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -102,15 +108,17 @@ func (q *Queries) GetUserByEmail(ctx context.Context, phoneNumber string) (User,
 		&i.PhoneNumber,
 		&i.Password,
 		&i.IsVerified,
-		&i.PaystackCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nin,
+		&i.ExpiresAt,
+		&i.MonnifyCustomerRef,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at FROM users
+SELECT id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -136,9 +144,11 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.PhoneNumber,
 			&i.Password,
 			&i.IsVerified,
-			&i.PaystackCustomerID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Nin,
+			&i.ExpiresAt,
+			&i.MonnifyCustomerRef,
 		); err != nil {
 			return nil, err
 		}
@@ -154,7 +164,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET full_name = $2, email = $3
 WHERE id = $1
-RETURNING id, full_name, email, phone_number, password, is_verified, paystack_customer_id, created_at, updated_at
+RETURNING id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref
 `
 
 type UpdateUserParams struct {
@@ -173,9 +183,11 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PhoneNumber,
 		&i.Password,
 		&i.IsVerified,
-		&i.PaystackCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Nin,
+		&i.ExpiresAt,
+		&i.MonnifyCustomerRef,
 	)
 	return i, err
 }

@@ -5,10 +5,10 @@ import (
 )
 
 type MockMonnifyRepo struct {
-	CreateReservedAccountFunc func(req *monnify.CreateCustomerRequest) (*monnify.CreateCustomerResponse, error)
+	CreateReservedAccountFunc func(req *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error)
 }
 
-func (m *MockMonnifyRepo) CreateReservedAccount(req *monnify.CreateCustomerRequest) (*monnify.CreateCustomerResponse, error) {
+func (m *MockMonnifyRepo) CreateReservedAccount(req *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 	return m.CreateReservedAccountFunc(req)
 }
 

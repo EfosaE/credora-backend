@@ -12,6 +12,9 @@ import (
 
 func SetupRouter(userHandler *handler.UserHandler) chi.Router {
 	r := chi.NewRouter()
+
+	// Add recovery middleware first!
+	// r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
 	// r.Use(middleware.Recoverer)
 

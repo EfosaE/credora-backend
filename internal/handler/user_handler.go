@@ -4,6 +4,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/response"
@@ -49,7 +50,11 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Validate request
-	if err := validation.Validate.Struct(&req); err != nil {
+	if err := validation.SafeValidateStruct(validation.Validate, &req); err != nil {
+		if strings.Contains(err.Error(), "internal validation error") {
+			response.SendError(w, r, response.InternalServerError(err, err.Error()))
+			return
+		}
 		errs := utils.ParseValidationErrors(err)
 		response.SendError(w, r, response.BadRequest(errs, "Validation Failed"))
 		return

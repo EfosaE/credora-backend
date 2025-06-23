@@ -4,12 +4,13 @@ package infrastructure
 
 import (
 	// "bytes"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
-
 
 	"github.com/EfosaE/credora-backend/domain/monnify"
 )
@@ -72,9 +73,46 @@ func (m *MonnifyClient) Authenticate() error {
 	return nil
 }
 
-func (m *MonnifyClient) CreateReservedAccount(req *monnify.CreateCustomerRequest) (*monnify.CreateCustomerResponse, error) {
+func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 	// actual HTTP call to Monnify
-	return &monnify.CreateCustomerResponse{}, nil
+	url := fmt.Sprintf("%s/api/v2/bank-transfer/reserved-accounts", m.config.BaseURL)
+	if m.config.Token == "" {
+		if err := m.Authenticate(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Encode body
+	bodyBytes, err := json.Marshal(monnifyCust)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode request body: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.config.Token))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("monnify error [%d]: %s", resp.StatusCode, string(respBody))
+	}
+
+	var response monnify.CreateCRAResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &response, nil
 }
 
 func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) bool {

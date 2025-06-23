@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
@@ -20,14 +21,17 @@ type DB struct {
 }
 
 func InitDB(ctx context.Context) (*DB, error) {
+    pingCtx, cancel := context.WithTimeout(ctx, time.Second*10) // Set a timeout for the database connection
+    defer cancel()
     // Create a connection pool
-    pool, err := pgxpool.New(ctx, config.App.DbUrl)
+    pool, err := pgxpool.New(pingCtx, config.App.DbUrl)
     if err != nil {
         return nil, fmt.Errorf("failed to create connection pool: %w", err)
     }
 
+   
     // Verify the connection
-    if err = pool.Ping(ctx); err != nil {
+    if err = pool.Ping(pingCtx); err != nil {
         return nil, fmt.Errorf("%w", err)
     }
     

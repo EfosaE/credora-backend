@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/domain/monnify"
+	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/service"
 	"github.com/EfosaE/credora-backend/test"
 	"github.com/EfosaE/credora-backend/test/mocks"
@@ -29,19 +29,38 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	}
 
 	mockMonnifyRepo := &mocks.MockMonnifyRepo{
-	CreateReservedAccountFunc: func(req *monnify.CreateCustomerRequest) (*monnify.CreateCustomerResponse, error) {
-		return &monnify.CreateCustomerResponse{
-			RequestSuccessful: true,
-			ResponseMessage:   "Account created successfully",
-			ResponseBody: monnify.CustomerResponseBody{
-				AccountReference: "REF123",
-				AccountName:      "John Doe",
-				AccountNumber:    "1234567890",
-				BankName:         "Wema Bank",
-			},
-		}, nil
-	},
-}
+		CreateReservedAccountFunc: func(req *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
+			return &monnify.CreateCRAResponse{
+				RequestSuccessful: true,
+				ResponseMessage:   "Account created successfully",
+				ResponseCode:      "0",
+				ResponseBody: monnify.CreateCRAResponseBody{
+					ContractCode:          "100693167467",
+					AccountReference:      "REF123",
+					AccountName:           "John Doe",
+					CurrencyCode:          "NGN",
+					CustomerEmail:         "john@example.com",
+					CustomerName:          "John Doe",
+					CollectionChannel:     "RESERVED_ACCOUNT",
+					ReservationReference:  "ABC123456789",
+					ReservedAccountType:   "GENERAL",
+					Status:                "ACTIVE",
+					CreatedOn:             "2024-11-25 07:35:17.566",
+					Nin:                   "21212121212", 
+					RestrictPaymentSource: false,
+					Accounts: []monnify.ReservedAccount{
+						{
+							BankCode:      "50515",
+							BankName:      "Moniepoint Microfinance Bank",
+							AccountNumber: "6839490147",
+							AccountName:   "John Doe",
+						},
+					},
+					IncomeSplitConfig: []monnify.IncomeSplitConfig{},
+				},
+			}, nil
+		},
+	}
 
 	log := test.SetupTestLogger()
 	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
