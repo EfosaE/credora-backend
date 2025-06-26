@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
@@ -50,6 +51,7 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Validate request
+	// safevalidate strcut because for some reason, a panic in the validation package crashes my server so bad chi cant catch it.
 	if err := validation.SafeValidateStruct(validation.Validate, &req); err != nil {
 		if strings.Contains(err.Error(), "internal validation error") {
 			response.SendError(w, r, response.InternalServerError(err, err.Error()))
@@ -63,6 +65,9 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	// Call service
 	user, err := h.userService.CreateUser(r.Context(), &req)
 	if err != nil {
+		if pgerrors.HandleUniqueViolation(w, r, err) {
+			return // already responded
+		}
 		response.SendError(w, r, response.InternalServerError(err, "could not create user"))
 		return
 	}

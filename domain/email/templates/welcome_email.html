@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to {{.CompanyName}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 30px; padding: 20px 0; border-bottom: 2px solid #e0e0e0;">
+      <h1 style="color: #333; margin: 0; font-size: 28px;">Welcome to {{.CompanyName}}!</h1>
+      <p style="color: #666; margin: 10px 0 0 0; font-size: 16px;">We're excited to have you on board</p>
+    </div>
+
+    <!-- Main Content -->
+    <div style="margin-bottom: 30px;">
+      <h2 style="color: #333; margin-bottom: 15px;">Hi {{.UserName}},</h2>
+      
+      <p style="color: #555; font-size: 16px; margin-bottom: 20px;">
+        Thank you for joining {{.CompanyName}}! Your account has been successfully created and you're now ready to start using our services.
+      </p>
+
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007bff;">
+        <h3 style="color: #333; margin-top: 0; margin-bottom: 15px;">Your Account Details:</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #333; width: 140px;">Email:</td>
+            <td style="padding: 8px 0; color: #555;">{{.Email}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #333;">Account ID:</td>
+            <td style="padding: 8px 0; color: #555;">{{.AccountID}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #333;">Created:</td>
+            <td style="padding: 8px 0; color: #555;">{{.CreatedDate}}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Call to Action -->
+      <div style="text-align: center; margin: 30px 0;">
+        <p>Click below to login with your credentials and verify your email</p>
+        <a href="{{.LoginURL}}" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Get Started</a>
+      </div>
+
+      <!-- What's Next Section
+      <div style="margin: 30px 0;">
+        <h3 style="color: #333; margin-bottom: 15px;">What's Next?</h3>
+        <ul style="color: #555; padding-left: 20px;">
+          <li style="margin-bottom: 8px;">Complete your profile setup</li>
+          <li style="margin-bottom: 8px;">Explore our features and tools</li>
+          <li style="margin-bottom: 8px;">Set up your payment preferences</li>
+          <li style="margin-bottom: 8px;">Connect with our community</li>
+        </ul>
+      </div> -->
+
+      <!-- Support Section -->
+      <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+        <h3 style="color: #333; margin-top: 0; margin-bottom: 10px;">Need Help?</h3>
+        <p style="color: #555; margin-bottom: 10px;">Our support team is here to help you get started:</p>
+        <ul style="color: #555; margin: 0; padding-left: 20px;">
+          <li>Email us at <a href="mailto:{{.SupportEmail}}" style="color: #007bff;">{{.SupportEmail}}</a></li>
+          <li>Visit our <a href="{{.HelpURL}}" style="color: #007bff;">Help Center</a></li>
+          <li>Check out our <a href="{{.GettingStartedURL}}" style="color: #007bff;">Getting Started Guide</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #888; font-size: 14px;">
+      <p style="margin: 0 0 10px 0;">Thanks for choosing {{.CompanyName}}</p>
+      <p style="margin: 0 0 10px 0;">{{.CompanyAddress}}</p>
+      <p style="margin: 0;">
+        <a href="{{.UnsubscribeURL}}" style="color: #888; text-decoration: none;">Unsubscribe</a> | 
+        <a href="{{.PrivacyURL}}" style="color: #888; text-decoration: none;">Privacy Policy</a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

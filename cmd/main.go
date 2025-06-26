@@ -58,8 +58,12 @@ func main() {
 	client := infrastructure.NewMonnifyClient(monnifyConfig, &http.Client{Timeout: 10 * time.Second})
 	monnifySvc := service.NewMonnifyService(client, logger)
 
+	// initialize email service
+	emailAdapter := infrastructure.NewEmailAdapter()
+	emailSvc := service.NewEmailService(emailAdapter)
+
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
-	userService := service.NewUserService(userRepo, logger, monnifySvc)
+	userService := service.NewUserService(userRepo, logger, monnifySvc, emailSvc)
 	userHandler := handler.NewUserHandler(userService)
 
 	r := router.SetupRouter(userHandler)

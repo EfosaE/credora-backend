@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/service"
@@ -19,6 +20,11 @@ import (
 )
 
 func TestCreateUserHandler_Success(t *testing.T) {
+	mockEmailAdapter := &mocks.MockEmailAdapter{
+		SendEmailFunc: func(ctx context.Context, req email.SendEmailRequest) error {
+			return nil
+		},
+	}
 	mockUserRepo := &mocks.MockUserRepo{
 		CreateFunc: func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error) {
 			return &user.User{
@@ -64,8 +70,9 @@ func TestCreateUserHandler_Success(t *testing.T) {
 
 	log := test.SetupTestLogger()
 	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
+	mockEmailSvc := service.NewEmailService(mockEmailAdapter)
 	// monnifyClient := test.SetupTestMonnifyClient()
-	service := service.NewUserService(mockUserRepo, log, mockMonnifySvc)
+	service := service.NewUserService(mockUserRepo, log, mockMonnifySvc, mockEmailSvc)
 
 	handler := NewUserHandler(service)
 

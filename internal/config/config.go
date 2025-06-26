@@ -8,18 +8,24 @@ import (
 )
 
 type Config struct {
-	DbUrl       string
-	Port        string
-	Env         string
-	JwtSecret   string
+	DbUrl     string
+	Port      string
+	Env       string
+	JwtSecret string
 
 	// Monnify settings
 	MonnifyApiKey       string
 	MonnifySecretKey    string
 	MonnifyContractCode string
 	MonnifyBaseURL      string
-}
 
+	ResendApiKey string
+
+	MailtrapHost string
+	MailtrapPass string
+	MailtrapPort string
+	MailtrapUser string
+}
 
 var App Config
 
@@ -29,19 +35,26 @@ func Load() {
 	}
 
 	App = Config{
-		DbUrl:              mustGetEnv("DATABASE_URL"),
-		Port:               getEnv("PORT", "8080"),
-		Env:                getEnv("APP_ENV", "development"),
+		DbUrl: mustGetEnv("DATABASE_URL"),
+		Port:  getEnv("PORT", "8080"),
+		Env:   getEnv("APP_ENV", "development"),
 		// JwtSecret:        mustGetEnv("JWT_SECRET"),
 
 		MonnifyApiKey:       mustGetEnv("MONNIFY_API_KEY"),
 		MonnifySecretKey:    mustGetEnv("MONNIFY_SECRET_KEY"),
 		MonnifyContractCode: mustGetEnv("MONNIFY_CONTRACT_CODE"),
 		MonnifyBaseURL:      mustGetEnv("MONNIFY_BASE_URL"),
-		
+
+		// Resend
+		ResendApiKey: mustGetEnv("RESEND_API_KEY"),
+
+		// Mailtrap
+		MailtrapHost: mustGetEnv("MAILTRAP_HOST"),
+		MailtrapPort: mustGetEnv("MAILTRAP_PORT"),
+		MailtrapUser: mustGetEnv("MAILTRAP_USER"),
+		MailtrapPass: mustGetEnv("MAILTRAP_PASSWORD"),
 	}
 }
-
 
 // getEnv returns a fallback if variable not set
 func getEnv(key, fallback string) string {

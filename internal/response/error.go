@@ -42,11 +42,8 @@ func NotFound(message string) *ErrorResponse {
 
 // InternalServerError returns a 500 Internal Server Error
 func InternalServerError(err error, message string) *ErrorResponse {
-	errMsg := "Internal server error"
-	if err != nil && message == "" {
-		message = err.Error()
-	}
-	return New(http.StatusInternalServerError, errMsg, message)
+
+	return New(http.StatusInternalServerError, err.Error(), message)
 }
 
 // Unauthorized returns a 401 Unauthorized error

@@ -19,16 +19,6 @@ func NewSqlcUserRepository(ctx context.Context, q *sqlc.Queries) *SqlcUserReposi
 	}
 }
 
-// // this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-// func (s *SqlcUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
-// 	sqlcUser, err := s.q.GetUserByEmail(ctx, id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Convert sqlc.User to User
-// 	return toDomainUser(sqlcUser), nil
-// }
 
 // this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
 func (s *SqlcUserRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
