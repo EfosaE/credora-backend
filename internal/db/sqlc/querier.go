@@ -12,6 +12,7 @@ import (
 )
 
 type Querier interface {
+	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	// -- name: UpdateUser :one
 	// This query is commented out because it updates manually but I have associated trigger

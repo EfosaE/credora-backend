@@ -11,15 +11,16 @@ import (
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
-	"github.com/EfosaE/credora-backend/service"
+
+	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/go-chi/render"
 )
 
 type UserHandler struct {
-	userService *service.UserService
+	userService *usersvc.UserService
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
+func NewUserHandler(userService *usersvc.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 

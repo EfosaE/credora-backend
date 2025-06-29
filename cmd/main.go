@@ -15,6 +15,8 @@ import (
 	"github.com/EfosaE/credora-backend/internal/router"
 	"github.com/EfosaE/credora-backend/internal/server"
 	"github.com/EfosaE/credora-backend/service"
+	accountsvc "github.com/EfosaE/credora-backend/service/account"
+	usersvc "github.com/EfosaE/credora-backend/service/user"
 )
 
 func main() {
@@ -53,20 +55,25 @@ func main() {
 		ContractCode: config.App.MonnifyContractCode,
 		BaseURL:      config.App.MonnifyBaseURL,
 	}
-	
+
 	// Initialize Monnify client
-	client := infrastructure.NewMonnifyClient(monnifyConfig, &http.Client{Timeout: 10 * time.Second})
-	monnifySvc := service.NewMonnifyService(client, logger)
+	monnifyClient := infrastructure.NewMonnifyClient(monnifyConfig, &http.Client{Timeout: 10 * time.Second})
+	monnifySvc := service.NewMonnifyService(monnifyClient, logger)
+	monnifyHandler := handler.NewMonnifyHandler(monnifySvc)
 
 	// initialize email service
 	emailAdapter := infrastructure.NewEmailAdapter()
 	emailSvc := service.NewEmailService(emailAdapter)
 
+	//initialize acct service
+	acctRepo := infrastructure.NewSqlcAccountRepository(qCtx, db.Queries)
+	acctSvc := accountsvc.NewAccountService(acctRepo, logger)
+
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
-	userService := service.NewUserService(userRepo, logger, monnifySvc, emailSvc)
+	userService := usersvc.NewUserService(userRepo, logger, monnifySvc, emailSvc, acctSvc)
 	userHandler := handler.NewUserHandler(userService)
 
-	r := router.SetupRouter(userHandler)
+	r := router.SetupRouter(userHandler, monnifyHandler)
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)

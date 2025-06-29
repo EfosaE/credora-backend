@@ -23,3 +23,7 @@ func NewMonnifyService(monnifyRepo monnify.MonnifyRepository, logger *logger.Log
 func (s *MonnifyService) CreateCustomer(customer *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 	return s.monnifyRepo.CreateReservedAccount(customer)
 }
+
+func (s *MonnifyService) DeleteCustomer(acctRef string) (*monnify.CreateCRAResponse, error) {
+	return s.monnifyRepo.DeleteReservedAccount(acctRef)
+}

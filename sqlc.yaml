@@ -18,3 +18,5 @@ sql:
         emit_prepared_queries: true # Use prepared statements for better performance
         emit_interface: true # Generate a Querier interface for easier mocking/testing
         emit_exact_table_names: false # Use Go-idiomatic CamelCase for struct names
+        emit_pgx_types: false
+

@@ -29,6 +29,12 @@ func NewMonnifyClient(config *monnify.MonnifyConfig, client *http.Client) *Monni
 }
 
 // Implement MonnifyRepository
+
+// ============================================================================
+//                             AUTH AND SECURITY
+// ============================================================================
+
+// AUTHENTICATE
 func (m *MonnifyClient) Authenticate() error {
 	url := fmt.Sprintf("%s/api/v1/auth/login", m.config.BaseURL)
 
@@ -73,6 +79,19 @@ func (m *MonnifyClient) Authenticate() error {
 	return nil
 }
 
+func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) bool {
+	// actual signature validation logic
+	return true
+}
+
+
+// ============================================================================
+//                              RESERVED ACCOUNT
+// ============================================================================
+
+
+/** ----- CREATE RESERVED ACCOUNT ------ **/
+
 func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 	// actual HTTP call to Monnify
 	url := fmt.Sprintf("%s/api/v2/bank-transfer/reserved-accounts", m.config.BaseURL)
@@ -115,7 +134,40 @@ func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAPara
 	return &response, nil
 }
 
-func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) bool {
-	// actual signature validation logic
-	return true
+/** ----- DELETE RESERVED ACCOUNT ------ **/
+func (m *MonnifyClient) DeleteReservedAccount(acctRef string) (*monnify.CreateCRAResponse, error) {
+	url := fmt.Sprintf("%s/api/v1/bank-transfer/reserved-accounts/reference/%s", m.config.BaseURL, acctRef)
+
+	if m.config.Token == "" {
+		if err := m.Authenticate(); err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.config.Token))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("monnify error [%d]: %s", resp.StatusCode, string(respBody))
+	}
+
+	var response monnify.CreateCRAResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &response, nil
 }
+

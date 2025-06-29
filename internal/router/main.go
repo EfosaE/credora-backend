@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/EfosaE/credora-backend/internal/handler"
@@ -10,7 +11,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func SetupRouter(userHandler *handler.UserHandler) chi.Router {
+func SetupRouter(userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler) chi.Router {
 	r := chi.NewRouter()
 
 	// Add recovery middleware first!
@@ -32,7 +33,7 @@ func SetupRouter(userHandler *handler.UserHandler) chi.Router {
 
 	r.NotFound(response.NotFoundHandler())
 	r.MethodNotAllowed(response.MethodNotAllowedHandler())
-	
+
 	// // Mounting the new Sub Router on the main router
 	// r.Mount("/api/v1", apiRouter)
 
@@ -45,12 +46,15 @@ func SetupRouter(userHandler *handler.UserHandler) chi.Router {
 	// RegisterUserRoutes(apiRouter, userHandler)
 
 	r.Route("/api/v1", func(api chi.Router) {
-		api.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Welcome to Credora API v1"))
-		})
-		// Register your app routes here
-		// This will register the user routes under /api/v1/users
+		// 1. Specific fixed routes first
 		RegisterUserRoutes(api, userHandler)
+		RegisterMonnifyRoutes(api, monnifyHandler)
+
+		// 2. Catch-all {name} route last
+		api.Get("/{name}", func(w http.ResponseWriter, r *http.Request) {
+			name := chi.URLParam(r, "name")
+			fmt.Fprintf(w, "Welcome To Creadora API %s", name)
+		})
 	})
 
 	return r
