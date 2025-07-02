@@ -82,6 +82,8 @@ func main() {
 		http.Redirect(w, r, "/api/v1", http.StatusFound)
 	})
 
+	// log.Printf("Launching HTTP server on %s...", config.App.Port)
+
 	// Start server with graceful shutdown
 	if err := srv.Start(); err != nil {
 		log.Fatal(err)

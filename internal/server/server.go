@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -26,7 +28,7 @@ type ServerConfig struct {
 // DefaultConfig returns a server configuration with sensible defaults
 func DefaultConfig() *ServerConfig {
 	return &ServerConfig{
-		Port:              ":8000",
+		Port:              ":" + config.App.Port,
 		ReadTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -65,6 +67,8 @@ func New(router chi.Router, config *ServerConfig) *Server {
 
 // Start starts the server and handles graceful shutdown
 func (s *Server) Start() error {
+	log.Printf("Launching HTTP server on %s...", s.config.Port)
+
 	// Channel to listen for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
