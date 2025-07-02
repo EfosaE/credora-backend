@@ -35,5 +35,5 @@ type CreateUserResponse struct {
 	BankName             string                    `json:"bank_name,omitempty"`      // fallback if you just need one
 	AccountNumber        string                    `json:"account_number,omitempty"` // fallback if you just need one
 	Status               string                    `json:"status"`                   // Monnify reserved account status
-	CreatedAt            time.Time                 `json:"created_at"`
+	CreatedAt            time.Time                `json:"created_at"`
 }

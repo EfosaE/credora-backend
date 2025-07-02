@@ -2,13 +2,16 @@ package usersvc
 
 import (
 	"context"
+	"encoding/json"
 
-	"github.com/EfosaE/credora-backend/domain/account"
+	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/logger"
-	accountsvc "github.com/EfosaE/credora-backend/service/account"
+
+	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 
 	"github.com/EfosaE/credora-backend/domain/user"
 
+	"github.com/EfosaE/credora-backend/internal/eventbus"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
 )
@@ -16,24 +19,27 @@ import (
 type UserService struct {
 	userRepo   user.UserRepository
 	logger     *logger.Logger
+	eventBus   eventbus.EventBus
 	monnifySvc *service.MonnifyService
-	emailSvc   service.EmailService
-	acctSvc    *accountsvc.AccountService
+	// emailSvc   service.EmailService
+	// acctSvc    *accountsvc.AccountService
 }
 
 func NewUserService(
 	userRepo user.UserRepository,
 	logger *logger.Logger,
+	eventBus eventbus.EventBus,
 	monnifySvc *service.MonnifyService,
-	emailSvc service.EmailService,
-	acctSvc *accountsvc.AccountService,
+	// emailSvc service.EmailService,
+	// acctSvc *accountsvc.AccountService,
 ) *UserService {
 	return &UserService{
 		userRepo:   userRepo,
 		logger:     logger,
+		eventBus:   eventBus,
 		monnifySvc: monnifySvc,
-		emailSvc:   emailSvc,
-		acctSvc:    acctSvc,
+		// emailSvc:   emailSvc,
+		// acctSvc:    acctSvc,
 	}
 }
 
@@ -59,23 +65,18 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		return nil, err
 	}
 
-	// update the account table with the newly created info
-	_, err = s.acctSvc.CreateAccount(ctx, &account.CreateAccountRequest{
-		UserId:         result.ID,
-		AccountNumber:  monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
-		AccountType:    monnifyCustResp.ResponseBody.CollectionChannel,
-		BankName:       monnifyCustResp.ResponseBody.Accounts[0].BankName,
-		MonnifyCustRef: monnifyCustResp.ResponseBody.AccountReference,
-	})
-	if err != nil {
-		s.logger.Error("failed to create account in database", map[string]any{
-			"error":   err.Error(),
-			"user_id": result.ID.String(),
-		})
+	event := event.UserCreatedEvent{
+		UserID:        result.ID,
+		AccountNumber: monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
+		Name:          result.Name,
+		BankName:      monnifyCustResp.ResponseBody.Accounts[0].BankName,
+		Email:         result.Email,
 	}
 
-	// 4. Send emails in parallel (welcome + account number)
-	s.SendPostSignupEmails(*result, monnifyCustResp)
+	data, _ := json.Marshal(event)
+	s.eventBus.Publish(ctx, "user.created", map[string]any{
+		"data": string(data),
+	})
 
 	s.logger.Info("User successfully created", map[string]any{"userID": result.ID, "user_account_ref": monnifyCustResp.ResponseBody.AccountReference})
 

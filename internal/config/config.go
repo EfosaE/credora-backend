@@ -25,6 +25,8 @@ type Config struct {
 	MailtrapPass string
 	MailtrapPort string
 	MailtrapUser string
+
+	RedisAddr string
 }
 
 var App Config
@@ -53,6 +55,9 @@ func Load() {
 		MailtrapPort: mustGetEnv("MAILTRAP_PORT"),
 		MailtrapUser: mustGetEnv("MAILTRAP_USER"),
 		MailtrapPass: mustGetEnv("MAILTRAP_PASSWORD"),
+
+		// Redis
+		RedisAddr: mustGetEnv("REDIS_ADDR"),
 	}
 }
 

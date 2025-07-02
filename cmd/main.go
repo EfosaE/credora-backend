@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -17,12 +18,14 @@ import (
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 
 	dbCtx := context.Background()
 	qCtx := context.Background()
+	evtCtx := context.Background()
 	config.Load()
 	// Create logger configuration
 	loggerConfig := logger.LoggerConfig{
@@ -48,6 +51,22 @@ func main() {
 	}
 	defer db.Pool.Close()
 
+	// redis init
+	rdb := redis.NewClient(&redis.Options{
+		Addr: config.App.RedisAddr,
+		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
+			fmt.Println("✅ Redis connection established")
+			return nil
+		},
+	})
+
+	// Optional: ping to test right away
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		fmt.Printf("❌ Redis ping failed: %v\n", err)
+	}
+
+	eventBus := infrastructure.NewStreamEventBus(rdb)
+
 	// Initialize Monnify configuration
 	monnifyConfig := &monnify.MonnifyConfig{
 		ApiKey:       config.App.MonnifyApiKey,
@@ -63,15 +82,27 @@ func main() {
 
 	// initialize email service
 	emailAdapter := infrastructure.NewEmailAdapter()
-	emailSvc := service.NewEmailService(emailAdapter)
+	emailSvc := service.NewEmailService(emailAdapter, eventBus)
 
 	//initialize acct service
 	acctRepo := infrastructure.NewSqlcAccountRepository(qCtx, db.Queries)
-	acctSvc := accountsvc.NewAccountService(acctRepo, logger)
+	acctSvc := accountsvc.NewAccountService(acctRepo, logger, eventBus)
 
+	//initialize user service
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
-	userService := usersvc.NewUserService(userRepo, logger, monnifySvc, emailSvc, acctSvc)
+	userService := usersvc.NewUserService(userRepo, logger, eventBus, monnifySvc)
 	userHandler := handler.NewUserHandler(userService)
+
+
+	// Subscribe to events
+	if err := emailSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
+		panic(err)
+	}
+
+	if err := acctSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
+		panic(err)
+	}
+
 
 	r := router.SetupRouter(userHandler, monnifyHandler)
 

@@ -38,30 +38,30 @@ func (s *UserService) CreateVirtualAccount(ctx context.Context, req *user.Create
 	return monnifyCustResp, nil
 }
 
-func (s *UserService) SendPostSignupEmails(user user.User, acct *monnify.CreateCRAResponse) {
-	go func() {
-		ctx := context.Background()
+// func (s *UserService) SendPostSignupEmails(user user.User, acct *monnify.CreateCRAResponse) {
+// 	go func() {
+// 		ctx := context.Background()
 
-		// if err := s.emailSvc.SendWelcomeEmail(ctx, user); err != nil {
-		// 	s.logger.Error("failed to send welcome email", map[string]any{
-		// 		"error": err.Error(),
-		// 		"to":    user.Email,
-		// 	})
-		// } else {
-		// 	s.logger.Info("Welcome email sent", map[string]any{"to": user.Email})
-		// }
+// 		// if err := s.emailSvc.SendWelcomeEmail(ctx, user); err != nil {
+// 		// 	s.logger.Error("failed to send welcome email", map[string]any{
+// 		// 		"error": err.Error(),
+// 		// 		"to":    user.Email,
+// 		// 	})
+// 		// } else {
+// 		// 	s.logger.Info("Welcome email sent", map[string]any{"to": user.Email})
+// 		// }
 
-		firstAcct := acct.ResponseBody.Accounts[0]
-		if err := s.emailSvc.SendAccountNumberEmail(ctx, user.Email, firstAcct.BankName, firstAcct.AccountNumber); err != nil {
-			s.logger.Error("failed to send account number email", map[string]any{
-				"error": err.Error(),
-				"to":    user.Email,
-			})
-		} else {
-			s.logger.Info("Account number email sent", map[string]any{
-				"to": user.Email,
-				"id": acct.ResponseBody.AccountReference,
-			})
-		}
-	}()
-}
+// 		firstAcct := acct.ResponseBody.Accounts[0]
+// 		if err := s.emailSvc.SendAccountNumberEmail(ctx, user.Email, firstAcct.BankName, firstAcct.AccountNumber); err != nil {
+// 			s.logger.Error("failed to send account number email", map[string]any{
+// 				"error": err.Error(),
+// 				"to":    user.Email,
+// 			})
+// 		} else {
+// 			s.logger.Info("Account number email sent", map[string]any{
+// 				"to": user.Email,
+// 				"id": acct.ResponseBody.AccountReference,
+// 			})
+// 		}
+// 	}()
+// }
