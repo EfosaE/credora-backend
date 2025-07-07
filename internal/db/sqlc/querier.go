@@ -22,6 +22,7 @@ type Querier interface {
 	// WHERE id = $1
 	// RETURNING *;
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)

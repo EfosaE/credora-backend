@@ -69,7 +69,7 @@ migrate-drop:
 	migrate -database $(DATABASE_URL) -path internal/db/migrations drop -f
 
 run:
-	go run cmd/server/main.go
+	go run cmd/main.go
 
 build:
 	go build -o bin/server cmd/main.go

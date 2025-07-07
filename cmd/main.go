@@ -17,6 +17,7 @@ import (
 	"github.com/EfosaE/credora-backend/internal/server"
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
+	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/redis/go-redis/v9"
 )
@@ -91,8 +92,13 @@ func main() {
 	//initialize user service
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
 	userService := usersvc.NewUserService(userRepo, logger, eventBus, monnifySvc)
-	userHandler := handler.NewUserHandler(userService)
 
+	// initialize auth service
+	tokenSvc := authsvc.NewJWTTokenService(config.App.JwtSecret, time.Hour*24)
+	authSvc := authsvc.NewAuthService(tokenSvc, acctRepo)
+
+	// Initialize auth handler
+	authHandler := handler.NewAuthHandler(userService, authSvc)
 
 	// Subscribe to events
 	if err := emailSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
@@ -103,8 +109,7 @@ func main() {
 		panic(err)
 	}
 
-
-	r := router.SetupRouter(userHandler, monnifyHandler)
+	r := router.SetupRouter(authHandler, monnifyHandler)
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)

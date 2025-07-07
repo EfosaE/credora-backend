@@ -11,11 +11,9 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func SetupRouter(userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler) chi.Router {
+func SetupRouter(authHandler *handler.AuthHandler, monnifyHandler *handler.MonnifyHandler) chi.Router {
 	r := chi.NewRouter()
 
-	// Add recovery middleware first!
-	// r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
 	// r.Use(middleware.Recoverer)
 
@@ -34,20 +32,11 @@ func SetupRouter(userHandler *handler.UserHandler, monnifyHandler *handler.Monni
 	r.NotFound(response.NotFoundHandler())
 	r.MethodNotAllowed(response.MethodNotAllowedHandler())
 
-	// // Mounting the new Sub Router on the main router
-	// r.Mount("/api/v1", apiRouter)
-
-	// // Registering the routes on apiRouter
-	// apiRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.Write([]byte("Welcome to Credora API v1"))
-	// })
-
-	// // Register your app routes here
-	// RegisterUserRoutes(apiRouter, userHandler)
-
 	r.Route("/api/v1", func(api chi.Router) {
-		// 1. Specific fixed routes first
-		RegisterUserRoutes(api, userHandler)
+		api.Post("/auth/register", authHandler.RegisterUserHandler)
+		api.Post("/auth/login", authHandler.LoginUserHandler)
+
+		// RegisterUserRoutes(api, userHandler)
 		RegisterMonnifyRoutes(api, monnifyHandler)
 
 		// 2. Catch-all {name} route last

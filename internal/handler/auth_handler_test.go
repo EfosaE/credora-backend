@@ -13,6 +13,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/service"
+	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/EfosaE/credora-backend/test"
 	"github.com/EfosaE/credora-backend/test/mocks"
@@ -47,16 +48,17 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	mockEventBus := &mocks.MockEventBus{}
 	// mockEmailSvc := service.NewEmailService(mockEmailAdapter)
 	// monnifyClient := test.SetupTestMonnifyClient()
-	service := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc)
+	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc)
+	authSvc := authsvc.NewAuthService(nil, nil)
 
-	handler := NewUserHandler(service)
+	handler := NewAuthHandler(userSvc, authSvc)
 
 	body := `{"name": "Efosa", "email": "efosa@example.com", "password": "password123", "nin":"35487696846", "phone_number":"09067353727"}`
 	req := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
-	handler.CreateUserHandler(w, req)
+	handler.RegisterUserHandler(w, req)
 
 	res := w.Result()
 	defer res.Body.Close()

@@ -24,6 +24,11 @@ type CreateUserRequest struct {
 	PhoneNumber string `json:"phone_number" validate:"required,min=11,max=15"`
 }
 
+type LoginUserRequest struct {
+	AccountNumber string `json:"account_number" validate:"required,min=10,max=10"`
+	Password      string `json:"password" validate:"required,min=8,max=100"`
+}
+
 type CreateUserResponse struct {
 	ID                   uuid.UUID                 `json:"id"`
 	Name                 string                    `json:"name"`
@@ -35,5 +40,5 @@ type CreateUserResponse struct {
 	BankName             string                    `json:"bank_name,omitempty"`      // fallback if you just need one
 	AccountNumber        string                    `json:"account_number,omitempty"` // fallback if you just need one
 	Status               string                    `json:"status"`                   // Monnify reserved account status
-	CreatedAt            time.Time                `json:"created_at"`
+	CreatedAt            time.Time                 `json:"created_at"`
 }

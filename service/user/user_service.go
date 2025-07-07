@@ -6,6 +6,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/logger"
+	authsvc "github.com/EfosaE/credora-backend/service/auth"
 
 	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 
@@ -47,7 +48,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	s.logger.Info("User creation initiated", map[string]any{"userName": req.Name, "email": req.Email})
 
 	utils.PrintJSON(req) // Print the user request for debugging
-	hashedPassword, _ := HashPassword(req.Password)
+	hashedPassword, _ := authsvc.HashPassword(req.Password)
 
 	req.Password = hashedPassword
 
@@ -94,5 +95,4 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		CreatedAt:            result.CreatedAt,
 	}
 	return userResp, nil
-
 }

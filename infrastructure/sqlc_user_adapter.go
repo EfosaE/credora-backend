@@ -9,19 +9,19 @@ import (
 	// "github.com/google/uuid"
 )
 
-type SqlcUserRepository struct {
+type SqlcRepository struct {
 	q *sqlc.Queries
 }
 
-func NewSqlcUserRepository(ctx context.Context, q *sqlc.Queries) *SqlcUserRepository {
-	return &SqlcUserRepository{
+func NewSqlcUserRepository(ctx context.Context, q *sqlc.Queries) *SqlcRepository {
+	return &SqlcRepository{
 		q: q,
 	}
 }
 
 
-// this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-func (s *SqlcUserRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
+// this SqlcRepository implements the UserRepository interface because it has all the methods defined in the interface
+func (s *SqlcRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
 	sqlcUser, err := s.q.CreateUser(ctx, sqlc.CreateUserParams{
 		FullName:    user.Name,
 		Email:       utils.ToPgText(user.Email),

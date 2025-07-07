@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -51,6 +52,36 @@ func (q *Queries) CreateAccountWithMonnify(ctx context.Context, arg CreateAccoun
 		&i.UpdatedAt,
 		&i.VirtualAccountBank,
 		&i.MonnifyCustomerRef,
+	)
+	return i, err
+}
+
+const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one
+SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number
+FROM accounts a
+JOIN users u ON a.user_id = u.id
+WHERE a.account_number = $1
+`
+
+type GetUserByAccountNumberRow struct {
+	ID            uuid.UUID   `json:"id"`
+	Password      string      `json:"password"`
+	FullName      string      `json:"full_name"`
+	Email         pgtype.Text `json:"email"`
+	PhoneNumber   string      `json:"phone_number"`
+	AccountNumber string      `json:"account_number"`
+}
+
+func (q *Queries) GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error) {
+	row := q.db.QueryRow(ctx, getUserByAccountNumber, accountNumber)
+	var i GetUserByAccountNumberRow
+	err := row.Scan(
+		&i.ID,
+		&i.Password,
+		&i.FullName,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.AccountNumber,
 	)
 	return i, err
 }

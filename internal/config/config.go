@@ -37,10 +37,10 @@ func Load() {
 	}
 
 	App = Config{
-		DbUrl: mustGetEnv("DATABASE_URL"),
-		Port:  getEnv("PORT", "8080"),
-		Env:   getEnv("APP_ENV", "development"),
-		// JwtSecret:        mustGetEnv("JWT_SECRET"),
+		DbUrl:     mustGetEnv("DATABASE_URL"),
+		Port:      getEnv("PORT", "8080"),
+		Env:       getEnv("APP_ENV", "development"),
+		JwtSecret: mustGetEnv("JWT_SECRET"),
 
 		MonnifyApiKey:       mustGetEnv("MONNIFY_API_KEY"),
 		MonnifySecretKey:    mustGetEnv("MONNIFY_SECRET_KEY"),

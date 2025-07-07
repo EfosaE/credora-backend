@@ -9,14 +9,14 @@ import (
 	// "github.com/google/uuid"
 )
 
-func NewSqlcAccountRepository(ctx context.Context, q *sqlc.Queries) *SqlcUserRepository {
-	return &SqlcUserRepository{
+func NewSqlcAccountRepository(ctx context.Context, q *sqlc.Queries) *SqlcRepository {
+	return &SqlcRepository{
 		q: q,
 	}
 }
 
-// this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-func (s *SqlcUserRepository) CreateAcct(ctx context.Context, acct *account.CreateAccountRequest) (*account.Account, error) {
+// this SqlcRepository implements the AccountRepository interface because it has all the methods defined in the interface
+func (s *SqlcRepository) CreateAcct(ctx context.Context, acct *account.CreateAccountRequest) (*account.Account, error) {
 	sqlcAccount, err := s.q.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
 		UserID:             utils.ConvertUUID(acct.UserId),
 		AccountNumber:      acct.AccountNumber,
@@ -32,6 +32,17 @@ func (s *SqlcUserRepository) CreateAcct(ctx context.Context, acct *account.Creat
 	// Convert sqlc.User to User
 	return toDomainAccount(sqlcAccount), nil
 }
+
+func (s *SqlcRepository) GetUserByAccountNumber(ctx context.Context, accountNumber string) (*sqlc.GetUserByAccountNumberRow, error) {
+	result, err := s.q.GetUserByAccountNumber(ctx, accountNumber)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 
 func toDomainAccount(sqlcAcct sqlc.Account) *account.Account {
 	return &account.Account{
