@@ -99,6 +99,7 @@ func main() {
 
 	// Initialize auth handler
 	authHandler := handler.NewAuthHandler(userService, authSvc)
+	userHandler := handler.NewUserHandler(userService)
 
 	// Subscribe to events
 	if err := emailSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
@@ -109,7 +110,7 @@ func main() {
 		panic(err)
 	}
 
-	r := router.SetupRouter(authHandler, monnifyHandler)
+	r := router.SetupRouter(authHandler, userHandler, monnifyHandler, tokenSvc)
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)

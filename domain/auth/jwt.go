@@ -23,7 +23,7 @@ type TokenService interface {
 }
 
 type TokenPayload struct {
-	AccountNumber string
-	Name          string
-	UserID        uuid.UUID
+	AccountNumber string    `json:"account_number"`
+	Name          string    `json:"name"`
+	UserID        uuid.UUID `json:"user_id"`
 }

@@ -2,7 +2,6 @@ package authsvc
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/auth"
@@ -26,7 +25,7 @@ func NewAuthService(tokenService auth.TokenService, acctRepo account.AccountRepo
 
 func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (string, error) {
 	user, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
-	fmt.Println("Error fetching  by account:", err)
+	// fmt.Println("Error fetching  by account:", err)
 	if err != nil {
 		return "", domainerr.ErrUserNotFound
 	}

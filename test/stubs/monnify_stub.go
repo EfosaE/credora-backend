@@ -3,9 +3,11 @@ package stubs
 import "github.com/EfosaE/credora-backend/domain/monnify"
 
 var StubCreateCRAResponse = &monnify.CreateCRAResponse{
-	RequestSuccessful: true,
-	ResponseMessage:   "Account created successfully",
-	ResponseCode:      "0",
+	MonnifyResp: monnify.MonnifyResp{
+		RequestSuccessful: true,
+		ResponseMessage:   "Account created successfully",
+		ResponseCode:      "0",
+	},
 	ResponseBody: monnify.CreateCRAResponseBody{
 		ContractCode:          "100693167467",
 		AccountReference:      "REF123",
@@ -29,5 +31,20 @@ var StubCreateCRAResponse = &monnify.CreateCRAResponse{
 			},
 		},
 		IncomeSplitConfig: []monnify.IncomeSplitConfig{},
+	},
+}
+
+var StubAuthenticateResponse = &monnify.MonnifyAuthResponse{
+	MonnifyResp: monnify.MonnifyResp{
+		RequestSuccessful: true,
+		ResponseMessage:   "Success",
+		ResponseCode:      "0",
+	},
+	ResponseBody: struct {
+		AccessToken string `json:"accessToken"`
+		ExpiresIn   int    `json:"expiresIn"`
+	}{
+		AccessToken: "mocked-token",
+		ExpiresIn:   3567,
 	},
 }

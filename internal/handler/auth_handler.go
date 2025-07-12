@@ -3,13 +3,15 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
-	"net/http"
-	"strings"
 
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
@@ -90,5 +92,16 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccess(w, r, response.OK(map[string]any{"token": token}, "Login successful"))
+	// Set JWT as HTTP-only cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   config.App.Env == "production", // Set to true in production with HTTPS
+		MaxAge:   86400,
+	})
+
+	response.SendSuccess(w, r, response.OK(nil, "Login successful"))
 }

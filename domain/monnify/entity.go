@@ -1,5 +1,20 @@
 package monnify
 
+type MonnifyResp struct {
+	RequestSuccessful bool   `json:"requestSuccessful"`
+	ResponseMessage   string `json:"responseMessage"`
+	ResponseCode      string `json:"responseCode"`
+}
+
+type MonnifyAuthResponse struct {
+	MonnifyResp
+	ResponseBody    struct {
+		AccessToken string `json:"accessToken"`
+		ExpiresIn   int    `json:"expiresIn"`
+	} `json:"responseBody"`
+}
+
+
 // CRA = Customer Reserved Account
 type CreateCRAParams struct {
 	AccountReference     string `json:"accountReference"` // Unique to the customer (can be user ID)
@@ -14,9 +29,7 @@ type CreateCRAParams struct {
 
 // CRA = Customer Reserved Account
 type CreateCRAResponse struct {
-	RequestSuccessful bool                  `json:"requestSuccessful"`
-	ResponseMessage   string                `json:"responseMessage"`
-	ResponseCode      string                `json:"responseCode"`
+	MonnifyResp
 	ResponseBody      CreateCRAResponseBody `json:"responseBody"`
 }
 
@@ -48,14 +61,6 @@ type ReservedAccount struct {
 type IncomeSplitConfig struct {
 	// Empty array in your example.
 	// You can leave this empty or define structure based on Monnify docs if needed later.
-}
-type MonnifyAuthResponse struct {
-	ResponseMessage string `json:"responseMessage"`
-	ResponseCode    string `json:"responseCode"`
-	ResponseBody    struct {
-		AccessToken string `json:"accessToken"`
-		ExpiresIn   int    `json:"expiresIn"`
-	} `json:"responseBody"`
 }
 
 type MonnifyConfig struct {

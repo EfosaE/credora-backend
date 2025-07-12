@@ -6,12 +6,14 @@ import (
 
 	"github.com/EfosaE/credora-backend/internal/handler"
 	"github.com/EfosaE/credora-backend/internal/response"
+	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	// "github.com/go-chi/jwtauth/v5"
 )
 
-func SetupRouter(authHandler *handler.AuthHandler, monnifyHandler *handler.MonnifyHandler) chi.Router {
+func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -38,6 +40,15 @@ func SetupRouter(authHandler *handler.AuthHandler, monnifyHandler *handler.Monni
 
 		// RegisterUserRoutes(api, userHandler)
 		RegisterMonnifyRoutes(api, monnifyHandler)
+
+
+		// JWT Auth Middleware ----- Protected Routes -----
+		api.Group(func(r chi.Router) {
+			r.Use(auth.Verifier())
+			r.Use(auth.Authenticator())
+
+			r.Get("/user/info", userHandler.GetUserInfo)
+		})
 
 		// 2. Catch-all {name} route last
 		api.Get("/{name}", func(w http.ResponseWriter, r *http.Request) {

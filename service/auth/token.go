@@ -1,12 +1,12 @@
 package authsvc
 
-
 import (
 	"context"
 	"net/http"
 	"time"
 
 	"github.com/EfosaE/credora-backend/domain/auth"
+	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/go-chi/jwtauth/v5"
 )
 
@@ -29,7 +29,7 @@ func (j *JWTTokenService) GenerateToken(ctx context.Context, payload auth.TokenP
 		"iat":            time.Now().Unix(),
 		"exp":            time.Now().Add(j.expiryDur).Unix(),
 	})
-	
+
 	return tokenString, err
 }
 
@@ -69,7 +69,7 @@ func (j *JWTTokenService) GenerateToken(ctx context.Context, payload auth.TokenP
 // func (j *JWTTokenService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error) {
 // 	// Refresh tokens typically have longer expiry
 // 	refreshExpiry := time.Hour * 24 * 7 // 7 days
-	
+
 // 	_, tokenString, err := j.tokenAuth.Encode(map[string]interface{}{
 // 		"user_id": userID,
 // 		"type":    "refresh",
@@ -85,7 +85,8 @@ func (j *JWTTokenService) Verifier() func(http.Handler) http.Handler {
 }
 
 func (j *JWTTokenService) Authenticator() func(http.Handler) http.Handler {
-	return jwtauth.Authenticator(j.tokenAuth)
+	// return jwtauth.Authenticator(j.tokenAuth)
+	return CustomAuthenticator(j.tokenAuth)
 }
 
 // Authenticator is a default authentication middleware to enforce access from the
@@ -93,23 +94,24 @@ func (j *JWTTokenService) Authenticator() func(http.Handler) http.Handler {
 // response for any unverified tokens and passes the good ones through. It's just fine
 // until you decide to write something similar and customize your client response.
 func CustomAuthenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
-    return func(next http.Handler) http.Handler {
-        hfn := func(w http.ResponseWriter, r *http.Request) {
-            token, _, err := jwtauth.FromContext(r.Context())
+	return func(next http.Handler) http.Handler {
+		hfn := func(w http.ResponseWriter, r *http.Request) {
+			token, _, err := jwtauth.FromContext(r.Context())
 
-            if err != nil {
-                http.Error(w, err.Error(), http.StatusUnauthorized)
-                return
-            }
+			if err != nil {
+				response.SendError(w, r, response.Unauthorized(err.Error()))
+				// http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 
-            if token == nil {
-                http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-                return
-            }
+			if token == nil {
+				response.SendError(w, r, response.Unauthorized(http.StatusText(http.StatusUnauthorized)))
+				return
+			}
 
-            // Token is authenticated, pass it through
-            next.ServeHTTP(w, r)
-        }
-        return http.HandlerFunc(hfn)
-    }
+			// Token is authenticated, pass it through
+			next.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(hfn)
+	}
 }
