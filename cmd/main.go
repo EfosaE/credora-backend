@@ -97,9 +97,15 @@ func main() {
 	tokenSvc := authsvc.NewJWTTokenService(config.App.JwtSecret, time.Hour*24)
 	authSvc := authsvc.NewAuthService(tokenSvc, acctRepo)
 
-	// Initialize auth handler
+	// initialize my simulator service
+	simRepo := infrastructure.NewInMemoryRepo(config.App.WebhookURL)
+	simSvc := service.NewSimulatorService(simRepo)
+
+	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)
 	userHandler := handler.NewUserHandler(userService)
+	wbHkHandler := handler.NewWebHookHandler()
+	simHandler := handler.NewSimulatorHandler(simSvc)
 
 	// Subscribe to events
 	if err := emailSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
@@ -110,7 +116,7 @@ func main() {
 		panic(err)
 	}
 
-	r := router.SetupRouter(authHandler, userHandler, monnifyHandler, tokenSvc)
+	r := router.SetupRouter(authHandler, userHandler, monnifyHandler, tokenSvc, wbHkHandler, simHandler)
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)

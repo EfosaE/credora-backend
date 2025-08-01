@@ -13,7 +13,7 @@ import (
 	// "github.com/go-chi/jwtauth/v5"
 )
 
-func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService) chi.Router {
+func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService, wbHkHandler *handler.WebHookHandler, simHandler *handler.SimulatorHandler) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -37,10 +37,11 @@ func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHand
 	r.Route("/api/v1", func(api chi.Router) {
 		api.Post("/auth/register", authHandler.RegisterUserHandler)
 		api.Post("/auth/login", authHandler.LoginUserHandler)
+		api.Post("/webhook", wbHkHandler.HandleMonnifyWebhook)
+		api.Post("/simulator/ext", simHandler.SimulateTransferExt)
 
 		// RegisterUserRoutes(api, userHandler)
 		RegisterMonnifyRoutes(api, monnifyHandler)
-
 
 		// JWT Auth Middleware ----- Protected Routes -----
 		api.Group(func(r chi.Router) {
@@ -50,11 +51,12 @@ func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHand
 			r.Get("/user/info", userHandler.GetUserInfo)
 		})
 
-		// 2. Catch-all {name} route last
-		api.Get("/{name}", func(w http.ResponseWriter, r *http.Request) {
-			name := chi.URLParam(r, "name")
-			fmt.Fprintf(w, "Welcome To Creadora API %s", name)
-		})
+
+			// 2. Catch-all {name} route last
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+
+		fmt.Fprintf(w, "Welcome To Creadora API ")
+	})
 	})
 
 	return r

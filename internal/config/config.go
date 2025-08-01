@@ -27,6 +27,8 @@ type Config struct {
 	MailtrapUser string
 
 	RedisAddr string
+
+	WebhookURL string
 }
 
 var App Config
@@ -58,6 +60,8 @@ func Load() {
 
 		// Redis
 		RedisAddr: mustGetEnv("REDIS_ADDR"),
+
+		WebhookURL: mustGetEnv("WEBHOOK_URL"),
 	}
 }
 

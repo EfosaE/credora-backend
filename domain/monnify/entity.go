@@ -1,5 +1,11 @@
 package monnify
 
+import (
+	"encoding/json"
+
+	"github.com/EfosaE/credora-backend/domain/webhook"
+)
+
 type MonnifyResp struct {
 	RequestSuccessful bool   `json:"requestSuccessful"`
 	ResponseMessage   string `json:"responseMessage"`
@@ -8,12 +14,11 @@ type MonnifyResp struct {
 
 type MonnifyAuthResponse struct {
 	MonnifyResp
-	ResponseBody    struct {
+	ResponseBody struct {
 		AccessToken string `json:"accessToken"`
 		ExpiresIn   int    `json:"expiresIn"`
 	} `json:"responseBody"`
 }
-
 
 // CRA = Customer Reserved Account
 type CreateCRAParams struct {
@@ -30,7 +35,7 @@ type CreateCRAParams struct {
 // CRA = Customer Reserved Account
 type CreateCRAResponse struct {
 	MonnifyResp
-	ResponseBody      CreateCRAResponseBody `json:"responseBody"`
+	ResponseBody CreateCRAResponseBody `json:"responseBody"`
 }
 
 // CRA = Customer Reserved Account
@@ -69,4 +74,14 @@ type MonnifyConfig struct {
 	ContractCode string
 	BaseURL      string
 	Token        string
+}
+
+type MonnifyWebhook struct {
+	EventType webhook.EventType `json:"eventType"`
+	EventData json.RawMessage   `json:"eventData"`
+}
+
+type SuccessfulTransactionEvent struct {
+	EventType webhook.EventType             `json:"eventType"`
+	EventData webhook.SuccessfulTransaction `json:"eventData"`
 }

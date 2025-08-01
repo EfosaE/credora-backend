@@ -82,6 +82,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	s.logger.Info("User successfully created", map[string]any{"userID": result.ID, "user_account_ref": monnifyCustResp.ResponseBody.AccountReference})
 
 	userResp := &user.CreateUserResponse{
+		
 		ID:                   result.ID,
 		Name:                 req.Name,
 		Email:                req.Email,

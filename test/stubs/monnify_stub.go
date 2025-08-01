@@ -1,6 +1,15 @@
 package stubs
 
-import "github.com/EfosaE/credora-backend/domain/monnify"
+import (
+	"math/rand"
+	"time"
+
+	"github.com/EfosaE/credora-backend/domain/monnify"
+	"github.com/EfosaE/credora-backend/domain/simulator"
+	"github.com/EfosaE/credora-backend/domain/webhook"
+	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/shopspring/decimal"
+)
 
 var StubCreateCRAResponse = &monnify.CreateCRAResponse{
 	MonnifyResp: monnify.MonnifyResp{
@@ -47,4 +56,50 @@ var StubAuthenticateResponse = &monnify.MonnifyAuthResponse{
 		AccessToken: "mocked-token",
 		ExpiresIn:   3567,
 	},
+}
+
+// BuildSimulatedSuccessEvent builds a stub SuccessfulTransactionEvent dynamically.
+func BuildSimulatedSuccessEventWbHk(req simulator.TransferRequest) *monnify.SuccessfulTransactionEvent {
+	channelCode := rand.Intn(100)
+	trnRef := utils.GenerateMonnifyReference(channelCode)
+
+	return &monnify.SuccessfulTransactionEvent{
+		EventType: webhook.EventSuccessfulTransaction,
+		EventData: webhook.SuccessfulTransaction{
+			Product: webhook.Product{
+				Reference: "1636106097661",
+				Type:      "RESERVED_ACCOUNT",
+			},
+			TransactionReference: trnRef,
+			PaymentReference:     trnRef,
+			PaidOn:               time.Date(2021, 11, 17, 11, 28, 42, 615000000, time.UTC), // parsed timestamp
+			PaymentDescription:   "Adm",
+			Metadata:             map[string]interface{}{},
+			PaymentSourceInformation: []webhook.PaymentSource{
+				{
+					BankCode:      req.SenderBankCode,
+					AmountPaid:    decimal.NewFromFloat(req.Amount),
+					AccountName:   req.SenderName,
+					SessionID:     req.SenderName,
+					AccountNumber: req.SenderAccount,
+				},
+			},
+			DestinationAccountInfo: webhook.DestinationAccount{
+				BankCode:      "232",
+				BankName:      req.RecipientBankName,
+				AccountNumber: req.RecipientAccount,
+			},
+			AmountPaid:       decimal.NewFromFloat(req.Amount),
+			TotalPayable:     decimal.NewFromFloat(req.Amount),
+			CardDetails:      map[string]any{},
+			PaymentMethod:    "ACCOUNT_TRANSFER",
+			Currency:         "NGN",
+			SettlementAmount: utils.CalculateSettlement(decimal.NewFromFloat(req.Amount)),
+			PaymentStatus:    "PAID",
+			Customer: webhook.Customer{ 
+				Name:  "John Doe",
+				Email: "test@tester.com",
+			},
+		},
+	}
 }
