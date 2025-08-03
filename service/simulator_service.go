@@ -5,10 +5,12 @@ import (
 	"errors"
 
 	"github.com/EfosaE/credora-backend/domain/simulator"
+	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 )
 
 type SimulatorService struct {
 	repo simulator.SimulatorRepository
+	
 }
 
 func NewSimulatorService(repo simulator.SimulatorRepository) *SimulatorService {

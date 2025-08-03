@@ -2,10 +2,12 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/shopspring/decimal"
 	// "github.com/google/uuid"
 )
 
@@ -43,6 +45,26 @@ func (s *SqlcRepository) GetUserByAccountNumber(ctx context.Context, accountNumb
 	return &result, nil
 }
 
+func (s *SqlcRepository) CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
+
+	numericAmount, _ := utils.DecimalToPgNumeric(amount)
+	result, err := s.q.CreditAccountBalance(ctx, sqlc.CreditAccountBalanceParams{
+		Amount:        numericAmount,
+		AccountNumber: accountNumber,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to credit account: %w", err)
+	}
+
+	numericBal, err := utils.PgNumericToDecimal(result.Balance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert amount to numeric: %w", err)
+	}
+	return &account.CreditAcctResp{
+		AcctId:  result.ID,
+		Balance: numericBal,
+	}, nil
+}
 
 func toDomainAccount(sqlcAcct sqlc.Account) *account.Account {
 	return &account.Account{

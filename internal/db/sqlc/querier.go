@@ -14,6 +14,7 @@ import (
 type Querier interface {
 	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error)
 	// -- name: UpdateUser :one
 	// This query is commented out because it updates manually but I have associated trigger
 	// that automatically updates the `updated_at` field on any update.

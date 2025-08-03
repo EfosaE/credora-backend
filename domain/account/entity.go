@@ -34,6 +34,12 @@ type TransferRequest struct {
 	Description   string
 	ForceFail     bool // Optional: trigger failure simulation
 }
+
+type CreditAcctResp struct {
+	AcctId  uuid.UUID       `json:"acctID"`
+	Balance decimal.Decimal `json:"balance"`
+}
+
 // type CreateUserResponse struct {
 // 	ID                   uuid.UUID                 `json:"id"`
 // 	Name                 string                    `json:"name"`

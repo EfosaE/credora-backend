@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,20 +15,45 @@ import (
 	"github.com/EfosaE/credora-backend/internal/db"
 	"github.com/EfosaE/credora-backend/internal/handler"
 	"github.com/EfosaE/credora-backend/internal/router"
+	"github.com/EfosaE/credora-backend/internal/seeder"
 	"github.com/EfosaE/credora-backend/internal/server"
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
+	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
+	config.Load()
+
+	// Define CLI flag
+	seedFlag := flag.Bool("seed", false, "Seed the database with fake data")
+	flag.Parse()
+
+	// Check if --seed flag was passed
+	if *seedFlag {
+		ctx := context.Background()
+
+		conn, err := pgx.Connect(ctx, config.App.TestDbUrl)
+		if err != nil {
+			log.Fatalf("DB connect failed: %v", err)
+		}
+		defer conn.Close(ctx)
+		seeder := seeder.NewSeeder(conn, ctx)
+		if err := seeder.SeedUsersAndAccounts(5); err != nil {
+			log.Fatalf("Seeding failed: %v", err)
+		}
+		log.Println("✅ Seeding complete")
+		return // exit after seeding
+	}
+
 
 	dbCtx := context.Background()
 	qCtx := context.Background()
 	evtCtx := context.Background()
-	config.Load()
+	
 	// Create logger configuration
 	loggerConfig := logger.LoggerConfig{
 		LogFilePath:   "logs/app.log",
@@ -104,7 +130,7 @@ func main() {
 	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)
 	userHandler := handler.NewUserHandler(userService)
-	wbHkHandler := handler.NewWebHookHandler()
+	wbHkHandler := handler.NewWebHookHandler(acctSvc)
 	simHandler := handler.NewSimulatorHandler(simSvc)
 
 	// Subscribe to events

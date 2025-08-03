@@ -56,6 +56,30 @@ func (q *Queries) CreateAccountWithMonnify(ctx context.Context, arg CreateAccoun
 	return i, err
 }
 
+const creditAccountBalance = `-- name: CreditAccountBalance :one
+UPDATE accounts
+SET balance = balance + $1
+WHERE account_number = $2
+RETURNING id, balance
+`
+
+type CreditAccountBalanceParams struct {
+	Amount        pgtype.Numeric `json:"amount"`
+	AccountNumber string         `json:"account_number"`
+}
+
+type CreditAccountBalanceRow struct {
+	ID      uuid.UUID      `json:"id"`
+	Balance pgtype.Numeric `json:"balance"`
+}
+
+func (q *Queries) CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error) {
+	row := q.db.QueryRow(ctx, creditAccountBalance, arg.Amount, arg.AccountNumber)
+	var i CreditAccountBalanceRow
+	err := row.Scan(&i.ID, &i.Balance)
+	return i, err
+}
+
 const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one
 SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number
 FROM accounts a

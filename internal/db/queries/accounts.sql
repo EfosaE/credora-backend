@@ -15,3 +15,12 @@ SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1;
+
+
+-- name: CreditAccountBalance :one
+UPDATE accounts
+SET balance = balance + @amount
+WHERE account_number = @account_number
+RETURNING id, balance;
+
+

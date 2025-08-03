@@ -2,7 +2,9 @@ package account
 
 import (
 	"context"
+
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
+	"github.com/shopspring/decimal"
 	// "github.com/google/uuid"
 )
 
@@ -10,4 +12,5 @@ import (
 type AccountRepository interface {
 	CreateAcct(ctx context.Context, req *CreateAccountRequest) (*Account, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (*sqlc.GetUserByAccountNumberRow, error)
+	CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 }

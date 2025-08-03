@@ -9,7 +9,9 @@ import (
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/logger"
+	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/eventbus"
+	"github.com/shopspring/decimal"
 )
 
 type AccountService struct {
@@ -32,6 +34,26 @@ func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateA
 		return nil, err
 	}
 	return acct, nil
+}
+
+func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) (*user.User, error) {
+	acct, err := a.acctRepo.GetUserByAccountNumber(ctx, acctNum)
+	if err != nil {
+		return nil, err
+	}
+	return &user.User{
+		ID:    acct.ID,
+		Email: acct.Email.String,
+		Name:  acct.FullName,
+	}, nil
+}
+
+func (a *AccountService) CreditUserBalance(ctx context.Context, amount decimal.Decimal, acctNum string) (*account.CreditAcctResp, error) {
+	result, err := a.acctRepo.CreditAccount(ctx, amount, acctNum)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error {

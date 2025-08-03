@@ -52,7 +52,7 @@ func (h *AuthHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	// Call service
 	user, err := h.userService.CreateUser(r.Context(), &req)
 	if err != nil {
-		if pgerrors.HandleUniqueViolation(w, r, err) {
+		if pgerrors.HandlePGError(w, r, err) {
 			return // already responded
 		}
 		response.SendError(w, r, response.InternalServerError(err, "could not create user"))

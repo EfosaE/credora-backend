@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	DbUrl     string
+	TestDbUrl string
 	Port      string
 	Env       string
 	JwtSecret string
@@ -40,6 +41,7 @@ func Load() {
 
 	App = Config{
 		DbUrl:     mustGetEnv("DATABASE_URL"),
+		TestDbUrl: getEnv("TEST_DATABASE_URL", "test"),
 		Port:      getEnv("PORT", "8080"),
 		Env:       getEnv("APP_ENV", "development"),
 		JwtSecret: mustGetEnv("JWT_SECRET"),
