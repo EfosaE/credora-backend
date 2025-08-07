@@ -45,3 +45,30 @@ func InitDB(ctx context.Context) (*DB, error) {
         Queries: queries,
     }, nil
 }
+
+
+func InitTestDB(ctx context.Context) (*DB, error) {
+    pingCtx, cancel := context.WithTimeout(ctx, time.Second*10) // Set a timeout for the database connection
+    defer cancel()
+    // Create a connection pool
+    pool, err := pgxpool.New(pingCtx, "postgres://efosa:secret@localhost:5432/postgres?sslmode=disable")
+    if err != nil {
+        return nil, fmt.Errorf("failed to create connection pool: %w", err)
+    }
+
+   
+    // Verify the connection
+    if err = pool.Ping(pingCtx); err != nil {
+        return nil, fmt.Errorf("%w", err)
+    }
+    
+    fmt.Printf("Connection to database successful ✅\n")
+
+    // Initialize queries with the connection pool
+    queries := sqlc.New(pool)
+
+    return &DB{
+        Pool:    pool,
+        Queries: queries,
+    }, nil
+}

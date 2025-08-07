@@ -53,7 +53,7 @@ func main() {
 	dbCtx := context.Background()
 	qCtx := context.Background()
 	evtCtx := context.Background()
-	
+
 	// Create logger configuration
 	loggerConfig := logger.LoggerConfig{
 		LogFilePath:   "logs/app.log",

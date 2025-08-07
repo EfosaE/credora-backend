@@ -81,19 +81,21 @@ func (q *Queries) CreditAccountBalance(ctx context.Context, arg CreditAccountBal
 }
 
 const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one
-SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number
+SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number, a.balance, a.virtual_account_bank
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1
 `
 
 type GetUserByAccountNumberRow struct {
-	ID            uuid.UUID   `json:"id"`
-	Password      string      `json:"password"`
-	FullName      string      `json:"full_name"`
-	Email         pgtype.Text `json:"email"`
-	PhoneNumber   string      `json:"phone_number"`
-	AccountNumber string      `json:"account_number"`
+	ID                 uuid.UUID      `json:"id"`
+	Password           string         `json:"password"`
+	FullName           string         `json:"full_name"`
+	Email              pgtype.Text    `json:"email"`
+	PhoneNumber        string         `json:"phone_number"`
+	AccountNumber      string         `json:"account_number"`
+	Balance            pgtype.Numeric `json:"balance"`
+	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
 }
 
 func (q *Queries) GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error) {
@@ -106,6 +108,8 @@ func (q *Queries) GetUserByAccountNumber(ctx context.Context, accountNumber stri
 		&i.Email,
 		&i.PhoneNumber,
 		&i.AccountNumber,
+		&i.Balance,
+		&i.VirtualAccountBank,
 	)
 	return i, err
 }

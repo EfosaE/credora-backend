@@ -11,7 +11,7 @@ RETURNING *;
 
 
 -- name: GetUserByAccountNumber :one
-SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number
+SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number, a.balance, a.virtual_account_bank
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1;
