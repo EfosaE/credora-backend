@@ -19,7 +19,7 @@ func NewSimulatorService(repo simulator.SimulatorRepository) *SimulatorService {
 
 func (s *SimulatorService) SendMoney(ctx context.Context, req *simulator.TransferRequest) error {
 	// Optional: validate input
-	if req.RecipientAccount == "" || req.Amount <= 0 {
+	if req.RecipientAccount == "" || req.Amount <= 100 {
 		return errors.New("invalid transfer request")
 	}
 

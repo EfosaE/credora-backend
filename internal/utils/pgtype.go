@@ -15,12 +15,17 @@ func ToPgText(s string) pgtype.Text {
 	}
 }
 
-// ConvertUUID converts a google uuid.UUID to pgtype.UUID
-func ConvertUUID(u uuid.UUID) pgtype.UUID {
+// ToPgUUID converts a google/uuid.UUID to pgtype.UUID
+func ToPgUUID(u uuid.UUID) pgtype.UUID {
 	return pgtype.UUID{
 		Bytes: u,
 		Valid: true,
 	}
+}
+
+// FromPgUUID converts a pgtype.UUID to google/uuid.UUID
+func FromPgUUID(pg pgtype.UUID) uuid.UUID {
+	return uuid.UUID(pg.Bytes)
 }
 
 // func PgNumericToDecimal(n pgtype.Numeric) (decimal.Decimal, error) {
@@ -30,11 +35,11 @@ func ConvertUUID(u uuid.UUID) pgtype.UUID {
 // 	return decimal.NewFromString(n.Int.String())
 // }
 
-	func DecimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
-		var n pgtype.Numeric
-		err := n.Scan(d.String())
-		return n, err
-	}
+func DecimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
+	var n pgtype.Numeric
+	err := n.Scan(d.String())
+	return n, err
+}
 func PgNumericToDecimal(n pgtype.Numeric) (decimal.Decimal, error) {
 	if !n.Valid {
 		return decimal.Zero, fmt.Errorf("numeric is null")

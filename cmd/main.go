@@ -20,6 +20,7 @@ import (
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
@@ -48,7 +49,6 @@ func main() {
 		log.Println("✅ Seeding complete")
 		return // exit after seeding
 	}
-
 
 	dbCtx := context.Background()
 	qCtx := context.Background()
@@ -115,6 +115,10 @@ func main() {
 	acctRepo := infrastructure.NewSqlcAccountRepository(qCtx, db.Queries)
 	acctSvc := accountsvc.NewAccountService(acctRepo, logger, eventBus)
 
+	//initialize trx service
+	trxRepo := infrastructure.NewSqlcTransactionRepository(qCtx, db.Queries)
+	trxSvc := transactionsvc.NewTransactionService(trxRepo, logger)
+
 	//initialize user service
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
 	userService := usersvc.NewUserService(userRepo, logger, eventBus, monnifySvc)
@@ -130,7 +134,7 @@ func main() {
 	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)
 	userHandler := handler.NewUserHandler(userService)
-	wbHkHandler := handler.NewWebHookHandler(acctSvc)
+	wbHkHandler := handler.NewWebHookHandler(acctSvc, trxSvc)
 	simHandler := handler.NewSimulatorHandler(simSvc)
 
 	// Subscribe to events

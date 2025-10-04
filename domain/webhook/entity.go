@@ -18,22 +18,22 @@ const (
 )
 
 type SuccessfulTransaction struct {
-	Product                  Product                `json:"product"`
-	TransactionReference     string                 `json:"transactionReference"`
-	PaymentReference         string                 `json:"paymentReference"`
-	PaidOn                   time.Time              `json:"paidOn"`
-	PaymentDescription       string                 `json:"paymentDescription"`
-	Metadata                 map[string]interface{} `json:"metaData"`
-	PaymentSourceInformation []PaymentSource        `json:"paymentSourceInformation"`
-	DestinationAccountInfo   DestinationAccount     `json:"destinationAccountInformation"`
-	AmountPaid               decimal.Decimal        `json:"amountPaid"`
-	TotalPayable             decimal.Decimal        `json:"totalPayable"`
-	CardDetails              map[string]interface{} `json:"cardDetails"` // define explicitly if needed
-	PaymentMethod            string                 `json:"paymentMethod"`
-	Currency                 string                 `json:"currency"`
-	SettlementAmount         string                 `json:"settlementAmount"`
-	PaymentStatus            string                 `json:"paymentStatus"`
-	Customer                 Customer               `json:"customer"`
+	Product                  Product            `json:"product"`
+	TransactionReference     string             `json:"transaction_reference"`
+	PaymentReference         string             `json:"payment_reference"`
+	PaidOn                   time.Time          `json:"paid_on"`
+	PaymentDescription       string             `json:"payment_description"`
+	Metadata                 map[string]any     `json:"metadata"`
+	PaymentSourceInformation []PaymentSource    `json:"payment_source_information"`
+	DestinationAccountInfo   DestinationAccount `json:"destination_account_information"`
+	AmountPaid               decimal.Decimal    `json:"amount_paid"`
+	TotalPayable             decimal.Decimal    `json:"total_payable"`
+	CardDetails              map[string]any     `json:"card_details"` // define explicitly if needed
+	PaymentMethod            string             `json:"payment_method"`
+	Currency                 string             `json:"currency"`
+	SettlementAmount         string             `json:"settlement_amount"`
+	PaymentStatus            string             `json:"payment_status"`
+	Customer                 Customer           `json:"customer"`
 }
 
 type Product struct {
@@ -42,17 +42,17 @@ type Product struct {
 }
 
 type PaymentSource struct {
-	BankCode      string          `json:"bankCode"`
-	AmountPaid    decimal.Decimal `json:"amountPaid"`
-	AccountName   string          `json:"accountName"`
-	SessionID     string          `json:"sessionId"`
-	AccountNumber string          `json:"accountNumber"`
+	BankCode      string          `json:"bank_code"`
+	AmountPaid    decimal.Decimal `json:"amount_paid"`
+	AccountName   string          `json:"account_name"`
+	SessionID     string          `json:"session_id"`
+	AccountNumber string          `json:"account_number"`
 }
 
 type DestinationAccount struct {
-	BankCode      string `json:"bankCode"`
-	BankName      string `json:"bankName"`
-	AccountNumber string `json:"accountNumber"`
+	BankCode      string `json:"bank_code"`
+	BankName      string `json:"bank_name"`
+	AccountNumber string `json:"account_number"`
 }
 
 type Customer struct {

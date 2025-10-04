@@ -5,8 +5,8 @@ CREATE TABLE transactions (
     amount DECIMAL(12, 2) NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'success', 'failed')),
     description TEXT,
-    reference VARCHAR(100) UNIQUE, -- Paystack or internal reference
-    channel VARCHAR(50), -- e.g., 'paystack', 'manual', 'internal'
-    meta JSONB, -- Extra Paystack data
+    reference VARCHAR(100) UNIQUE, -- Monnify or internal reference
+    channel VARCHAR(50), -- e.g., 'Monnify', 'manual', 'internal'
+    meta JSONB, -- Extra Monnify data
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -6,11 +6,7 @@ import (
 	// "github.com/google/uuid"
 )
 
-// AccountRepository defines the methods that the sqlc account repository should implement.
+// TransactionRepository defines the methods that the sqlc transaction repository should implement & transactionsvc can call.
 type TransactionRepository interface {
-	AddMoney(ctx context.Context, req *AddMoneyToWalletRequest) error
-	
-	// Init(ctx context.Context, req *CreateAccountRequest) (*Account, error)
-	// Debit()
-	// GetUserByAccountNumber(ctx context.Context, accountNumber string) (*sqlc.GetUserByAccountNumberRow, error)
+	RecordTransaction(ctx context.Context, req *NewTransactionInput) (*Transaction, error)
 }

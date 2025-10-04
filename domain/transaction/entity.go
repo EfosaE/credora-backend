@@ -1,6 +1,11 @@
 package transaction
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
 
 type TransactionStatus string
 
@@ -11,7 +16,25 @@ const (
 )
 
 type Transaction struct {
-	Status TransactionStatus
+	ID          uuid.UUID         `json:"id"`
+	AccountID   uuid.UUID         `json:"account_id"`
+	Amount      decimal.Decimal   `json:"amount"`
+	Status      TransactionStatus `json:"status"`
+	Description string            `json:"description"`
+	Reference   string            `json:"reference"`
+	Channel     string            `json:"channel"`
+	Meta        []byte            `json:"meta"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+type NewTransactionInput struct {
+	AccountID   uuid.UUID
+	Amount      decimal.Decimal
+	Description string
+	Reference   string
+	Channel     string
+	Status      TransactionStatus
+	Meta        []byte // for optional metadata
 }
 
 type AddMoneyToWalletRequest struct {

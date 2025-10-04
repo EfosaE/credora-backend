@@ -6,20 +6,23 @@ import (
 	"net/http"
 
 	"github.com/EfosaE/credora-backend/domain/monnify"
+	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/EfosaE/credora-backend/domain/webhook"
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
+	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	"github.com/shopspring/decimal"
 )
 
 type WebHookHandler struct {
 	acctSvc *accountsvc.AccountService
+	trxSvc  *transactionsvc.TransactionService
 }
 
-func NewWebHookHandler(acctSvc *accountsvc.AccountService) *WebHookHandler {
-	return &WebHookHandler{acctSvc: acctSvc}
+func NewWebHookHandler(acctSvc *accountsvc.AccountService, trxSvc *transactionsvc.TransactionService) *WebHookHandler {
+	return &WebHookHandler{acctSvc: acctSvc, trxSvc: trxSvc}
 }
 
 func (h WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +53,24 @@ func (h WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Requ
 			}
 			response.SendError(w, r, response.InternalServerError(err, "Failed to credit wallet"))
 			return
+		}
+
+		// 🧾 Step 2: Record the transaction
+		metaBytes, _ := json.Marshal(tx.Metadata) // store full Monnify event data for audit
+		recordInput := transaction.NewTransactionInput{
+			AccountID:   result.AcctId,             // from the credited account
+			Amount:      numericStr,                // from Monnify
+			Status:      transaction.StatusSuccess, // domain constant
+			Description: fmt.Sprintf("Credit of ₦%s from %s via Monnify", tx.SettlementAmount, tx.Customer.Name),
+			Reference:   tx.PaymentReference, // Monnify’s reference
+			Channel:     "Monnify",
+			Meta:        metaBytes,
+		}
+
+		_, err = h.trxSvc.RecordTransaction(r.Context(), &recordInput)
+		if err != nil {
+			fmt.Printf("⚠️ Failed to record transaction: %v\n", err)
+			// You can log but not fail webhook here — credit succeeded already
 		}
 
 		// w.WriteHeader(http.StatusOK)

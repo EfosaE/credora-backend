@@ -22,5 +22,5 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
-      - name: Run tests
+      - name: Run Unit Tests
         run: go test ./...

@@ -1,9 +1,11 @@
+//go:build integration
+// +build integration
+
 package infrastructure
 
 import (
 	"context"
 	"fmt"
-	// "fmt"
 	"testing"
 
 	"github.com/EfosaE/credora-backend/internal/db"
@@ -34,16 +36,15 @@ func TestCreditAccount(t *testing.T) {
 	// --- Action: credit ₦500 ---
 	creditAmt := decimal.NewFromFloat(500)
 	resp, err := acctRepo.CreditAccount(ctx, creditAmt, acctNum)
-    // fmt.Printf("%s, %s/n", resp.AcctId, acct.ID)
+	// fmt.Printf("%s, %s/n", resp.AcctId, acct.ID)
 	require.NoError(t, err)
 	// require.Equal(t, acct.ID, resp.AcctId)
 
 	// --- Assert: balance increased correctly ---
 	originalBal := utils.MustPgNumericToDecimal(acct.Balance)
-    fmt.Println(acct.Balance)
-    fmt.Println(originalBal)
+	fmt.Println(acct.Balance)
+	fmt.Println(originalBal)
 	expectedBal := originalBal.Add(creditAmt)
-    fmt.Println(expectedBal)
+	fmt.Println(expectedBal)
 	require.True(t, resp.Balance.Equal(expectedBal), "expected %s, got %s", expectedBal, resp.Balance)
 }
-

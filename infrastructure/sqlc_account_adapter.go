@@ -20,7 +20,7 @@ func NewSqlcAccountRepository(ctx context.Context, q *sqlc.Queries) *SqlcReposit
 // this SqlcRepository implements the AccountRepository interface because it has all the methods defined in the interface
 func (s *SqlcRepository) CreateAcct(ctx context.Context, acct *account.CreateAccountRequest) (*account.Account, error) {
 	sqlcAccount, err := s.q.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-		UserID:             utils.ConvertUUID(acct.UserId),
+		UserID:             utils.ToPgUUID(acct.UserId),
 		AccountNumber:      acct.AccountNumber,
 		AccountType:        acct.AccountType,
 		MonnifyCustomerRef: utils.ToPgText(acct.MonnifyCustRef),

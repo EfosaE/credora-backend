@@ -40,16 +40,4 @@ type CreditAcctResp struct {
 	Balance decimal.Decimal `json:"balance"`
 }
 
-// type CreateUserResponse struct {
-// 	ID                   uuid.UUID                 `json:"id"`
-// 	Name                 string                    `json:"name"`
-// 	Email                string                    `json:"email"`
-// 	AccountReference     string                    `json:"account_reference"`
-// 	AccountName          string                    `json:"account_name"`
-// 	Accounts             []monnify.ReservedAccount `json:"accounts"`
-// 	ReservationReference string                    `json:"reservation_reference"`
-// 	BankName             string                    `json:"bank_name,omitempty"`      // fallback if you just need one
-// 	AccountNumber        string                    `json:"account_number,omitempty"` // fallback if you just need one
-// 	Status               string                    `json:"status"`                   // Monnify reserved account status
-// 	CreatedAt            time.Time                 `json:"created_at"`
-// }
+

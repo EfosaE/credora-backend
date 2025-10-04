@@ -35,9 +35,11 @@ func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHand
 	r.MethodNotAllowed(response.MethodNotAllowedHandler())
 
 	r.Route("/api/v1", func(api chi.Router) {
+		RegisterOpenAPIRoutes(api)
+
 		api.Post("/auth/register", authHandler.RegisterUserHandler)
 		api.Post("/auth/login", authHandler.LoginUserHandler)
-		api.Post("/webhook", wbHkHandler.HandleMonnifyWebhook)
+		api.Post("/webhooks/monnify", wbHkHandler.HandleMonnifyWebhook)
 		api.Post("/simulator/ext", simHandler.SimulateTransferExt)
 
 		// RegisterUserRoutes(api, userHandler)
@@ -51,12 +53,11 @@ func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHand
 			r.Get("/user/info", userHandler.GetUserInfo)
 		})
 
+		// 2. Catch-all {name} route last
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 
-			// 2. Catch-all {name} route last
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Fprintf(w, "Welcome To Creadora API ")
-	})
+			fmt.Fprintf(w, "Welcome To Credora API ")
+		})
 	})
 
 	return r

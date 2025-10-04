@@ -27,6 +27,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 

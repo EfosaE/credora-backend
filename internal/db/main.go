@@ -21,7 +21,7 @@ type DB struct {
 }
 
 func InitDB(ctx context.Context) (*DB, error) {
-    pingCtx, cancel := context.WithTimeout(ctx, time.Second*10) // Set a timeout for the database connection
+    pingCtx, cancel := context.WithTimeout(ctx, time.Second*60) // Set a timeout for the database connection
     defer cancel()
     // Create a connection pool
     pool, err := pgxpool.New(pingCtx, config.App.DbUrl)
