@@ -10,77 +10,348 @@ paths:
   /auth/register:
     post:
       summary: Register a new user
+      tags:
+        - Auth
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterUserRequest'
+              $ref: "#/components/schemas/CreateUserRequest"
+            examples:
+              basic:
+                value:
+                  name: Jane Doe
+                  email: jane@example.com
+                  nin: "12345678901"
+                  password: strongpassword
+                  phone_number: "+2348012345678"
       responses:
-        '201':
+        "201":
           description: User created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Invalid request payload
+                $ref: "#/components/schemas/CreateUserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
 
   /auth/login:
     post:
       summary: Authenticate a user
+      tags:
+        - Auth
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginUserRequest"
+            examples:
+              basic:
+                value:
+                  account_number: "0123456789"
+                  password: secret123
       responses:
-        '200':
+        "200":
           description: Authentication successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '401':
-          description: Invalid credentials
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /webhooks/monnify:
+    post:
+      summary: Receive Monnify webhook events
+      description: Endpoint for Monnify to post webhook events. This is typically called by Monnify and does not require authentication.
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonnifyWebhook"
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /simulator/ext:
+    post:
+      summary: Simulator external transfer
+      description: Simulate an external transfer for testing. Used by internal simulator services.
+      tags:
+        - Simulator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulatorTransferRequest"
+      responses:
+        "200":
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulatorTransferResponse"
+
+  /reserved-account/{acctRef}:
+    delete:
+      summary: Delete a Monnify reserved account
+      tags:
+        - Monnify
+      parameters:
+        - name: acctRef
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Account reference (acctRef) assigned when reserving the account
+      responses:
+        "200":
+          description: Reserved account deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Reserved account deleted successfully
+                  data:
+                    type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /user/info:
+    get:
+      summary: Get information about the authenticated user
+      tags:
+        - Users
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: User info retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 components:
   schemas:
-    RegisterUserRequest:
+    CreateUserRequest:
       type: object
-      required: [email, password]
+      required:
+        - name
+        - email
+        - nin
+        - password
+        - phone_number
       properties:
+        name:
+          type: string
+          example: Jane Doe
         email:
           type: string
-          example: test@example.com
+          format: email
+          example: jane@example.com
+        nin:
+          type: string
+          description: National Identification Number (11 digits)
+          example: "12345678901"
         password:
           type: string
           format: password
-          example: secret123
-
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
+        phone_number:
           type: string
-        password:
-          type: string
-          format: password
+          example: "+2348012345678"
 
-    UserResponse:
+    CreateUserResponse:
       type: object
       properties:
         id:
           type: string
+          format: uuid
+        name:
+          type: string
         email:
           type: string
+        account_reference:
+          type: string
+        account_name:
+          type: string
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservedAccount"
+        reservation_reference:
+          type: string
+        bank_name:
+          type: string
+        account_number:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    LoginUserRequest:
+      type: object
+      required:
+        - account_number
+        - password
+      properties:
+        account_number:
+          type: string
+          example: "0123456789"
+        password:
+          type: string
+          format: password
 
     AuthResponse:
       type: object
       properties:
         token:
           type: string
+          description: JWT token issued on successful login (also set as http-only cookie)
         expires_in:
           type: integer
+          description: seconds until expiration
+
+    UserInfoResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        name:
+          type: string
+        account_number:
+          type: string
+
+    ReservedAccount:
+      type: object
+      properties:
+        bankCode:
+          type: string
+        bankName:
+          type: string
+        accountNumber:
+          type: string
+        accountName:
+          type: string
+
+    MonnifyWebhook:
+      type: object
+      properties:
+        eventType:
+          type: string
+          description: Monnify event type identifier
+        eventData:
+          oneOf:
+            - type: object
+            - type: string
+          description: Event payload (varies by event type)
+
+    CreateCRAResponse:
+      type: object
+      properties:
+        requestSuccessful:
+          type: boolean
+        responseMessage:
+          type: string
+        responseCode:
+          type: string
+        responseBody:
+          type: object
+          properties:
+            accountReference:
+              type: string
+            accountName:
+              type: string
+            accounts:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReservedAccount"
+            reservationReference:
+              type: string
+            status:
+              type: string
+
+    SimulatorTransferRequest:
+      type: object
+      properties:
+        from_account:
+          type: string
+        to_account:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+          example: NGN
+
+    SimulatorTransferResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        details:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication required / invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt

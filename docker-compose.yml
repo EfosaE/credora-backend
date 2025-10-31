@@ -1,24 +1,32 @@
 services:
-  go-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+  app:
+    container_name: golang-server
+    image: 194722440448.dkr.ecr.eu-central-1.amazonaws.com/credora/credora-backend:v1.00  # or build: . if you have a Dockerfile in the same directory
+    restart: unless-stopped
+    depends_on:
+      - redis
     env_file:
       - .env
+    ports:
+      - "8080:8080"   # change to your Go app port
+    networks:
+      - app-network
+    command: ./server   # or whatever your Go binary entrypoint is
 
-    command: [ "./server" ] # Explicitly state the binary if needed
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    volumes:
+      - redis-data:/data
 
-#     depends_on:
-#       - redis
+volumes:
+  redis-data:
 
-#   redis:
-#     image: redis:7-alpine
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-
-# volumes:
-#   redis_data:
+networks:
+  app-network:
+    driver: bridge

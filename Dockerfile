@@ -26,6 +26,10 @@ WORKDIR /app
 # Copy the built binary from builder stage
 COPY --from=builder /app/server .
 
+# Set version label
+ARG VERSION=latest
+LABEL app.version=$VERSION
+
 # Expose the port the server listens on (change if needed)
 EXPOSE 8080
 

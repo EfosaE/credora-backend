@@ -1,14 +1,20 @@
 package router
 
 import (
-	"github.com/go-chi/chi/v5"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func RegisterOpenAPIRoutes(api chi.Router) {
 	// 📌 Serve raw OpenAPI YAML
 	api.Get("/documentation/openapi.yml", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./internal/docs/openapi.yml")
+		cwd, _ := os.Getwd()
+		filePath := filepath.Join(cwd, "internal", "docs", "openapi.yml")
+		http.ServeFile(w, r, filePath)
+		// http.ServeFile(w, r, "./internal/docs/openapi.yml")
 	})
 
 	// 📌 Serve Swagger UI (inline HTML)

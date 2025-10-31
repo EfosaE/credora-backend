@@ -1,0 +1,24 @@
+services:
+  go-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+
+    command: [ "./server" ] # Explicitly state the binary if needed
+
+#     depends_on:
+#       - redis
+
+#   redis:
+#     image: redis:7-alpine
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+
+# volumes:
+#   redis_data:
