@@ -13,7 +13,7 @@ import (
 	// "github.com/go-chi/jwtauth/v5"
 )
 
-func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService, wbHkHandler *handler.WebHookHandler, simHandler *handler.SimulatorHandler) chi.Router {
+func SetupRouter(authHandler *handler.AuthHandler, operationsHandler *handler.OperationHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService, wbHkHandler *handler.WebHookHandler, simHandler *handler.SimulatorHandler) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -51,6 +51,8 @@ func SetupRouter(authHandler *handler.AuthHandler, userHandler *handler.UserHand
 			r.Use(auth.Authenticator())
 
 			r.Get("/user/info", userHandler.GetUserInfo)
+			// Internal transfer route
+			r.Post("/transfer/internal", operationsHandler.InternalTransfer)
 		})
 
 		api.Get("/", func(w http.ResponseWriter, r *http.Request) {

@@ -20,7 +20,9 @@ endif
 .PHONY: migrate-up migrate-down migrate-force migrate-version sqlc-generate
 
 migrate-up:
-	migrate -database $(DB_URL) -path internal/db/migrations up
+	@read -p "Enter DATABASE_URL: " DB_URL; \
+	migrate -database "$$DB_URL" -path internal/db/migrations up
+
 
 migrate-down:
 	migrate -database $(DB_URL) -path internal/db/migrations down

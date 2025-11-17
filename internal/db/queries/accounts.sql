@@ -24,3 +24,14 @@ WHERE account_number = @account_number
 RETURNING id, balance;
 
 
+-- name: DebitAccountBalance :one
+UPDATE accounts
+SET balance = balance - @amount
+WHERE account_number = @account_number
+RETURNING id, balance;
+
+-- name: GetAccountForUpdate :one
+SELECT *
+FROM accounts
+WHERE account_number = @account_number
+FOR UPDATE;

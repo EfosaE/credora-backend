@@ -10,7 +10,6 @@ import (
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
-	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
 
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
@@ -44,7 +43,7 @@ func (h *AuthHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 			response.SendError(w, r, response.InternalServerError(err, err.Error()))
 			return
 		}
-		errs := utils.ParseValidationErrors(err)
+		errs := validation.ParseValidationErrors(err)
 		response.SendError(w, r, response.BadRequest(errs, "Validation Failed"))
 		return
 	}
@@ -79,7 +78,7 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 			response.SendError(w, r, response.InternalServerError(err, err.Error()))
 			return
 		}
-		errs := utils.ParseValidationErrors(err)
+		errs := validation.ParseValidationErrors(err)
 		response.SendError(w, r, response.BadRequest(errs, "Validation Failed"))
 		return
 	}

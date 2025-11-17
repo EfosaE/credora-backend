@@ -7,7 +7,6 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/simulator"
 	"github.com/EfosaE/credora-backend/internal/response"
-	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
 	"github.com/EfosaE/credora-backend/service"
 	"github.com/go-chi/render"
@@ -37,7 +36,7 @@ func (h *SimulatorHandler) SimulateTransferExt(w http.ResponseWriter, r *http.Re
 			response.SendError(w, r, response.InternalServerError(err, "An internal validation error occurred. Please try again later."))
 			return
 		}
-		errs := utils.ParseValidationErrors(err)
+		errs := validation.ParseValidationErrors(err)
 		response.SendError(w, r, response.BadRequest(errs, "Input validation failed. Please check your fields."))
 		return
 	}

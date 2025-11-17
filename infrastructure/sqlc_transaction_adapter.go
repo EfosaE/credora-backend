@@ -7,17 +7,41 @@ import (
 	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	// "github.com/google/uuid"
 )
 
-func NewSqlcTransactionRepository(ctx context.Context, q *sqlc.Queries) *SqlcRepository {
-	return &SqlcRepository{
-		q: q,
+type SqlcTransactionRepository struct {
+	db *pgxpool.Pool
+	q  *sqlc.Queries
+	tx pgx.Tx
+}
+
+func NewSqlcTransactionRepository(db *pgxpool.Pool) *SqlcTransactionRepository {
+	return &SqlcTransactionRepository{
+		db: db,
+		q:  sqlc.New(db),
 	}
 }
 
+func (r *SqlcTransactionRepository) Tx() pgx.Tx {
+	return r.tx
+}
+
+// Bind repo to existing TX
+func (r *SqlcTransactionRepository) WithTx(tx pgx.Tx) transaction.TransactionTx {
+    return &SqlcTransactionRepository{
+        db: r.db,
+        tx: tx,
+        q:  sqlc.New(tx),
+    }
+}
+
+
+// RecordTransaction inside TX
 // this SqlcRepository implements the TransactionRepository interface because it has all the methods defined in the interface
-func (s *SqlcRepository) RecordTransaction(ctx context.Context, trx *transaction.NewTransactionInput) (*transaction.Transaction, error) {
+func (s *SqlcTransactionRepository) RecordTransaction(ctx context.Context, trx *transaction.NewTransactionInput) (*transaction.Transaction, error) {
 	pgNumericAmount, _ := utils.DecimalToPgNumeric(trx.Amount)
 	// metaBytes, err := json.Marshal(trx.Meta)
 	// if err != nil {

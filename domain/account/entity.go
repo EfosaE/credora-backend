@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
+type TxResult struct {
+    AccountNumber string
+    NewBalance    decimal.Decimal
+    Amount        decimal.Decimal
+    Reason        string
+}
 
 type Account struct {
 	ID             uuid.UUID       `json:"id"`

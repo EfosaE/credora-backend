@@ -1,5 +1,23 @@
-.env
+
 server
-.git
 vendor
 *.log
+# Files
+.dockerignore
+.editorconfig
+.gitignore
+.env.*
+Dockerfile
+Makefile
+LICENSE
+**/*.md
+**/*_test.go
+*.out
+*.http
+
+# Folders
+.vscode/
+.idea/
+.git/
+.github/
+build/

@@ -15,6 +15,7 @@ type Querier interface {
 	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error)
+	DebitAccountBalance(ctx context.Context, arg DebitAccountBalanceParams) (DebitAccountBalanceRow, error)
 	// -- name: UpdateUser :one
 	// This query is commented out because it updates manually but I have associated trigger
 	// that automatically updates the `updated_at` field on any update.
@@ -23,6 +24,7 @@ type Querier interface {
 	// WHERE id = $1
 	// RETURNING *;
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)

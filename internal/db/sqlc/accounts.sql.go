@@ -80,6 +80,55 @@ func (q *Queries) CreditAccountBalance(ctx context.Context, arg CreditAccountBal
 	return i, err
 }
 
+const debitAccountBalance = `-- name: DebitAccountBalance :one
+UPDATE accounts
+SET balance = balance - $1
+WHERE account_number = $2
+RETURNING id, balance
+`
+
+type DebitAccountBalanceParams struct {
+	Amount        pgtype.Numeric `json:"amount"`
+	AccountNumber string         `json:"account_number"`
+}
+
+type DebitAccountBalanceRow struct {
+	ID      uuid.UUID      `json:"id"`
+	Balance pgtype.Numeric `json:"balance"`
+}
+
+func (q *Queries) DebitAccountBalance(ctx context.Context, arg DebitAccountBalanceParams) (DebitAccountBalanceRow, error) {
+	row := q.db.QueryRow(ctx, debitAccountBalance, arg.Amount, arg.AccountNumber)
+	var i DebitAccountBalanceRow
+	err := row.Scan(&i.ID, &i.Balance)
+	return i, err
+}
+
+const getAccountForUpdate = `-- name: GetAccountForUpdate :one
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
+FROM accounts
+WHERE account_number = $1
+FOR UPDATE
+`
+
+func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error) {
+	row := q.db.QueryRow(ctx, getAccountForUpdate, accountNumber)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountNumber,
+		&i.AccountType,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VirtualAccountBank,
+		&i.MonnifyCustomerRef,
+	)
+	return i, err
+}
+
 const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one
 SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number, a.balance, a.virtual_account_bank
 FROM accounts a

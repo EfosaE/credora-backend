@@ -20,6 +20,7 @@ import (
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/jackc/pgx/v5"
@@ -112,11 +113,11 @@ func main() {
 	emailSvc := service.NewEmailService(emailAdapter, eventBus)
 
 	//initialize acct service
-	acctRepo := infrastructure.NewSqlcAccountRepository(qCtx, db.Queries)
+	acctRepo := infrastructure.NewSqlcAccountRepository(db.Pool)
 	acctSvc := accountsvc.NewAccountService(acctRepo, logger, eventBus)
 
 	//initialize trx service
-	trxRepo := infrastructure.NewSqlcTransactionRepository(qCtx, db.Queries)
+	trxRepo := infrastructure.NewSqlcTransactionRepository(db.Pool)
 	trxSvc := transactionsvc.NewTransactionService(trxRepo, logger)
 
 	//initialize user service
@@ -131,10 +132,13 @@ func main() {
 	simRepo := infrastructure.NewInMemoryRepo(config.App.WebhookURL)
 	simSvc := service.NewSimulatorService(simRepo)
 
+	operationSvc := operationsvc.NewOperationService(acctRepo, trxRepo, logger)
+
 	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)
 	userHandler := handler.NewUserHandler(userService)
 	wbHkHandler := handler.NewWebHookHandler(acctSvc, trxSvc)
+	operationsHandler := handler.NewOperationHandler(operationSvc)
 	simHandler := handler.NewSimulatorHandler(simSvc)
 
 	// Subscribe to events
@@ -146,7 +150,7 @@ func main() {
 		panic(err)
 	}
 
-	r := router.SetupRouter(authHandler, userHandler, monnifyHandler, tokenSvc, wbHkHandler, simHandler)
+	r := router.SetupRouter(authHandler, operationsHandler, userHandler, monnifyHandler, tokenSvc, wbHkHandler, simHandler)
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)
