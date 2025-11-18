@@ -1,0 +1,43 @@
+liveness:
+  get:
+    summary: Liveness check
+    tags:
+      - Health
+    responses:
+      '200':
+        description: Service is running
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+
+readiness:
+  get:
+    summary: Readiness check (includes Redis)
+    tags:
+      - Health
+    responses:
+      '200':
+        description: Service dependencies healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redis:
+                  type: string
+                  example: ok
+      '503':
+        description: One or more dependencies are down
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redis:
+                  type: string
+                  example: down

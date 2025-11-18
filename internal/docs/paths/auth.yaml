@@ -1,0 +1,58 @@
+register:
+  post:
+    summary: Register a new user
+    tags:
+      - Auth
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/CreateUserRequest.yaml'
+          examples:
+            basic:
+              value:
+                name: Jane Doe
+                email: jane@example.com
+                nin: "12345678901"
+                password: strongpassword
+                phone_number: "+2348012345678"
+    responses:
+      '201':
+        description: User created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/CreateUserResponse.yaml'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'
+
+login:
+  post:
+    summary: Authenticate a user
+    tags:
+      - Auth
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/LoginUserRequest.yaml'
+          examples:
+            basic:
+              value:
+                account_number: "0123456789"
+                password: secret123
+    responses:
+      '200':
+        description: Authentication successful
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/AuthResponse.yaml'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'

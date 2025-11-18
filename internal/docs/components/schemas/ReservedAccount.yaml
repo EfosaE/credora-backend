@@ -1,0 +1,10 @@
+type: object
+properties:
+  bankCode:
+    type: string
+  bankName:
+    type: string
+  accountNumber:
+    type: string
+  accountName:
+    type: string

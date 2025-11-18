@@ -1,0 +1,28 @@
+type: object
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+  email:
+    type: string
+  account_reference:
+    type: string
+  account_name:
+    type: string
+  accounts:
+    type: array
+    items:
+      $ref: './ReservedAccount.yaml'
+  reservation_reference:
+    type: string
+  bank_name:
+    type: string
+  account_number:
+    type: string
+  status:
+    type: string
+  created_at:
+    type: string
+    format: date-time

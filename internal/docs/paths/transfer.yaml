@@ -1,0 +1,37 @@
+internal_post:
+  post:
+    summary: Internal transfer between two accounts (idempotent)
+    tags:
+      - Operations
+    security:
+      - cookieAuth: []
+    parameters: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/InternalTransferDTO.yaml'
+          examples:
+            basic:
+              value:
+                from_account: "0123456789"
+                to_account: "0987654321"
+                amount: "1500.00"
+    responses:
+      '200':
+        description: Transfer successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Transfer successful
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '409':
+        $ref: '../components/responses.yaml#/Conflict'
+      '500':
+        $ref: '../components/responses.yaml#/InternalError'

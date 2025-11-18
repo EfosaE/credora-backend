@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: Credora API
+  version: 1.0.0
+  description: API documentation for Credora Banking Simulation
+servers:
+  - url: http://localhost:8080/api/v1
+
+paths:
+  /auth/register:
+    $ref: 'paths/auth.yaml#/register'
+  /auth/login:
+    $ref: 'paths/auth.yaml#/login'
+  /webhooks/monnify:
+    $ref: 'paths/webhooks.yaml#/monnify'
+  /simulator/ext:
+    $ref: 'paths/simulator.yaml#/ext'
+  /reserved-account/{acctRef}:
+    $ref: 'paths/monnify.yaml#/reserved_account_delete'
+  /user/info:
+  
+    $ref: 'paths/user.yaml#/info_get'
+  /transfer/internal:
+    $ref: 'paths/transfer.yaml#/internal_post'
+  /health/liveness:
+    $ref: 'paths/health.yaml#/liveness'
+  /health/readiness:
+    $ref: 'paths/health.yaml#/readiness'
+
+components:
+  schemas:
+    CreateUserRequest:
+      $ref: 'components/schemas/CreateUserRequest.yaml'
+    CreateUserResponse:
+      $ref: 'components/schemas/CreateUserResponse.yaml'
+    LoginUserRequest:
+      $ref: 'components/schemas/LoginUserRequest.yaml'
+    AuthResponse:
+      $ref: 'components/schemas/AuthResponse.yaml'
+    UserInfoResponse:
+      $ref: 'components/schemas/UserInfoResponse.yaml'
+    ReservedAccount:
+      $ref: 'components/schemas/ReservedAccount.yaml'
+    MonnifyWebhook:
+      $ref: 'components/schemas/MonnifyWebhook.yaml'
+    CreateCRAResponse:
+      $ref: 'components/schemas/CreateCRAResponse.yaml'
+    SimulatorTransferRequest:
+      $ref: 'components/schemas/SimulatorTransferRequest.yaml'
+    SimulatorTransferResponse:
+      $ref: 'components/schemas/SimulatorTransferResponse.yaml'
+    ErrorResponse:
+      $ref: 'components/schemas/ErrorResponse.yaml'
+    InternalTransferDTO:
+      $ref: 'components/schemas/InternalTransferDTO.yaml'
+    SuccessfulTransaction:
+      $ref: 'components/schemas/SuccessfulTransaction.yaml'
+    Product:
+      $ref: 'components/schemas/Product.yaml'
+    PaymentSource:
+      $ref: 'components/schemas/PaymentSource.yaml'
+    DestinationAccount:
+      $ref: 'components/schemas/DestinationAccount.yaml'
+    Customer:
+      $ref: 'components/schemas/Customer.yaml'
+
+  responses:
+    BadRequest:
+      $ref: 'components/responses.yaml#/BadRequest'
+    Unauthorized:
+      $ref: 'components/responses.yaml#/Unauthorized'
+    InternalError:
+      $ref: 'components/responses.yaml#/InternalError'
+    Conflict:
+      $ref: 'components/responses.yaml#/Conflict'
+
+  securitySchemes:
+    CookieAuth:
+      $ref: 'components/security.yaml#/CookieAuth'

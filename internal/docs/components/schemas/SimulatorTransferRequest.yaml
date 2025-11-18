@@ -1,0 +1,11 @@
+type: object
+properties:
+  from_account:
+    type: string
+  to_account:
+    type: string
+  amount:
+    type: number
+  currency:
+    type: string
+    example: NGN

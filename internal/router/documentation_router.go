@@ -10,11 +10,11 @@ import (
 
 func RegisterOpenAPIRoutes(api chi.Router) {
 	// 📌 Serve raw OpenAPI YAML
-	api.Get("/documentation/openapi.yml", func(w http.ResponseWriter, r *http.Request) {
+	api.Get("/documentation/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 		cwd, _ := os.Getwd()
-		filePath := filepath.Join(cwd, "internal", "docs", "openapi.yml")
+		filePath := filepath.Join(cwd, "internal", "docs", "openapi-bundled.yaml")
 		http.ServeFile(w, r, filePath)
-		// http.ServeFile(w, r, "./internal/docs/openapi.yml")
+		// http.ServeFile(w, r, "./internal/docs/openapi.yaml")
 	})
 
 	// 📌 Serve Swagger UI (inline HTML)
@@ -33,7 +33,7 @@ func RegisterOpenAPIRoutes(api chi.Router) {
             <script>
               window.onload = () => {
                 SwaggerUIBundle({
-                  url: '/api/v1/documentation/openapi.yml',
+                  url: '/api/v1/documentation/openapi.yaml',
                   dom_id: '#swagger-ui'
                 });
               };
@@ -46,7 +46,4 @@ func RegisterOpenAPIRoutes(api chi.Router) {
 	// 📌 Serve static Swagger UI (optional, if you copy dist files)
 	fs := http.FileServer(http.Dir("./public/swagger"))
 	api.Handle("/documentation/*", http.StripPrefix("/documentation", fs))
-	// r.Route("/reserved-account", func(r chi.Router) {
-	// 	r.Delete("/{acctRef}", h.DeleteCustomerHandler)
-	// })
 }

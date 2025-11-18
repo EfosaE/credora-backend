@@ -1,0 +1,19 @@
+ext:
+  post:
+    summary: Simulator external transfer
+    description: Simulate an external transfer for testing. Used by internal simulator services.
+    tags:
+      - Simulator
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/SimulatorTransferRequest.yaml'
+    responses:
+      '200':
+        description: Simulation result
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/SimulatorTransferResponse.yaml'

@@ -1,0 +1,25 @@
+monnify:
+  post:
+    summary: Receive Monnify webhook events
+    description: Endpoint for Monnify to post webhook events. This is typically called by Monnify and does not require authentication.
+    tags:
+      - Webhooks
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/MonnifyWebhook.yaml'
+    responses:
+      '200':
+        description: Webhook processed
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: ok
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'

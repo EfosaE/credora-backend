@@ -1,0 +1,23 @@
+type: object
+properties:
+  requestSuccessful:
+    type: boolean
+  responseMessage:
+    type: string
+  responseCode:
+    type: string
+  responseBody:
+    type: object
+    properties:
+      accountReference:
+        type: string
+      accountName:
+        type: string
+      accounts:
+        type: array
+        items:
+          $ref: './ReservedAccount.yaml'
+      reservationReference:
+        type: string
+      status:
+        type: string

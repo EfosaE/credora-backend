@@ -1,0 +1,10 @@
+type: object
+properties:
+  eventType:
+    type: string
+    description: Monnify event type identifier
+  eventData:
+    oneOf:
+      - type: object
+      - type: string
+    description: Event payload (varies by event type)

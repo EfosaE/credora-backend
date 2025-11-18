@@ -1,0 +1,8 @@
+type: object
+properties:
+  bank_code:
+    type: string
+  bank_name:
+    type: string
+  account_number:
+    type: string

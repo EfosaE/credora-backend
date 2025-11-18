@@ -4,8 +4,7 @@ info:
   version: 1.0.0
   description: API documentation for Credora Banking Simulation
 servers:
-  - url: http://localhost:8080/api/v1
-
+  - url: 'http://localhost:8080/api/v1'
 paths:
   /auth/register:
     post:
@@ -17,27 +16,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUserRequest"
+              $ref: '#/components/schemas/CreateUserRequest'
             examples:
               basic:
                 value:
                   name: Jane Doe
                   email: jane@example.com
-                  nin: "12345678901"
+                  nin: '12345678901'
                   password: strongpassword
-                  phone_number: "+2348012345678"
+                  phone_number: '+2348012345678'
       responses:
-        "201":
+        '201':
           description: User created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateUserResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+                $ref: '#/components/schemas/CreateUserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /auth/login:
     post:
       summary: Authenticate a user
@@ -48,24 +46,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginUserRequest"
+              $ref: '#/components/schemas/LoginUserRequest'
             examples:
               basic:
                 value:
-                  account_number: "0123456789"
+                  account_number: 0123456789
                   password: secret123
       responses:
-        "200":
+        '200':
           description: Authentication successful
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /webhooks/monnify:
     post:
       summary: Receive Monnify webhook events
@@ -77,9 +74,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/MonnifyWebhook"
+              $ref: '#/components/schemas/MonnifyWebhook'
       responses:
-        "200":
+        '200':
           description: Webhook processed
           content:
             application/json:
@@ -89,9 +86,8 @@ paths:
                   status:
                     type: string
                     example: ok
-        "400":
-          $ref: "#/components/responses/BadRequest"
-
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /simulator/ext:
     post:
       summary: Simulator external transfer
@@ -103,16 +99,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SimulatorTransferRequest"
+              $ref: '#/components/schemas/SimulatorTransferRequest'
       responses:
-        "200":
+        '200':
           description: Simulation result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SimulatorTransferResponse"
-
-  /reserved-account/{acctRef}:
+                $ref: '#/components/schemas/SimulatorTransferResponse'
+  '/reserved-account/{acctRef}':
     delete:
       summary: Delete a Monnify reserved account
       tags:
@@ -125,7 +120,7 @@ paths:
             type: string
           description: Account reference (acctRef) assigned when reserving the account
       responses:
-        "200":
+        '200':
           description: Reserved account deleted successfully
           content:
             application/json:
@@ -137,11 +132,10 @@ paths:
                     example: Reserved account deleted successfully
                   data:
                     type: object
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /user/info:
     get:
       summary: Get information about the authenticated user
@@ -150,15 +144,93 @@ paths:
       security:
         - cookieAuth: []
       responses:
-        "200":
+        '200':
           description: User info retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserInfoResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-
+                $ref: '#/components/schemas/UserInfoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /transfer/internal:
+    post:
+      summary: Internal transfer between two accounts (idempotent)
+      tags:
+        - Operations
+      security:
+        - cookieAuth: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalTransferDTO'
+            examples:
+              basic:
+                value:
+                  from_account: 0123456789
+                  to_account: 0987654321
+                  amount: '1500.00'
+      responses:
+        '200':
+          description: Transfer successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Transfer successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /health/liveness:
+    get:
+      summary: Liveness check
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /health/readiness:
+    get:
+      summary: Readiness check (includes Redis)
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service dependencies healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redis:
+                    type: string
+                    example: ok
+        '503':
+          description: One or more dependencies are down
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redis:
+                    type: string
+                    example: down
 components:
   schemas:
     CreateUserRequest:
@@ -180,14 +252,13 @@ components:
         nin:
           type: string
           description: National Identification Number (11 digits)
-          example: "12345678901"
+          example: '12345678901'
         password:
           type: string
           format: password
         phone_number:
           type: string
-          example: "+2348012345678"
-
+          example: '+2348012345678'
     CreateUserResponse:
       type: object
       properties:
@@ -205,7 +276,7 @@ components:
         accounts:
           type: array
           items:
-            $ref: "#/components/schemas/ReservedAccount"
+            $ref: '#/components/schemas/ReservedAccount'
         reservation_reference:
           type: string
         bank_name:
@@ -217,7 +288,6 @@ components:
         created_at:
           type: string
           format: date-time
-
     LoginUserRequest:
       type: object
       required:
@@ -226,11 +296,10 @@ components:
       properties:
         account_number:
           type: string
-          example: "0123456789"
+          example: 0123456789
         password:
           type: string
           format: password
-
     AuthResponse:
       type: object
       properties:
@@ -240,7 +309,6 @@ components:
         expires_in:
           type: integer
           description: seconds until expiration
-
     UserInfoResponse:
       type: object
       properties:
@@ -250,7 +318,6 @@ components:
           type: string
         account_number:
           type: string
-
     ReservedAccount:
       type: object
       properties:
@@ -262,7 +329,6 @@ components:
           type: string
         accountName:
           type: string
-
     MonnifyWebhook:
       type: object
       properties:
@@ -274,7 +340,6 @@ components:
             - type: object
             - type: string
           description: Event payload (varies by event type)
-
     CreateCRAResponse:
       type: object
       properties:
@@ -294,12 +359,11 @@ components:
             accounts:
               type: array
               items:
-                $ref: "#/components/schemas/ReservedAccount"
+                $ref: '#/components/schemas/ReservedAccount'
             reservationReference:
               type: string
             status:
               type: string
-
     SimulatorTransferRequest:
       type: object
       properties:
@@ -312,7 +376,6 @@ components:
         currency:
           type: string
           example: NGN
-
     SimulatorTransferResponse:
       type: object
       properties:
@@ -320,7 +383,6 @@ components:
           type: string
         details:
           type: object
-
     ErrorResponse:
       type: object
       properties:
@@ -330,28 +392,126 @@ components:
           type: string
         details:
           type: object
+    InternalTransferDTO:
+      type: object
+      required:
+        - from_account
+        - to_account
+        - amount
+      properties:
+        from_account:
+          type: string
+          description: 'Source account number (NUBAN, 10 digits)'
+          example: 0123456789
+        to_account:
+          type: string
+          description: 'Destination account number (NUBAN, 10 digits)'
+          example: 0987654321
+        amount:
+          type: string
+          description: Decimal amount as string to preserve precision in incoming DTO
+          example: '1500.00'
+    SuccessfulTransaction:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        transaction_reference:
+          type: string
+        payment_reference:
+          type: string
+        paid_on:
+          type: string
+          format: date-time
+        payment_description:
+          type: string
+        metadata:
+          type: object
+        payment_source_information:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentSource'
+        destination_account_information:
+          $ref: '#/components/schemas/DestinationAccount'
+        amount_paid:
+          type: string
+        total_payable:
+          type: string
+        card_details:
+          type: object
+        payment_method:
+          type: string
+        currency:
+          type: string
+        settlement_amount:
+          type: string
+        payment_status:
+          type: string
+        customer:
+          $ref: '#/components/schemas/Customer'
+    Product:
+      type: object
+      properties:
+        reference:
+          type: string
+        type:
+          type: string
+    PaymentSource:
+      type: object
+      properties:
+        bank_code:
+          type: string
+        amount_paid:
+          type: string
+        account_name:
+          type: string
+        session_id:
+          type: string
+        account_number:
+          type: string
+    DestinationAccount:
+      type: object
+      properties:
+        bank_code:
+          type: string
+        bank_name:
+          type: string
+        account_number:
+          type: string
+    Customer:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
   responses:
     BadRequest:
       description: Bad request
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: Authentication required / invalid credentials
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: '#/components/schemas/ErrorResponse'
     InternalError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: 'Conflict (e.g., duplicate idempotent request)'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   securitySchemes:
-    cookieAuth:
+    CookieAuth:
       type: apiKey
       in: cookie
       name: jwt
