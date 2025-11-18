@@ -31,8 +31,25 @@ func New(statusCode int, data any, message string) *ErrorResponse {
 
 // BadRequest returns a 400 Bad Request error
 func BadRequest(data any, message string) *ErrorResponse {
+	var errData any
+	if e, ok := data.(error); ok {
+		errData = e.Error() // convert error to string
+	} else {
+		errData = data // keep as-is for map, slice, etc.
+	}
 
-	return New(http.StatusBadRequest, data, message)
+	return New(http.StatusBadRequest, errData, message)
+}
+
+// Conflict returns a 409 Conflict error
+func Conflict(data any, message string) *ErrorResponse {
+	var errData any
+	if e, ok := data.(error); ok {
+		errData = e.Error() // convert error to string
+	} else {
+		errData = data // keep as-is for map, slice, etc.
+	}
+	return New(http.StatusConflict, errData, message)
 }
 
 // NotFound returns a 404 Not Found error

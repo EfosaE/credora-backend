@@ -3,12 +3,12 @@
 package handler
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/EfosaE/credora-backend/domain/operation"
+	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/response"
-	"github.com/EfosaE/credora-backend/internal/validation"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 )
 
@@ -22,35 +22,25 @@ func NewOperationHandler(opService *operationsvc.OperationService) *OperationHan
 	return &OperationHandler{operationService: opService}
 }
 
-
-
 // InternalTransfer handles POST /transfer
 func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Request) {
-	var dto operation.InternalTransferDTO
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		http.Error(w, "invalid request payload", http.StatusBadRequest)
-		return
-	}
 
-	// Validate DTO
-	if err := validation.SafeValidateStruct(validation.Validate, &dto); err != nil {
-		errs := validation.ParseValidationErrors(err)
-		response.SendError(w, r, response.BadRequest(errs, "Validation Failed"))
-		return
-	}
-	// Build operation request
-	// Convert
-	req, err := dto.ToDomain()
-	if err != nil {
-		response.SendError(w, r, response.BadRequest(err, "Invalid transfer data"))
-		return
-	}
+    // Retrieve domain request injected by middleware
+    req, ok := r.Context().Value(custmiddleware.ContextKeyInternalTransfer).(*operation.InternalTransferReq)
+    if !ok || req == nil {
+        response.SendError(w, r, response.BadRequest(
+            errors.New("missing transfer request"),
+            "Request was not parsed correctly",
+        ))
+        return
+    }
 
-	// Call service
-	if err := h.operationService.InternalTransfer(r.Context(), req); err != nil {
-		response.SendError(w, r, response.BadRequest(err, "transfer failed: "+err.Error()))
-		return
-	}
+    // Service call
+    if err := h.operationService.InternalTransfer(r.Context(), req); err != nil {
+        response.SendError(w, r, response.BadRequest(err, "transfer failed: "+err.Error()))
+        return
+    }
 
-	response.SendSuccess(w, r, response.OK(nil, "Transfer successful"))
+    response.SendSuccess(w, r, response.OK(nil, "Transfer successful"))
 }
+

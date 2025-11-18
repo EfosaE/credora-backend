@@ -16,24 +16,29 @@ type OperationService struct {
 	acctRepo        account.AccountRepository
 	transactionRepo transaction.TransactionRepository
 	logger          *logger.Logger
+	idempotency     *infrastructure.IdempotencyCache
 }
 
 func NewOperationService(
 	acctRepo account.AccountRepository,
 	transactionRepo transaction.TransactionRepository,
+	idempotency *infrastructure.IdempotencyCache,
 	logger *logger.Logger,
 ) *OperationService {
 	return &OperationService{
 		acctRepo:        acctRepo,
 		transactionRepo: transactionRepo,
 		logger:          logger,
+		idempotency:     idempotency,
 	}
 }
 
 // InternalTransfer performs debit + credit + ledger atomically
 // InternalTransfer performs debit + credit + ledger atomically
 func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.InternalTransferReq) error {
+
 	return s.acctRepo.WithTx(ctx, func(accTx account.AccountTx) error {
+
 		// Bind transaction repo to the same TX
 		txTransactionRepo := s.transactionRepo.WithTx(accTx.(*infrastructure.SqlcAccountRepository).Tx())
 
@@ -73,6 +78,9 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 				"amount":       req.Amount,
 				"balance":      fromAcct.Balance,
 			})
+
+			// Delete the idempotency key since the operation failed
+			s.idempotency.Delete(ctx, req.IdempotencyKey)
 			return operation.ErrInsufficientFunds
 		}
 
@@ -89,7 +97,7 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 		// 5️⃣ Record ledger transaction inside same TX
 		_, err = txTransactionRepo.RecordTransaction(ctx, &transaction.NewTransactionInput{
 			AccountID:      fromAcct.ID,
-			CounterpartyID: &toAcct.ID,
+			CounterpartyID: &toAcct.ID, //This takes a pointer to allow nulls
 			Amount:         req.Amount,
 			Description:    fmt.Sprintf("Internal transfer to %s", req.ToAcctNum),
 			Reference:      utils.GenerateTransactionReference(fromAcct.ID),
@@ -100,6 +108,7 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 			return err
 		}
 
+		s.idempotency.MarkDone(ctx, req.IdempotencyKey, "SUCCESS")
 		// ✅ Log success
 		s.logger.Info("Internal transfer successful", map[string]any{
 			"from_account": req.FromAcctNum,

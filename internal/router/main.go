@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/handler"
+	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/response"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	"github.com/go-chi/chi/middleware"
@@ -13,7 +15,19 @@ import (
 	// "github.com/go-chi/jwtauth/v5"
 )
 
-func SetupRouter(authHandler *handler.AuthHandler, operationsHandler *handler.OperationHandler, userHandler *handler.UserHandler, monnifyHandler *handler.MonnifyHandler, auth *authsvc.JWTTokenService, wbHkHandler *handler.WebHookHandler, simHandler *handler.SimulatorHandler) chi.Router {
+type RouterSetupParams struct {
+	AuthHandler       *handler.AuthHandler
+	OperationsHandler *handler.OperationHandler
+	UserHandler       *handler.UserHandler
+	MonnifyHandler    *handler.MonnifyHandler
+	Auth              *authsvc.JWTTokenService
+	WbHkHandler       *handler.WebHookHandler
+	SimHandler        *handler.SimulatorHandler
+	HealthHandler     *handler.HealthHandler
+	Cache             *infrastructure.IdempotencyCache
+}
+
+func SetupRouter(params RouterSetupParams) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -37,22 +51,29 @@ func SetupRouter(authHandler *handler.AuthHandler, operationsHandler *handler.Op
 	r.Route("/api/v1", func(api chi.Router) {
 		RegisterOpenAPIRoutes(api)
 
-		api.Post("/auth/register", authHandler.RegisterUserHandler)
-		api.Post("/auth/login", authHandler.LoginUserHandler)
-		api.Post("/webhooks/monnify", wbHkHandler.HandleMonnifyWebhook)
-		api.Post("/simulator/ext", simHandler.SimulateTransferExt)
+		api.Get("/health/liveness", params.HealthHandler.Liveness)
+		api.Get("/health/readiness", params.HealthHandler.Readiness)
 
-		// RegisterUserRoutes(api, userHandler)
-		RegisterMonnifyRoutes(api, monnifyHandler)
+		// Public Routes
+		api.Post("/auth/register", params.AuthHandler.RegisterUserHandler)
+		api.Post("/auth/login", params.AuthHandler.LoginUserHandler)
+		api.Post("/webhooks/monnify", params.WbHkHandler.HandleMonnifyWebhook)
+		api.Post("/simulator/ext", params.SimHandler.SimulateTransferExt)
+
+		RegisterMonnifyRoutes(api, params.MonnifyHandler)
 
 		// JWT Auth Middleware ----- Protected Routes -----
 		api.Group(func(r chi.Router) {
-			r.Use(auth.Verifier())
-			r.Use(auth.Authenticator())
+			r.Use(params.Auth.Verifier())
+			r.Use(params.Auth.Authenticator())
 
-			r.Get("/user/info", userHandler.GetUserInfo)
+			r.Get("/user/info", params.UserHandler.GetUserInfo)
 			// Internal transfer route
-			r.Post("/transfer/internal", operationsHandler.InternalTransfer)
+			r.Group(func(r chi.Router) {
+				r.Use(custmiddleware.IdempotencyMiddleware(params.Cache))
+				r.Post("/transfer/internal", params.OperationsHandler.InternalTransfer)
+			})
+
 		})
 
 		api.Get("/", func(w http.ResponseWriter, r *http.Request) {

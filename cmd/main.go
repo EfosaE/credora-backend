@@ -94,6 +94,7 @@ func main() {
 	}
 
 	eventBus := infrastructure.NewStreamEventBus(rdb)
+	idempotencyCache := infrastructure.NewIdempotencyCache(rdb, 1*time.Hour)
 
 	// Initialize Monnify configuration
 	monnifyConfig := &monnify.MonnifyConfig{
@@ -132,7 +133,7 @@ func main() {
 	simRepo := infrastructure.NewInMemoryRepo(config.App.WebhookURL)
 	simSvc := service.NewSimulatorService(simRepo)
 
-	operationSvc := operationsvc.NewOperationService(acctRepo, trxRepo, logger)
+	operationSvc := operationsvc.NewOperationService(acctRepo, trxRepo, idempotencyCache, logger)
 
 	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)
@@ -140,6 +141,7 @@ func main() {
 	wbHkHandler := handler.NewWebHookHandler(acctSvc, trxSvc)
 	operationsHandler := handler.NewOperationHandler(operationSvc)
 	simHandler := handler.NewSimulatorHandler(simSvc)
+	healthHandler := handler.NewHealthHandler(rdb)
 
 	// Subscribe to events
 	if err := emailSvc.SubscribeToUserCreatedEvents(evtCtx); err != nil {
@@ -150,7 +152,17 @@ func main() {
 		panic(err)
 	}
 
-	r := router.SetupRouter(authHandler, operationsHandler, userHandler, monnifyHandler, tokenSvc, wbHkHandler, simHandler)
+	r := router.SetupRouter(router.RouterSetupParams{
+		AuthHandler:       authHandler,
+		OperationsHandler: operationsHandler,
+		UserHandler:       userHandler,
+		MonnifyHandler:    monnifyHandler,
+		Auth:              tokenSvc,
+		WbHkHandler:       wbHkHandler,
+		SimHandler:        simHandler,
+		HealthHandler:     healthHandler,
+		Cache:             idempotencyCache,
+	})
 
 	// Option 1: Use default configuration
 	srv := server.New(r, nil)
@@ -159,7 +171,6 @@ func main() {
 		http.Redirect(w, r, "/api/v1", http.StatusFound)
 	})
 
-	// log.Printf("Launching HTTP server on %s...", config.App.Port)
 
 	// Start server with graceful shutdown
 	if err := srv.Start(); err != nil {
