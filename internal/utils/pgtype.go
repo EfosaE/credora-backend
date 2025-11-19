@@ -28,12 +28,14 @@ func FromPgUUID(pg pgtype.UUID) uuid.UUID {
 	return uuid.UUID(pg.Bytes)
 }
 
-// func PgNumericToDecimal(n pgtype.Numeric) (decimal.Decimal, error) {
-// 	if !n.Valid {
-// 		return decimal.Zero, fmt.Errorf("numeric is null")
-// 	}
-// 	return decimal.NewFromString(n.Int.String())
-// }
+// Coverts pgtype.Numeric to string	
+func PgNumericToString(n pgtype.Numeric) string {
+	v, err := n.Value()
+	if err != nil {
+		panic(err)
+	}
+	return v.(string)
+}
 
 func DecimalToPgNumeric(d decimal.Decimal) (pgtype.Numeric, error) {
 	var n pgtype.Numeric
@@ -82,6 +84,14 @@ func MustDecimalToPgNumeric(d decimal.Decimal) pgtype.Numeric {
 	var n pgtype.Numeric
 	if err := n.Scan(d.String()); err != nil {
 		panic(fmt.Sprintf("failed to convert decimal to pgtype.Numeric: %v", err))
+	}
+	return n
+}
+
+func NewPgNumericFromString(s string) pgtype.Numeric {
+	var n pgtype.Numeric
+	if err := n.Scan(s); err != nil {
+		panic(fmt.Sprintf("failed to convert string to pgtype.Numeric: %v", err))
 	}
 	return n
 }

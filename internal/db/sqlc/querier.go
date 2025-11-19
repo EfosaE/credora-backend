@@ -24,6 +24,7 @@ type Querier interface {
 	// WHERE id = $1
 	// RETURNING *;
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)

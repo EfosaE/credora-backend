@@ -9,6 +9,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type IdempotencyStore interface {
+	TryAcquire(ctx context.Context, key string) (bool, error)
+	MarkDone(ctx context.Context, key string, reference string) error
+	Get(ctx context.Context, key string) (map[string]any, error)
+	Delete(ctx context.Context, key string) error
+}
+
 type IdempotencyCache struct {
 	client *redis.Client
 	ttl    time.Duration

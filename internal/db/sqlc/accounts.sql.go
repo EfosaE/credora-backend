@@ -104,6 +104,25 @@ func (q *Queries) DebitAccountBalance(ctx context.Context, arg DebitAccountBalan
 	return i, err
 }
 
+const getAccountByAccountNumber = `-- name: GetAccountByAccountNumber :one
+SELECT a.account_number, a.balance, a.virtual_account_bank
+FROM accounts a
+WHERE a.account_number = $1
+`
+
+type GetAccountByAccountNumberRow struct {
+	AccountNumber      string         `json:"account_number"`
+	Balance            pgtype.Numeric `json:"balance"`
+	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
+}
+
+func (q *Queries) GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error) {
+	row := q.db.QueryRow(ctx, getAccountByAccountNumber, accountNumber)
+	var i GetAccountByAccountNumberRow
+	err := row.Scan(&i.AccountNumber, &i.Balance, &i.VirtualAccountBank)
+	return i, err
+}
+
 const getAccountForUpdate = `-- name: GetAccountForUpdate :one
 SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
 FROM accounts

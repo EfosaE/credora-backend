@@ -16,24 +16,23 @@ type OperationService struct {
 	acctRepo        account.AccountRepository
 	transactionRepo transaction.TransactionRepository
 	logger          *logger.Logger
-	idempotency     *infrastructure.IdempotencyCache
+	idempotency     infrastructure.IdempotencyStore
 }
 
 func NewOperationService(
 	acctRepo account.AccountRepository,
 	transactionRepo transaction.TransactionRepository,
-	idempotency *infrastructure.IdempotencyCache,
+	idempStore infrastructure.IdempotencyStore,
 	logger *logger.Logger,
 ) *OperationService {
 	return &OperationService{
 		acctRepo:        acctRepo,
 		transactionRepo: transactionRepo,
 		logger:          logger,
-		idempotency:     idempotency,
+		idempotency:     idempStore,
 	}
 }
 
-// InternalTransfer performs debit + credit + ledger atomically
 // InternalTransfer performs debit + credit + ledger atomically
 func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.InternalTransferReq) error {
 

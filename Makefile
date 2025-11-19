@@ -1,10 +1,14 @@
-# Include environment variables from .env file
+# ============================================
+# Load environment variables from .env
+# ============================================
 ifneq (,$(wildcard ./.env))
     include .env
     export
 endif
 
-# Build DATABASE_URL from components or use direct value
+# ============================================
+# Database URL setup
+# ============================================
 ifdef DATABASE_URL
     DB_URL = $(DATABASE_URL)
 else
@@ -17,12 +21,17 @@ else
     DB_URL = postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
 endif
 
-.PHONY: migrate-up migrate-down migrate-force migrate-version sqlc-generate
+# ============================================
+# Migration commands
+# ============================================
+.PHONY: migrate-up migrate-down migrate-down-all migrate-force migrate-version migrate-create migrate-status migrate-rollback migrate-drop
+
+# migrate-up:
+# 	migrate -database $(DB_URL) -path internal/db/migrations up
 
 migrate-up:
 	@read -p "Enter DATABASE_URL: " DB_URL; \
 	migrate -database "$$DB_URL" -path internal/db/migrations up
-
 
 migrate-down:
 	migrate -database $(DB_URL) -path internal/db/migrations down
@@ -40,7 +49,6 @@ migrate-force:
 	migrate -database $(DB_URL) -path internal/db/migrations force $$version; \
 	echo "Database forced to version $$version successfully!"
 
-
 migrate-version:
 	migrate -database $(DB_URL) -path internal/db/migrations version
 
@@ -54,26 +62,45 @@ migrate-create:
 	migrate create -ext sql -dir internal/db/migrations -seq $$name; \
 	echo "Migration created successfully!"
 
+migrate-status:
+	migrate -database $(DB_URL) -path internal/db/migrations version
+
+migrate-rollback:
+	migrate -database $(DB_URL) -path internal/db/migrations down 1
+
+migrate-drop:
+	migrate -database $(DB_URL) -path internal/db/migrations drop -f
+
+# ============================================
+# SQLC
+# ============================================
+.PHONY: sqlc-generate
 sqlc-generate:
 	sqlc generate
 
-dev-setup: migrate-up sqlc-generate
-# Check migration status
-migrate-status:
-	migrate -database $(DATABASE_URL) -path internal/db/migrations version
-
-# Rollback one migration
-migrate-rollback:
-	migrate -database $(DATABASE_URL) -path internal/db/migrations down 1
-
-# Drop all migrations
-migrate-drop:
-	migrate -database $(DATABASE_URL) -path internal/db/migrations drop -f
-
+# ============================================
+# Run & Build
+# ============================================
+.PHONY: run build
 run:
 	go run cmd/main.go
 
 build:
 	go build -o bin/server cmd/main.go
-test-app:
-	go test -v ./...
+
+# ============================================
+# Tests: unit vs integration
+# ============================================
+UNIT_TAGS=
+INTEGRATION_TAGS=integration
+
+.PHONY: test
+test:
+	go test -v -tags=$(UNIT_TAGS) ./...
+
+.PHONY: test-integration
+test-integration:
+	go test -v -tags=$(INTEGRATION_TAGS) ./...
+
+.PHONY: test-all
+test-all: test test-integration
