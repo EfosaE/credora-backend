@@ -23,7 +23,7 @@ jobs:
     services:
       docker:
         image: docker:27.0.0-dind
-        privileged: true
+        options: --privileged
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
