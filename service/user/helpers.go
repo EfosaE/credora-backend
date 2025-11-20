@@ -6,6 +6,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/config"
+	"github.com/EfosaE/credora-backend/internal/queues"
 )
 
 func (s *UserService) CreateVirtualAccount(ctx context.Context, req *user.CreateUserRequest, acctRef string) (*monnify.CreateCRAResponse, error) {
@@ -25,6 +26,21 @@ func (s *UserService) CreateVirtualAccount(ctx context.Context, req *user.Create
 	}
 	s.logger.Info("Monnify virtual account created", map[string]any{"accountRef": acctRef})
 	return monnifyCustResp, nil
+}
+
+func (s *UserService) SendWelcomeEmailAsync(user user.User) error {
+	payload := queues.WelcomeEmailPayload{User: &user}
+
+	return s.queue.EnqueueWelcomeEmail(payload)
+}
+
+func (s *UserService) SendAccountNumberEmailAsync(to, bank, accountNumber string) error {
+	payload := queues.AccountNumberEmailPayload{
+		To:            to,
+		Bank:          bank, // You might want to set the bank name here
+		AccountNumber: accountNumber, // You might want to set the account number here
+	}
+	return s.queue.EnqueueAccountNumberEmail(payload)
 }
 
 // func (s *UserService) SendPostSignupEmails(user user.User, acct *monnify.CreateCRAResponse) {

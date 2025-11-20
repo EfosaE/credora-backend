@@ -1,4 +1,4 @@
-package service
+package service_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/test/mocks"
+	"github.com/EfosaE/credora-backend/service"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +20,7 @@ func TestSendWelcomeEmail_Success(t *testing.T) {
 		},
 	}
 
-	svc := NewEmailService(mockEmailAdapter, mockEventBus)
+	svc := service.NewEmailService(mockEmailAdapter, mockEventBus)
 
 	user := user.User{ID: uuid.New(), Name: "Efosa", Email: "efosa@example.com"}
 

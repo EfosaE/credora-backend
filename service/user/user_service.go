@@ -13,6 +13,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/user"
 
 	"github.com/EfosaE/credora-backend/internal/eventbus"
+	"github.com/EfosaE/credora-backend/internal/queues"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
 )
@@ -22,8 +23,7 @@ type UserService struct {
 	logger     *logger.Logger
 	eventBus   eventbus.EventBus
 	monnifySvc *service.MonnifyService
-	// emailSvc   service.EmailService
-	// acctSvc    *accountsvc.AccountService
+	queue      queues.Queue // It should depend on the Queue interface for unit testing
 }
 
 func NewUserService(
@@ -31,16 +31,14 @@ func NewUserService(
 	logger *logger.Logger,
 	eventBus eventbus.EventBus,
 	monnifySvc *service.MonnifyService,
-	// emailSvc service.EmailService,
-	// acctSvc *accountsvc.AccountService,
+	queue queues.Queue,
 ) *UserService {
 	return &UserService{
 		userRepo:   userRepo,
 		logger:     logger,
 		eventBus:   eventBus,
 		monnifySvc: monnifySvc,
-		// emailSvc:   emailSvc,
-		// acctSvc:    acctSvc,
+		queue:      queue,
 	}
 }
 
@@ -66,6 +64,10 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		return nil, err
 	}
 
+	// Enqueue account number email
+	if err := s.SendAccountNumberEmailAsync(result.Email, monnifyCustResp.ResponseBody.Accounts[0].BankName, monnifyCustResp.ResponseBody.Accounts[0].AccountNumber); err != nil {
+		s.logger.Error("Failed to enqueue account number email:", map[string]any{"error": err.Error()})
+	}
 	event := event.UserCreatedEvent{
 		UserID:        result.ID,
 		AccountNumber: monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
@@ -82,7 +84,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	s.logger.Info("User successfully created", map[string]any{"userID": result.ID, "user_account_ref": monnifyCustResp.ResponseBody.AccountReference})
 
 	userResp := &user.CreateUserResponse{
-		
+
 		ID:                   result.ID,
 		Name:                 req.Name,
 		Email:                req.Email,

@@ -14,7 +14,7 @@ COPY . .
 
 # Build the Go application from cmd folder
 # Note: Building from ./cmd and outputting as 'server' (not 'main')
-RUN go build -o server ./cmd
+RUN go build -o server ./cmd/server
 
 # Use a minimal base image for the final build
 FROM debian:bullseye-slim

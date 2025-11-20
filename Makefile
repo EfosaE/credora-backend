@@ -81,13 +81,17 @@ sqlc-generate:
 # ============================================
 # Run & Build
 # ============================================
-.PHONY: run build
+.PHONY: run build start-worker
 run:
-	go run cmd/main.go
+	go run cmd/server/main.go
 
 build:
-	go build -o bin/server cmd/main.go
+	go build -o bin/server cmd/server/main.go
 
+start-worker:
+	go run cmd/worker/main.go
+
+	
 # ============================================
 # Tests: unit vs integration
 # ============================================

@@ -12,6 +12,7 @@ import (
 	// "github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
+
 	"github.com/EfosaE/credora-backend/service"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
@@ -46,9 +47,9 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	log := test.SetupTestLogger()
 	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
 	mockEventBus := &mocks.MockEventBus{}
-	// mockEmailSvc := service.NewEmailService(mockEmailAdapter)
-	// monnifyClient := test.SetupTestMonnifyClient()
-	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc)
+	mockQueue := &mocks.MockQueueClient{}
+
+	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc, mockQueue)
 	authSvc := authsvc.NewAuthService(nil, nil)
 
 	handler := NewAuthHandler(userSvc, authSvc)

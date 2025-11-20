@@ -14,6 +14,7 @@ import (
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/db"
 	"github.com/EfosaE/credora-backend/internal/handler"
+	"github.com/EfosaE/credora-backend/internal/queues"
 	"github.com/EfosaE/credora-backend/internal/router"
 	"github.com/EfosaE/credora-backend/internal/seeder"
 	"github.com/EfosaE/credora-backend/internal/server"
@@ -50,6 +51,9 @@ func main() {
 		log.Println("✅ Seeding complete")
 		return // exit after seeding
 	}
+
+	// Initialize Asynq client (for enqueuing tasks)
+	queueClient := queues.NewQueueClient(config.App.RedisAddr)
 
 	dbCtx := context.Background()
 	qCtx := context.Background()
@@ -123,7 +127,7 @@ func main() {
 
 	//initialize user service
 	userRepo := infrastructure.NewSqlcUserRepository(qCtx, db.Queries)
-	userService := usersvc.NewUserService(userRepo, logger, eventBus, monnifySvc)
+	userService := usersvc.NewUserService(userRepo, logger, eventBus, monnifySvc, queueClient)
 
 	// initialize auth service
 	tokenSvc := authsvc.NewJWTTokenService(config.App.JwtSecret, time.Hour*24)
@@ -170,7 +174,6 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/api/v1", http.StatusFound)
 	})
-
 
 	// Start server with graceful shutdown
 	if err := srv.Start(); err != nil {
