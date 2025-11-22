@@ -5,16 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/service"
+	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	"github.com/hibiken/asynq"
 )
 
 type Handlers struct {
-	EmailSvc service.EmailService
+	EmailSvc     service.EmailService
+	OperationSvc operationsvc.OperationService
 }
 
-func NewHandlers(es service.EmailService) *Handlers {
-	return &Handlers{es}
+func NewHandlers(es service.EmailService, ops operationsvc.OperationService) *Handlers {
+	return &Handlers{es, ops}
 }
 
 // // EXTERNAL TRANSFER
@@ -64,4 +68,16 @@ func (h *Handlers) HandleSendAccountNumberEmail(ctx context.Context, t *asynq.Ta
 	}
 	log.Printf("Sending Email to User: to=%s, bank=%s, account_number=%s", p.To, p.Bank, p.AccountNumber)
 	return h.EmailSvc.SendAccountNumberEmail(ctx, p.To, p.Bank, p.AccountNumber)
+}
+
+func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) error {
+	var p operation.InternalTransferReq
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
+	}
+
+	log.Printf("Initiating transfer of %d from %s to %s", p.Amount, p.FromAcctNum, p.ToAcctNum)
+
+	return h.OperationSvc.InternalTransfer(ctx, &p)
+
 }

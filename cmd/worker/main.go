@@ -1,37 +1,25 @@
 package main
 
 import (
-	"context"
 	"log"
 
-	"github.com/EfosaE/credora-backend/infrastructure"
+	app "github.com/EfosaE/credora-backend/di"
+
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/queues"
-	"github.com/EfosaE/credora-backend/service"
+
 	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	// Load app configuration
 	config.Load()
 
-	// -----------------------------
-	// 1. go-redis client for EventBus
-	// -----------------------------
-	appRedis := redis.NewClient(&redis.Options{
-		Addr: config.App.RedisAddr,
-		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			log.Println("✅ Redis connection established for EventBus")
-			return nil
-		},
-	})
-
-	eventBus := infrastructure.NewStreamEventBus(appRedis)
-
-	// Initialize Email service
-	emailAdapter := infrastructure.NewEmailAdapter()
-	emailSvc := service.NewEmailService(emailAdapter, eventBus)
+	builder := app.NewAppBuilder(config.App)
+	deps, err := builder.BuildForWorker()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// -----------------------------
 	// 2. Asynq Redis client for queue
@@ -59,7 +47,8 @@ func main() {
 	// 3. Handlers
 	// -----------------------------
 	handlers := queues.NewHandlers(
-		emailSvc,
+		deps.EmailSvc,
+		*deps.OperationSvc,
 		// wallet.NewService(),
 		// transfer.NewService(),
 		// webhook.NewService(),
@@ -68,12 +57,13 @@ func main() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(queues.TypeWelcomeEmail, handlers.HandleSendEmail)
 	mux.HandleFunc(queues.TypeAccountNumberEmail, handlers.HandleSendAccountNumberEmail)
+	mux.HandleFunc(queues.TypeInternalTransfer, handlers.HandleInternalTransfer)
 	// Uncomment and add other handlers when ready
-	// mux.HandleFunc(queues.TaskProcessExternalTransfer, handlers.HandleExternalTransfer)
+
 	// mux.HandleFunc(queues.TaskProcessInternalTransfer, handlers.HandleInternalTransfer)
 	// mux.HandleFunc(queues.TaskProcessVAWebhook, handlers.HandleVACredit)
 
-	log.Println("🚀 Asynq worker running...")
+	log.Println("Asynq worker running...")
 	if err := srv.Run(mux); err != nil {
 		log.Fatal(err)
 	}

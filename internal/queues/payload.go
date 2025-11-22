@@ -3,20 +3,24 @@ package queues
 import (
 	"encoding/json"
 
+	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/hibiken/asynq"
 )
 
 // A list of task types.
 const (
-	TypeWelcomeEmail = "email:welcome"
+	TypeWelcomeEmail       = "email:welcome"
 	TypeAccountNumberEmail = "email:account_number"
+	TypeInternalTransfer   = "operation:internal_transfer"
+	// TypeExternalTransfer = "operation:external_transfer"
+	// TypeVACredit         = "webhook:va_credit"
 	// TypeImageResize     = "image:resize"
 )
 
 type AccountNumberEmailPayload struct {
-	To       string
-	Bank       string
+	To            string
+	Bank          string
 	AccountNumber string
 }
 
@@ -29,10 +33,10 @@ type WelcomeEmailPayload struct {
 //     SourceURL string
 // }
 
-//----------------------------------------------
+// ----------------------------------------------
 // Write a function NewXXXTask to create a task.
 // A task consists of a type and a payload.
-//----------------------------------------------
+// ----------------------------------------------
 func NewAccountNumberEmailTask(to string, bank string, accountNumber string) (*asynq.Task, error) {
 	payload, err := json.Marshal(AccountNumberEmailPayload{To: to, Bank: bank, AccountNumber: accountNumber})
 	if err != nil {
@@ -47,6 +51,14 @@ func NewWelcomeEmailTask(user *user.User, tmplID string) (*asynq.Task, error) {
 		return nil, err
 	}
 	return asynq.NewTask(TypeWelcomeEmail, payload), nil
+}
+
+func NewInternalTransferTask(fromAcctNum string, req *operation.InternalTransferReq) (*asynq.Task, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	return asynq.NewTask(TypeInternalTransfer, payload), nil
 }
 
 // func NewImageResizeTask(src string) (*asynq.Task, error) {

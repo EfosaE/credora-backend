@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/hibiken/asynq"
 )
 
@@ -67,7 +68,9 @@ func (q *QueueClient) EnqueueWelcomeEmail(payload WelcomeEmailPayload) error {
 func (q *QueueClient) EnqueueAccountNumberEmail(payload AccountNumberEmailPayload) error {
 	return q.enqueueCritical(TypeAccountNumberEmail, payload)
 }
-
+func (q *QueueClient) EnqueueInternalTransfer(payload *operation.InternalTransferReq) error {
+	return q.enqueueCritical(TypeInternalTransfer, payload)
+}
 // func (q *QueueClient) EnqueueExternalTransfer(payload ExternalTransferPayload) error {
 //     b, _ := json.Marshal(payload)
 //     task := asynq.NewTask(TaskProcessExternalTransfer, b)
