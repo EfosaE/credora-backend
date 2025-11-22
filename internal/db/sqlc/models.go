@@ -5,6 +5,8 @@
 package sqlc
 
 import (
+	"encoding/json"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -25,7 +27,7 @@ type Account struct {
 type IdempotencyKey struct {
 	IdemKey       string             `json:"idem_key"`
 	OperationType string             `json:"operation_type"`
-	Payload       []byte             `json:"payload"`
+	Payload       json.RawMessage    `json:"payload"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	ProcessedAt   pgtype.Timestamptz `json:"processed_at"`
 	Status        string             `json:"status"`

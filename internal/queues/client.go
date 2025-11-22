@@ -11,6 +11,7 @@ import (
 type Queue interface {
 	EnqueueWelcomeEmail(payload WelcomeEmailPayload) error
 	EnqueueAccountNumberEmail(payload AccountNumberEmailPayload) error
+	EnqueueInternalTransfer(payload *operation.InternalTransferReq) error
 }
 
 type QueueClient struct {
@@ -23,7 +24,48 @@ func NewQueueClient(redisAddr string) *QueueClient {
 	}
 }
 
-func (q *QueueClient) enqueueDefault(taskType string, payload any) error {
+type QueueOptions struct {
+	Queue     string
+	MaxRetry  int
+	Timeout   time.Duration
+	Deadline  time.Duration
+	Retention time.Duration
+}
+
+// --- Task Option Profiles ---
+
+var (
+	// Email tasks (non-critical)
+	DefaultTaskOptions = QueueOptions{
+		Queue:     "default",
+		MaxRetry:  5,
+		Timeout:   60 * time.Second,
+		Deadline:  10 * time.Minute,
+		Retention: 1 * time.Hour,
+	}
+
+	// Critical tasks (account creation, etc.)
+	CriticalTaskOptions = QueueOptions{
+		Queue:     "critical",
+		MaxRetry:  10,
+		Timeout:   60 * time.Second,
+		Deadline:  10 * time.Minute,
+		Retention: 1 * time.Hour,
+	}
+
+	// High-risk, long-running tasks: internal transfers
+	InternalTransferOptions = QueueOptions{
+		Queue:     "critical",
+		MaxRetry:  10,
+		Timeout:   5 * time.Minute,  // give handler more time
+		Deadline:  7 * time.Minute,  // must be > timeout
+		Retention: 24 * time.Hour,   // auditing and replay
+	}
+)
+
+// --- Generic enqueue function ---
+
+func (q *QueueClient) enqueue(taskType string, payload any, opts QueueOptions) error {
 	b, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -31,46 +73,32 @@ func (q *QueueClient) enqueueDefault(taskType string, payload any) error {
 
 	task := asynq.NewTask(taskType, b)
 
-	_, err = q.client.Enqueue(task,
-		asynq.MaxRetry(5),
-		asynq.Timeout(60*time.Second),
-		asynq.Queue("default"),
-		asynq.Deadline(time.Now().Add(10*time.Minute)),
-		asynq.Retention(1*time.Hour),
+	_, err = q.client.Enqueue(
+		task,
+		asynq.Queue(opts.Queue),
+		asynq.MaxRetry(opts.MaxRetry),
+		asynq.Timeout(opts.Timeout),
+		asynq.Deadline(time.Now().Add(opts.Deadline)),
+		asynq.Retention(opts.Retention),
 	)
 
 	return err
 }
 
-func (q *QueueClient) enqueueCritical(taskType string, payload any) error {
-	b, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	task := asynq.NewTask(taskType, b)
-
-	_, err = q.client.Enqueue(task,
-		asynq.MaxRetry(10),
-		asynq.Timeout(60*time.Second),
-		asynq.Queue("critical"),
-		asynq.Deadline(time.Now().Add(2*time.Minute)),
-		asynq.Retention(1*time.Hour),
-	)
-
-	return err
-}
+// --- Public API exposable methods ---
 
 func (q *QueueClient) EnqueueWelcomeEmail(payload WelcomeEmailPayload) error {
-	return q.enqueueDefault(TypeWelcomeEmail, payload)
+	return q.enqueue(TypeWelcomeEmail, payload, DefaultTaskOptions)
 }
 
 func (q *QueueClient) EnqueueAccountNumberEmail(payload AccountNumberEmailPayload) error {
-	return q.enqueueCritical(TypeAccountNumberEmail, payload)
+	return q.enqueue(TypeAccountNumberEmail, payload, CriticalTaskOptions)
 }
+
 func (q *QueueClient) EnqueueInternalTransfer(payload *operation.InternalTransferReq) error {
-	return q.enqueueCritical(TypeInternalTransfer, payload)
+	return q.enqueue(TypeInternalTransfer, payload, InternalTransferOptions)
 }
+
 // func (q *QueueClient) EnqueueExternalTransfer(payload ExternalTransferPayload) error {
 //     b, _ := json.Marshal(payload)
 //     task := asynq.NewTask(TaskProcessExternalTransfer, b)

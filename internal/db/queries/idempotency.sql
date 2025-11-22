@@ -23,8 +23,13 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (idem_key)
 DO UPDATE SET
     operation_type = EXCLUDED.operation_type,
-    payload = EXCLUDED.payload,
-    status = EXCLUDED.status;
+    payload        = EXCLUDED.payload,
+    status         = EXCLUDED.status
+WHERE 
+    idempotency_keys.operation_type IS DISTINCT FROM EXCLUDED.operation_type
+ OR idempotency_keys.payload        IS DISTINCT FROM EXCLUDED.payload
+ OR idempotency_keys.status         IS DISTINCT FROM EXCLUDED.status;
+
 
 
 

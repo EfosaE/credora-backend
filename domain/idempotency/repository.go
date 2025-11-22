@@ -20,8 +20,8 @@ type IdempotencyTx interface {
 	SaveFailure(ctx context.Context, key string, payload any) error
 }
 
-// IdempotencyTable defines non-transactional operations
-type IdempotencyTable interface {
+// IdempotencyRepo defines non-transactional operations
+type IdempotencyRepo interface {
 	Check(ctx context.Context, key string) (bool, error)
 	Insert(ctx context.Context, key string, operationType operation.OperationType, payload any, status transaction.TransactionStatus) error
 	Get(ctx context.Context, key string) (*IdempotencyData, error)

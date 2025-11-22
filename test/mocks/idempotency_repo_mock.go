@@ -11,7 +11,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/transaction"
 )
 
-// MockIdempotencyRepo implements IdempotencyTable and IdempotencyTx
+// MockIdempotencyRepo implements IdempotencyRepo and IdempotencyTx
 type MockIdempotencyRepo struct {
 	mu   sync.Mutex
 	data map[string]idempotency.IdempotencyData
@@ -76,7 +76,6 @@ func (m *MockIdempotencyRepo) SaveFailure(ctx context.Context, key string, paylo
 	return m.Upsert(ctx, key, operation.OperationTypeInternalTransfer, payload, transaction.StatusFailed)
 }
 
-
 // Delete removes a key from the store
 func (m *MockIdempotencyRepo) Delete(ctx context.Context, key string) error {
 	m.mu.Lock()
@@ -84,7 +83,6 @@ func (m *MockIdempotencyRepo) Delete(ctx context.Context, key string) error {
 	delete(m.data, key)
 	return nil
 }
-
 
 // UpdateStatus updates only the status of an existing record
 func (m *MockIdempotencyRepo) UpdateStatus(ctx context.Context, key string, status transaction.TransactionStatus) error {

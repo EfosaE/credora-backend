@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"encoding/json"
 )
 
 const checkIdempotency = `-- name: CheckIdempotency :one
@@ -59,10 +60,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type InsertIdempotencyKeyParams struct {
-	IdemKey       string `json:"idem_key"`
-	OperationType string `json:"operation_type"`
-	Payload       []byte `json:"payload"`
-	Status        string `json:"status"`
+	IdemKey       string          `json:"idem_key"`
+	OperationType string          `json:"operation_type"`
+	Payload       json.RawMessage `json:"payload"`
+	Status        string          `json:"status"`
 }
 
 func (q *Queries) InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error {
@@ -84,8 +85,8 @@ WHERE idem_key = $1
 `
 
 type SaveIdempotencyFailureParams struct {
-	IdemKey string `json:"idem_key"`
-	Payload []byte `json:"payload"`
+	IdemKey string          `json:"idem_key"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 func (q *Queries) SaveIdempotencyFailure(ctx context.Context, arg SaveIdempotencyFailureParams) error {
@@ -102,8 +103,8 @@ WHERE idem_key = $1
 `
 
 type SaveIdempotencySuccessParams struct {
-	IdemKey string `json:"idem_key"`
-	Payload []byte `json:"payload"`
+	IdemKey string          `json:"idem_key"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 func (q *Queries) SaveIdempotencySuccess(ctx context.Context, arg SaveIdempotencySuccessParams) error {
@@ -135,15 +136,19 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (idem_key)
 DO UPDATE SET
     operation_type = EXCLUDED.operation_type,
-    payload = EXCLUDED.payload,
-    status = EXCLUDED.status
+    payload        = EXCLUDED.payload,
+    status         = EXCLUDED.status
+WHERE 
+    idempotency_keys.operation_type IS DISTINCT FROM EXCLUDED.operation_type
+ OR idempotency_keys.payload        IS DISTINCT FROM EXCLUDED.payload
+ OR idempotency_keys.status         IS DISTINCT FROM EXCLUDED.status
 `
 
 type UpsertIdempotencyKeyParams struct {
-	IdemKey       string `json:"idem_key"`
-	OperationType string `json:"operation_type"`
-	Payload       []byte `json:"payload"`
-	Status        string `json:"status"`
+	IdemKey       string          `json:"idem_key"`
+	OperationType string          `json:"operation_type"`
+	Payload       json.RawMessage `json:"payload"`
+	Status        string          `json:"status"`
 }
 
 // -- name: UpsertIdempotencyKey :exec

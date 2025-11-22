@@ -34,6 +34,12 @@ func OK(data any, message string) *SuccessResponse {
 	return NewSuccess(http.StatusOK, data, message)
 }
 
+// Accepted returns a 202 Accepted success response
+func Accepted(data any, message string) *SuccessResponse {
+	return NewSuccess(http.StatusAccepted, data, message)
+}
+
+
 // Created returns a 201 Created success response
 func Created(data any, message string) *SuccessResponse {
 	return NewSuccess(http.StatusCreated, data, message)

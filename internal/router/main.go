@@ -68,10 +68,11 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Use(params.Auth.Authenticator())
 
 			r.Get("/user/info", params.UserHandler.GetUserInfo)
+			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
 				r.Use(custmiddleware.IdempotencyMiddleware())
-				r.Post("/transfer/internal", params.OperationsHandler.InternalTransfer)
+				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)
 			})
 
 		})

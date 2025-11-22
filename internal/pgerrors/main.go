@@ -1,65 +1,167 @@
-// pkg/pgerrors/handlers.go or anywhere reusable
 package pgerrors
 
 import (
-	// "errors"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var constraintToField = map[string]string{
-	"users_email_key":        "email",
-	"users_phone_number_key": "phone_number",
-	"users_nin_key":          "nin",
+// fieldDisplayNames maps database column names to user-friendly display names
+// Only add entries here if you want a different display name than the column name
+var fieldDisplayNames = map[string]string{
+	"nin":          "NIN",
+	"phone_number": "phone number",
+	// Add more custom display names as needed
 }
 
-// HandleUniqueViolation inspects the error and sends a 400 if it's a unique constraint error.
-// Returns true if it handled the error, false if not.
-// func HandleUniqueViolation(w http.ResponseWriter, r *http.Request, err error) bool {
-// 	var pgErr *pgconn.PgError
-// 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-// 		field, ok := constraintToField[pgErr.ConstraintName]
-// 		if !ok {
-// 			field = "field"
-// 		}
-// 		msg := fmt.Sprintf("%s already exists", field)
-// 		response.SendError(w, r, response.BadRequest(map[string]string{"field": field}, msg))
-// 		return true
-// 	}
-// 	return false
-// }
+// extractColumnFromConstraint attempts to extract the column name from a constraint name
+// Common patterns: "table_column_key", "table_column_idx", "table_column_unique", "table_pkey"
+func extractColumnFromConstraint(constraintName, detail string) string {
+	// For primary keys (table_pkey), try to extract from detail message first
+	// Detail format: "Key (column_name)=(value) already exists."
+	if strings.HasSuffix(constraintName, "_pkey") && detail != "" {
+		if start := strings.Index(detail, "("); start != -1 {
+			if end := strings.Index(detail[start:], ")"); end != -1 {
+				columnName := detail[start+1 : start+end]
+				// Handle composite keys by taking the first column
+				if commaIdx := strings.Index(columnName, ","); commaIdx != -1 {
+					columnName = strings.TrimSpace(columnName[:commaIdx])
+				}
+				return columnName
+			}
+		}
+	}
+	
+	// Remove common suffixes
+	name := strings.TrimSuffix(constraintName, "_key")
+	name = strings.TrimSuffix(name, "_idx")
+	name = strings.TrimSuffix(name, "_unique")
+	name = strings.TrimSuffix(name, "_pkey")
+	
+	// Split by underscore and take the last part (usually the column name)
+	parts := strings.Split(name, "_")
+	if len(parts) >= 2 {
+		// Return the last part, which is typically the column name
+		return parts[len(parts)-1]
+	}
+	
+	return name
+}
 
+// getDisplayName returns a user-friendly name for a field
+func getDisplayName(columnName string) string {
+	if displayName, ok := fieldDisplayNames[columnName]; ok {
+		return displayName
+	}
+	// Return the column name as-is (keeping snake_case)
+	return columnName
+}
+
+// HandlePGError inspects common Postgres + SQL errors.
+// Returns true if it handled the error (meaning the caller should STOP).
 func HandlePGError(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// ------------------------------------------
+	// 1️⃣ Handle "no rows" error (sqlc / pgx / stdlib)
+	// ------------------------------------------
+	if errors.Is(err, pgx.ErrNoRows) {
+		response.SendError(w, r, response.NotFound(
+			"Resource not found",
+		))
+		return true
+	}
+
+	if errors.Is(err, pgx.ErrTxClosed) {
+		response.SendError(w, r, response.InternalServerError(
+			err,
+			"Transaction is closed unexpectedly",
+		))
+		return true
+	}
+
+	// ------------------------------------------
+	// 2️⃣ Handle Postgres-specific errors
+	// ------------------------------------------
 	pgErr, ok := err.(*pgconn.PgError)
 	if !ok {
-		return false // Not a Postgres error
+		return false // not a PostgreSQL error
 	}
 
 	switch pgErr.Code {
-	case "23505": // unique_violation
-		field, ok := constraintToField[pgErr.ConstraintName]
-		if !ok {
-			field = "field"
-		}
-		msg := fmt.Sprintf("%s already exists", field)
-		response.SendError(w, r, response.BadRequest(map[string]string{"field": field}, msg))
+
+	// ------------------------------------------
+	// UNIQUE VIOLATION
+	// ------------------------------------------
+	case "23505":
+		columnName := extractColumnFromConstraint(pgErr.ConstraintName, pgErr.Detail)
+		displayName := getDisplayName(columnName)
+		
+		msg := fmt.Sprintf("%s already exists", displayName)
+		response.SendError(w, r, response.BadRequest(
+			map[string]string{"field": columnName},
+			msg,
+		))
 		return true
 
-	case "23503": // foreign_key_violation
-		msg := "Related resource not found"
+	// ------------------------------------------
+	// FOREIGN KEY VIOLATION
+	// ------------------------------------------
+	case "23503":
+		response.SendError(w, r, response.BadRequest(
+			nil,
+			"Related resource does not exist",
+		))
+		return true
+
+	// ------------------------------------------
+	// NOT NULL VIOLATION
+	// ------------------------------------------
+	case "23502":
+		displayName := getDisplayName(pgErr.ColumnName)
+		msg := fmt.Sprintf("Missing required field: %s", displayName)
+		response.SendError(w, r, response.BadRequest(
+			map[string]string{"field": pgErr.ColumnName},
+			msg,
+		))
+		return true
+
+	// ------------------------------------------
+	// CHECK CONSTRAINT VIOLATION
+	// ------------------------------------------
+	case "23514":
+		msg := fmt.Sprintf("Constraint failed: %s", pgErr.ConstraintName)
 		response.SendError(w, r, response.BadRequest(nil, msg))
 		return true
 
-	case "23502": // not_null_violation
-		msg := fmt.Sprintf("Missing required field: %s", pgErr.ColumnName)
-		response.SendError(w, r, response.BadRequest(map[string]string{"field": pgErr.ColumnName}, msg))
+	// ------------------------------------------
+	// EXCLUSION VIOLATION
+	// ------------------------------------------
+	case "23P01":
+		msg := fmt.Sprintf("Exclusion constraint failed: %s", pgErr.ConstraintName)
+		response.SendError(w, r, response.BadRequest(nil, msg))
 		return true
 
-	// Add more codes if needed (e.g., check_violation, exclusion_violation)
+	// ------------------------------------------
+	// UNDEFINED COLUMN
+	// e.g. bad query, typo in column name
+	// ------------------------------------------
+	case "42703":
+		msg := fmt.Sprintf("Column does not exist: %s", pgErr.ColumnName)
+		response.SendError(w, r, response.BadRequest(nil, msg))
+		return true
+
+	// ------------------------------------------
+	// FALLBACK (unhandled Postgres error)
+	// ------------------------------------------
 	default:
-		return false // unhandled pg error
+		return false
 	}
 }

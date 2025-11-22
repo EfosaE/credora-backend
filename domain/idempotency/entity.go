@@ -1,12 +1,16 @@
 package idempotency
 
-import "github.com/EfosaE/credora-backend/domain/transaction"
+import (
+	"encoding/json"
+
+	"github.com/EfosaE/credora-backend/domain/transaction"
+)
 
 type IdempotencyData struct {
-	IdemKey       string `json:"idem_key"`
-	Status        transaction.TransactionStatus   `json:"status"`
-	OperationType string `json:"operation_type"`
-	Payload       any    `json:"payload"`
+	IdemKey       string                        `json:"idem_key"`
+	Status        transaction.TransactionStatus `json:"status"`
+	OperationType string                        `json:"operation_type"`
+	Payload       json.RawMessage               `json:"payload"`
 }
 
 // // IsValid checks if the status is one of the allowed values

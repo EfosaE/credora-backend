@@ -3,10 +3,12 @@ package queues
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/EfosaE/credora-backend/domain/operation"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	"github.com/hibiken/asynq"
@@ -73,11 +75,25 @@ func (h *Handlers) HandleSendAccountNumberEmail(ctx context.Context, t *asynq.Ta
 func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) error {
 	var p operation.InternalTransferReq
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		// Unmarshal failed → skip retry
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 
-	log.Printf("Initiating transfer of %d from %s to %s", p.Amount, p.FromAcctNum, p.ToAcctNum)
+	utils.PrintJSON(p)
+	log.Printf("Initiating transfer of %s from %s to %s", p.Amount.String(), p.FromAcctNum, p.ToAcctNum)
 
-	return h.OperationSvc.InternalTransfer(ctx, &p)
+	// Call your service
+	err := h.OperationSvc.InternalTransfer(ctx, &p)
+	if err != nil {
+		// If it’s insufficient funds, treat it as “successfully handled” for Asynq
+		if errors.Is(err, operation.ErrInsufficientFunds) {
+			return nil
+		}
 
+		// For all other errors, propagate to Asynq (retry)
+		return err
+	}
+
+	// Success
+	return nil
 }

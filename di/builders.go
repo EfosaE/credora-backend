@@ -17,6 +17,7 @@ import (
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
@@ -40,15 +41,16 @@ type AppDependencies struct {
 	IdempotencyCache *infrastructure.IdempotencyCache
 
 	// Services
-	MonnifySvc   *service.MonnifyService
-	EmailSvc     *service.EmailServiceImpl
-	AcctSvc      *accountsvc.AccountService
-	TrxSvc       *transactionsvc.TransactionService
-	UserSvc      *usersvc.UserService
-	TokenSvc     *authsvc.JWTTokenService
-	AuthSvc      *authsvc.AuthService
-	OperationSvc *operationsvc.OperationService
-	SimulatorSvc *service.SimulatorService
+	MonnifySvc     *service.MonnifyService
+	EmailSvc       *service.EmailServiceImpl
+	AcctSvc        *accountsvc.AccountService
+	TrxSvc         *transactionsvc.TransactionService
+	UserSvc        *usersvc.UserService
+	TokenSvc       *authsvc.JWTTokenService
+	AuthSvc        *authsvc.AuthService
+	OperationSvc   *operationsvc.OperationService
+	SimulatorSvc   *service.SimulatorService
+	IdempotencySvc *idempotencysvc.IdempotencyService
 
 	// Handlers
 	AuthHandler       *handler.AuthHandler
@@ -216,6 +218,18 @@ func (b *AppBuilder) WithAccountService() *AppBuilder {
 	return b
 }
 
+func (b *AppBuilder) WithIdempotencyService() *AppBuilder {
+	if b.err != nil {
+		return b
+	}
+	if b.deps.IdempotencyRepo == nil {
+		b.err = fmt.Errorf("the idempotency repo must be initialized before Idemp Service")
+		return b
+	}
+	b.deps.IdempotencySvc = idempotencysvc.NewIdempotencyService(b.deps.IdempotencyRepo)
+	return b
+}
+
 func (b *AppBuilder) WithTransactionService() *AppBuilder {
 	if b.err != nil {
 		return b
@@ -261,7 +275,7 @@ func (b *AppBuilder) WithAuthService() *AppBuilder {
 		return b
 	}
 
-	if b.deps.AcctRepo == nil  {
+	if b.deps.AcctRepo == nil {
 		b.err = fmt.Errorf("account repository must be initialized before auth service")
 		return b
 	}
@@ -317,7 +331,7 @@ func (b *AppBuilder) WithHandlers() *AppBuilder {
 	b.deps.AuthHandler = handler.NewAuthHandler(b.deps.UserSvc, b.deps.AuthSvc)
 	b.deps.UserHandler = handler.NewUserHandler(b.deps.UserSvc)
 	b.deps.WebhookHandler = handler.NewWebHookHandler(b.deps.AcctSvc, b.deps.TrxSvc)
-	b.deps.OperationsHandler = handler.NewOperationHandler(b.deps.OperationSvc)
+	b.deps.OperationsHandler = handler.NewOperationHandler(b.deps.OperationSvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.MonnifyHandler = handler.NewMonnifyHandler(b.deps.MonnifySvc)
 	b.deps.SimHandler = handler.NewSimulatorHandler(b.deps.SimulatorSvc)
 	b.deps.HealthHandler = handler.NewHealthHandler(b.deps.Redis)
@@ -348,6 +362,7 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 		WithUserService().
 		WithAuthService().
 		WithOperationService().
+		WithIdempotencyService().
 		WithEventSubscriptions().
 		WithHandlers().
 		Build()

@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// SqlcIdempotencyRepository implements both IdempotencyTable and IdempotencyTx
+// SqlcIdempotencyRepository implements both IdempotencyRepo and IdempotencyTx
 type SqlcIdempotencyRepository struct {
 	db *pgxpool.Pool
 	tx pgx.Tx // nil when not inside a transaction
@@ -35,9 +35,6 @@ func (r *SqlcIdempotencyRepository) WithTx(tx pgx.Tx) idempotency.IdempotencyTx 
 		q:  sqlc.New(tx),
 	}
 }
-
-
-
 
 // ------------------------------------
 // Normal methods / Tx methods
@@ -132,10 +129,6 @@ func (i *SqlcIdempotencyRepository) SaveFailure(ctx context.Context, key string,
 		Payload: jsonPayload,
 	})
 }
-
-
-
-
 
 //Unless the IdempotencyTx interface requires access to the underlying pgx.Tx, this method is unnecessary.
 // func (r *SqlcIdempotencyRepository) Tx() pgx.Tx {

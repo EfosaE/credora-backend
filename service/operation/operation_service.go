@@ -15,14 +15,14 @@ import (
 type OperationService struct {
 	acctRepo        account.AccountRepository
 	transactionRepo transaction.TransactionRepository
-	idempTable      idempotency.IdempotencyTable
+	idempTable      idempotency.IdempotencyRepo
 	logger          *logger.Logger
 }
 
 func NewOperationService(
 	acctRepo account.AccountRepository,
 	transactionRepo transaction.TransactionRepository,
-	idempTable idempotency.IdempotencyTable,
+	idempTable idempotency.IdempotencyRepo,
 	logger *logger.Logger,
 ) *OperationService {
 	return &OperationService{
@@ -35,26 +35,9 @@ func NewOperationService(
 
 // InternalTransfer performs debit + credit + ledger atomically using DB-backed idempotency
 func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.InternalTransferReq) error {
-	// ---- 0️⃣ PRE-CHECK: Idempotency before hitting DB ----
-	exists, err := s.idempTable.Check(ctx, req.IdempotencyKey)
-	if err != nil {
-		return fmt.Errorf("idempotency check failed: %w", err)
-	}
-
-	if exists {
-		result, err := s.idempTable.Get(ctx, req.IdempotencyKey)
-		if err != nil {
-			return fmt.Errorf("idempotency get failed: %w", err)
-		}
-		if result.Status == transaction.StatusSuccess {
-			// Already completed, safe to return
-			return nil
-		}
-		// else previously FAILED, allow retry
-	}
 
 	// ---- 1️⃣ Wrap everything in a DB transaction ----
-	err = s.acctRepo.WithTx(ctx, func(accTx account.AccountTx) error {
+	return s.acctRepo.WithTx(ctx, func(accTx account.AccountTx) error {
 		sqlTx := accTx.Tx()
 
 		txTransactionRepo := s.transactionRepo.WithTx(sqlTx)
@@ -91,9 +74,11 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 				"error": "insufficient_funds",
 			}, transaction.StatusFailed)
 
-			s.logger.Error("Failed to upsert idempotency after insufficient funds", map[string]any{
-				"error": err,
-			})
+			if err != nil {
+				s.logger.Error("Failed to upsert idempotency after insufficient funds", map[string]any{
+					"error": err.Error(),
+				})
+			}
 
 			return operation.ErrInsufficientFunds
 		}
@@ -140,5 +125,4 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 		return nil
 	})
 
-	return err
 }
