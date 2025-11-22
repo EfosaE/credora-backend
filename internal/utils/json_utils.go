@@ -14,3 +14,13 @@ func PrintJSON(v any) {
 	}
 	fmt.Println(string(pretty))
 }
+
+// ReturnJSON Returns any struct or map as indented JSON
+func ReturnJSON(v any) string {
+	pretty, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshalling JSON: %v\n", err)
+		return ""
+	}
+	return string(pretty)
+}

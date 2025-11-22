@@ -21,6 +21,7 @@ const (
 )
 
 const (
+	StatusProcessing TransactionStatus = "PROCESSING"
 	StatusPending TransactionStatus = "PENDING"
 	StatusSuccess TransactionStatus = "SUCCESS"
 	StatusFailed  TransactionStatus = "FAILED"
@@ -50,15 +51,15 @@ type Transaction struct {
 
 // NewTransactionInput - For creating a single transaction
 type NewTransactionInput struct {
-	AccountID       uuid.UUID         // The account being debited/credited
-	CounterpartyID  *uuid.UUID        // Optional: the other account (for internal transfers)
-	Amount          decimal.Decimal
-	Type            TransactionType   // CREDIT or DEBIT
-	Status          TransactionStatus
-	Description     string
-	Reference       string
-	Channel         string
-	Meta            json.RawMessage
+	AccountID      uuid.UUID  // The account being debited/credited
+	CounterpartyID *uuid.UUID // Optional: the other account (for internal transfers)
+	Amount         decimal.Decimal
+	Type           TransactionType // CREDIT or DEBIT
+	Status         TransactionStatus
+	Description    string
+	Reference      string
+	Channel        string
+	Meta           json.RawMessage
 }
 
 // AddMoneyInput - For depositing money

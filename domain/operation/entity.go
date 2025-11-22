@@ -5,6 +5,18 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+type OperationType string
+
+const (
+	OperationTypeInternalTransfer OperationType = "INTERNAL_TRANSFER"
+	OperationTypeExternalTransfer OperationType = "EXTERNAL_TRANSFER"
+	OperationTypeWebhook          OperationType = "WEBHOOK"
+)
+
 type InternalTransferReq struct {
 	FromAcctNum    string          `json:"from_acct_num"`
 	ToAcctNum      string          `json:"to_acct_num"`

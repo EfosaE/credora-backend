@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
+	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 )
 
@@ -23,4 +24,5 @@ type AccountTx interface {
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (*Account, error)
 	CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 	DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
+	Tx() pgx.Tx
 }

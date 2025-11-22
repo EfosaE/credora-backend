@@ -12,10 +12,12 @@ import (
 )
 
 type Querier interface {
+	CheckIdempotency(ctx context.Context, idemKey string) (bool, error)
 	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error)
 	DebitAccountBalance(ctx context.Context, arg DebitAccountBalanceParams) (DebitAccountBalanceRow, error)
+	DeleteIdempotencyKey(ctx context.Context, idemKey string) error
 	// -- name: UpdateUser :one
 	// This query is commented out because it updates manually but I have associated trigger
 	// that automatically updates the `updated_at` field on any update.
@@ -26,12 +28,22 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
+	GetIdempotencyKey(ctx context.Context, idemKey string) (IdempotencyKey, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
+	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
+	SaveIdempotencyFailure(ctx context.Context, arg SaveIdempotencyFailureParams) error
+	SaveIdempotencySuccess(ctx context.Context, arg SaveIdempotencySuccessParams) error
+	UpdateIdempotencyStatus(ctx context.Context, arg UpdateIdempotencyStatusParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	// -- name: UpsertIdempotencyKey :exec
+	// INSERT INTO idempotency_keys (idem_key, operation_type, payload, status)
+	// VALUES ($1, $2, $3, $4)
+	// ON CONFLICT (idem_key) DO NOTHING;
+	UpsertIdempotencyKey(ctx context.Context, arg UpsertIdempotencyKeyParams) error
 }
 
 var _ Querier = (*Queries)(nil)

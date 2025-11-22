@@ -50,6 +50,8 @@ func main() {
 				"default":  3,
 				"low":      1,
 			},
+
+			StrictPriority: true,
 		},
 	)
 

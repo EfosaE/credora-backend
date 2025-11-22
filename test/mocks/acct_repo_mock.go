@@ -7,16 +7,23 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
+	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 )
 
 type MockAcctRepo struct {
-	CreateFunc           func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
-	CreditFunc           func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
-	DebitFunc            func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+	CreateFunc              func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
+	CreditFunc              func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+	DebitFunc               func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 	GetAccountForUpdateFunc func(ctx context.Context, accountNumber string) (*account.Account, error) // NEW
-	WithTxFunc           func(ctx context.Context, fn func(tx account.AccountTx) error) error
-	Accounts             map[int]*account.Account
+	WithTxFunc              func(ctx context.Context, fn func(tx account.AccountTx) error) error
+	Accounts                map[int]*account.Account
+	Txm                     func() pgx.Tx
+}
+
+// Tx implements account.AccountTx.
+func (m *MockAcctRepo) Tx() pgx.Tx {
+	return m.Txm()
 }
 
 func (m *MockAcctRepo) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {

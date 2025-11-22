@@ -22,6 +22,15 @@ type Account struct {
 	MonnifyCustomerRef pgtype.Text      `json:"monnify_customer_ref"`
 }
 
+type IdempotencyKey struct {
+	IdemKey       string             `json:"idem_key"`
+	OperationType string             `json:"operation_type"`
+	Payload       []byte             `json:"payload"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	ProcessedAt   pgtype.Timestamptz `json:"processed_at"`
+	Status        string             `json:"status"`
+}
+
 type Transaction struct {
 	ID          uuid.UUID        `json:"id"`
 	AccountID   pgtype.UUID      `json:"account_id"`

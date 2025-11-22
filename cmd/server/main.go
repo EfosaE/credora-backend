@@ -99,6 +99,7 @@ func main() {
 
 	eventBus := infrastructure.NewStreamEventBus(rdb)
 	idempotencyCache := infrastructure.NewIdempotencyCache(rdb, 1*time.Hour)
+	idempotencyRepo := infrastructure.NewSqlcIdempotencyRepository(db.Pool)
 
 	// Initialize Monnify configuration
 	monnifyConfig := &monnify.MonnifyConfig{
@@ -137,7 +138,7 @@ func main() {
 	simRepo := infrastructure.NewInMemoryRepo(config.App.WebhookURL)
 	simSvc := service.NewSimulatorService(simRepo)
 
-	operationSvc := operationsvc.NewOperationService(acctRepo, trxRepo, idempotencyCache, logger)
+	operationSvc := operationsvc.NewOperationService(acctRepo, trxRepo, idempotencyRepo, logger)
 
 	// Initialize route handlers
 	authHandler := handler.NewAuthHandler(userService, authSvc)

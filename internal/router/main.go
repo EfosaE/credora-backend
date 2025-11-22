@@ -70,7 +70,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/user/info", params.UserHandler.GetUserInfo)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
-				r.Use(custmiddleware.IdempotencyMiddleware(params.Cache))
+				r.Use(custmiddleware.IdempotencyMiddleware())
 				r.Post("/transfer/internal", params.OperationsHandler.InternalTransfer)
 			})
 
