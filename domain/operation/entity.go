@@ -25,12 +25,12 @@ type InternalTransferReq struct {
 }
 
 type InternalTransferDTO struct {
-	FromAccount string `json:"from_account" validate:"required"`
 	ToAccount   string `json:"to_account" validate:"required"`
 	Amount      string `json:"amount" validate:"required,decimal"`
 }
 
 var ErrInsufficientFunds = errors.New("insufficient funds")
+var ErrAccountNotFound = errors.New("account not found")
 var ErrDuplicateRequest = errors.New("duplicate request detected")
 var ErrInvalidAmount = errors.New("invalid transfer amount")
 var ErrInvalidTransfer = errors.New("invalid transfer: source and destination accounts must differ")

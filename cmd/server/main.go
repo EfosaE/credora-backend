@@ -36,6 +36,8 @@ func main() {
 		SimHandler:        deps.SimHandler,
 		HealthHandler:     deps.HealthHandler,
 		Cache:             deps.IdempotencyCache,
+		AcctSvc:           deps.AcctSvc,
+		IdempSvc:          deps.IdempotencySvc,
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

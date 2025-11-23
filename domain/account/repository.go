@@ -14,7 +14,7 @@ type AccountRepository interface {
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (*sqlc.GetUserByAccountNumberRow, error)
 	CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 	DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
-
+	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (*Account, error)
 	// Transaction wrapper
 	WithTx(ctx context.Context, fn func(tx AccountTx) error) error
 }

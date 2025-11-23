@@ -48,6 +48,14 @@ func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) 
 	}, nil
 }
 
+func (a *AccountService) FindAccountByAcctNum(ctx context.Context, acctNum string) (*account.Account, error) {
+	acct, err := a.acctRepo.GetAccountByAccountNumber(ctx, acctNum)
+	if err != nil {
+		return nil, err
+	}
+	return acct, nil
+}
+
 func (a *AccountService) CreditUserBalance(ctx context.Context, amount decimal.Decimal, acctNum string) (*account.CreditAcctResp, error) {
 	result, err := a.acctRepo.CreditAccount(ctx, amount, acctNum)
 	if err != nil {

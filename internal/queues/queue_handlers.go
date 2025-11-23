@@ -85,13 +85,22 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 	// Call your service
 	err := h.OperationSvc.InternalTransfer(ctx, &p)
 	if err != nil {
-		// If it’s insufficient funds, treat it as “successfully handled” for Asynq
-		if errors.Is(err, operation.ErrInsufficientFunds) {
+		switch {
+		// Do NOT retry for business-logic failures
+		case errors.Is(err, operation.ErrInsufficientFunds):
 			return nil
-		}
 
-		// For all other errors, propagate to Asynq (retry)
-		return err
+		case errors.Is(err, operation.ErrAccountNotFound):
+			return nil
+
+		// Add more cases as needed:
+		// case errors.Is(err, operation.ErrSomethingElse):
+		//     return nil
+
+		// Any other error → retry
+		default:
+			return err
+		}
 	}
 
 	// Success

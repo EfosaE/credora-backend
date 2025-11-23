@@ -75,7 +75,7 @@ func Forbidden(message string) *ErrorResponse {
 
 // ValidationError returns a 422 Unprocessable Entity error
 func ValidationError(message string) *ErrorResponse {
-	return New(http.StatusUnprocessableEntity, "Validation error", message)
+	return New(http.StatusUnprocessableEntity, "This request cannot be processed", message)
 }
 
 // SendError is a convenience function to send an error response

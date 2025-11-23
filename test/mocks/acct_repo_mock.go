@@ -16,6 +16,7 @@ type MockAcctRepo struct {
 	CreditFunc              func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 	DebitFunc               func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 	GetAccountForUpdateFunc func(ctx context.Context, accountNumber string) (*account.Account, error) // NEW
+	GetAccountByAcctNumFunc    func(ctx context.Context, accountNumber string) (*account.Account, error)
 	WithTxFunc              func(ctx context.Context, fn func(tx account.AccountTx) error) error
 	Accounts                map[int]*account.Account
 	Txm                     func() pgx.Tx
@@ -40,6 +41,10 @@ func (m *MockAcctRepo) CreditAccount(ctx context.Context, amount decimal.Decimal
 
 func (m *MockAcctRepo) DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
 	return m.DebitFunc(ctx, amount, accountNumber)
+}
+
+func (m *MockAcctRepo) GetAccountByAccountNumber(ctx context.Context, accountNumber string) (*account.Account, error) {
+	return m.GetAccountByAcctNumFunc(ctx, accountNumber)
 }
 
 // GetAccountForUpdate mocks row locking inside a transaction

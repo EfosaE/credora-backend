@@ -10,10 +10,12 @@ VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 
+
 -- name: GetAccountByAccountNumber :one
-SELECT a.account_number, a.balance, a.virtual_account_bank
+SELECT a.id, a.account_number, a.balance, a.virtual_account_bank
 FROM accounts a
-WHERE a.account_number = $1;
+WHERE a.account_number = $1
+LIMIT 1;
 
 
 -- name: GetUserByAccountNumber :one

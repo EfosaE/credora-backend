@@ -8,7 +8,9 @@ import (
 	"github.com/EfosaE/credora-backend/internal/handler"
 	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/response"
+	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -25,6 +27,8 @@ type RouterSetupParams struct {
 	SimHandler        *handler.SimulatorHandler
 	HealthHandler     *handler.HealthHandler
 	Cache             *infrastructure.IdempotencyCache
+	AcctSvc           *accountsvc.AccountService
+	IdempSvc          *idempotencysvc.IdempotencyService
 }
 
 func SetupRouter(params RouterSetupParams) chi.Router {
@@ -71,7 +75,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
-				r.Use(custmiddleware.IdempotencyMiddleware())
+				r.Use(custmiddleware.InternalTransferMiddleware(*params.AcctSvc, *params.IdempSvc))
 				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)
 			})
 

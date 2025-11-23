@@ -5,20 +5,23 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
-
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/validation"
+	accountsvc "github.com/EfosaE/credora-backend/service/account"
+	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/shopspring/decimal"
+	"io"
+	"net/http"
 )
 
 type ctxKey string
 
 const ContextKeyInternalTransfer ctxKey = "internalTransferReq"
 
-func IdempotencyMiddleware() func(next http.Handler) http.Handler {
+func InternalTransferMiddleware(acctService accountsvc.AccountService,
+	idemSvc idempotencysvc.IdempotencyService) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := r.Header.Get("Idempotency-Key")
@@ -29,6 +32,17 @@ func IdempotencyMiddleware() func(next http.Handler) http.Handler {
 				))
 				return
 			}
+
+			// Check if request was already processed
+			if existing, _ := idemSvc.GetRecord(r.Context(), key); existing != nil {
+				// Return the saved response directly
+				response.SendSuccess(w, r, response.OK(existing, "This request has already been processed"))
+				return
+			}
+
+			// ---- 2️⃣ Extract user from JWT ----
+			_, claims, _ := jwtauth.FromContext(r.Context())
+			acctNum := claims["account_number"].(string)
 
 			// Read the body once
 			bodyBytes, err := io.ReadAll(r.Body)
@@ -55,7 +69,7 @@ func IdempotencyMiddleware() func(next http.Handler) http.Handler {
 			}
 
 			// ---- 2️⃣ Convert DTO → DOMAIN ----
-			domainReq, err := dto.ToDomain()
+			domainReq, err := dto.ToDomain(acctNum)
 			if err != nil {
 				response.SendError(w, r, response.BadRequest(err, "Invalid transfer fields"))
 				return
@@ -77,6 +91,23 @@ func IdempotencyMiddleware() func(next http.Handler) http.Handler {
 					operation.ErrInvalidAmount,
 					"Amount must be greater than zero",
 				))
+				return
+			}
+
+			// ---- 8️⃣ Lightweight DB validations (read-only!) ----
+			fromAcct, err := acctService.FindAccountByAcctNum(r.Context(), domainReq.FromAcctNum)
+			if err != nil {
+				response.SendError(w, r, response.NotFound("Sender account not found"))
+				return
+			}
+
+			if _, err := acctService.FindAccountByAcctNum(r.Context(), domainReq.ToAcctNum); err != nil {
+				response.SendError(w, r, response.NotFound("Receiver account not found"))
+				return
+			}
+
+			if fromAcct.Balance.LessThan(domainReq.Amount) {
+				response.SendError(w, r, response.ValidationError(operation.ErrInsufficientFunds.Error()))
 				return
 			}
 

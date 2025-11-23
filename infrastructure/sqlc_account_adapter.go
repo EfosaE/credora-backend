@@ -15,7 +15,7 @@ import (
 // SqlcAccountRepository implements both AccountRepository and AccountTx
 type SqlcAccountRepository struct {
 	db *pgxpool.Pool
-	tx pgx.Tx      // nil when not inside a transaction
+	tx pgx.Tx // nil when not inside a transaction
 	q  *sqlc.Queries
 }
 
@@ -84,6 +84,18 @@ func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct
 		return nil, err
 	}
 	return &row, nil
+}
+
+func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, acct string) (*account.Account, error) {
+	row, err := r.q.GetAccountByAccountNumber(ctx, acct)
+	if err != nil {
+		return nil, err
+	}
+	return &account.Account{
+		ID:            row.ID,
+		AccountNumber: row.AccountNumber,
+		Balance:       utils.MustPgNumericToDecimal(row.Balance),
+	}, nil
 }
 
 // ------------------------------------

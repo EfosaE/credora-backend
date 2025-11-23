@@ -105,12 +105,14 @@ func (q *Queries) DebitAccountBalance(ctx context.Context, arg DebitAccountBalan
 }
 
 const getAccountByAccountNumber = `-- name: GetAccountByAccountNumber :one
-SELECT a.account_number, a.balance, a.virtual_account_bank
+SELECT a.id, a.account_number, a.balance, a.virtual_account_bank
 FROM accounts a
 WHERE a.account_number = $1
+LIMIT 1
 `
 
 type GetAccountByAccountNumberRow struct {
+	ID                 uuid.UUID      `json:"id"`
 	AccountNumber      string         `json:"account_number"`
 	Balance            pgtype.Numeric `json:"balance"`
 	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
@@ -119,7 +121,12 @@ type GetAccountByAccountNumberRow struct {
 func (q *Queries) GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error) {
 	row := q.db.QueryRow(ctx, getAccountByAccountNumber, accountNumber)
 	var i GetAccountByAccountNumberRow
-	err := row.Scan(&i.AccountNumber, &i.Balance, &i.VirtualAccountBank)
+	err := row.Scan(
+		&i.ID,
+		&i.AccountNumber,
+		&i.Balance,
+		&i.VirtualAccountBank,
+	)
 	return i, err
 }
 

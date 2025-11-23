@@ -1,136 +1,124 @@
 # Credora Backend
 
-A robust Go-based backend service for handling financial transactions, user management, and virtual account operations using the Monnify payment gateway.
+A Go-based backend for financial simulations, virtual accounts and transaction processing with event-driven and queued workers.
+
+## Highlights (latest)
+- Go 1.24+
+- JWT authentication + account management
+- Monnify integration for virtual/reserved accounts
+- PostgreSQL (pgx) + SQLC for typed SQL
+- Redis-based Event Bus + Asynq workers for background jobs
+- Email delivery adapters (Resend / Mailtrap) and event-driven welcome/account emails
+- Structured JSON logging with file rotation support
 
 ## Features
+- Authentication & Authorization
+  - JWT token service
+  - Register / Login endpoints
+- Virtual Accounts
+  - Reserved virtual accounts via Monnify
+  - Virtual account bookkeeping and webhooks
+- Transactions & Transfers
+  - Internal transfer processing with idempotency
+  - Webhook handling for Monnify payment events
+  - Transaction history and settlement calculation
+- Asynchronous Processing
+  - Redis + Asynq queue for email, account notifications and internal transfer tasks
+- Developer tooling
+  - Database migrations (golang-migrate)
+  - SQLC for generating query code
+  - Makefile helpers for common operations
 
-### Core Functionality
-- User Authentication & Authorization
-  - JWT-based authentication
-  - Secure password hashing
-  - User registration and login
+## Tech stack & key libraries
+- Language: Go (>= 1.24)
+- Router: github.com/go-chi/chi
+- DB driver: github.com/jackc/pgx/v5
+- SQL generation: github.com/kyleconroy/sqlc
+- Migrations: golang-migrate/migrate
+- Redis client: github.com/redis/go-redis/v9
+- Queue: github.com/hibiken/asynq
+- Logging: custom structured logger (domain/logger)
+- Monnify client: internal/infrastructure adapter (monnify)
+- Utilities: github.com/shopspring/decimal, github.com/google/uuid, github.com/brianvoe/gofakeit, github.com/joho/godotenv
 
-### Banking & Financial Features
-- Virtual Account Management
-  - Creation of reserved accounts via Monnify integration
-  - Account deletion functionality
-  - Multi-bank support
-  
-- Transaction Processing
-  - Webhook handling for payment notifications
-  - Transaction history tracking
-  - Balance management and crediting
-  
-### Event System
-- Redis-based event bus
-- Event-driven architecture for account creation
-- Asynchronous event processing
+## Environment (example)
+Create a `.env` with at least:
+- DATABASE_URL (postgres url)
+- TEST_DATABASE_URL
+- PORT (e.g., 8080)
+- JWT_SECRET
+- REDIS_ADDR (e.g., localhost:6379)
+- MONNIFY_API_KEY, MONNIFY_SECRET_KEY, MONNIFY_CONTRACT_CODE, MONNIFY_BASE_URL
+- RESEND_API_KEY (or Mailtrap settings)
+- WEBHOOK_URL
 
-### Email Service
-- Templated email notifications
-- Welcome emails
-- Account information emails
+## Quick start — local development
 
-## Technical Stack
+1. Install dependencies:
+   - Go 1.24+
+   - PostgreSQL
+   - Redis
+   - golang-migrate (for migrations)
+   - sqlc (if you need to regenerate queries)
 
-### Programming Language & Framework
-- Go (Golang)
-- Chi Router for HTTP routing
-- SQLC for type-safe SQL
+2. Prepare DB & Redis and set environment variables (.env).
 
-### Database
-- PostgreSQL
-- Database migrations using `golang-migrate`
-- Redis for event bus
+3. Run migrations:
+   - make migrate-up
+   - or provide DATABASE_URL interactively: make migrate-up
 
-### Development Tools
-- Make for build automation
-- Docker for containerization
-- Environment-based configuration
+4. Generate SQLC code (if needed):
+   - make sqlc-generate
 
-### Testing
-- Unit testing with Go's testing package
-- Mock implementations for external services
-- Stub data for testing scenarios
+5. Run the HTTP server:
+   - make run
+   - or: go run cmd/server/main.go
+   - The server listens on PORT from config (default 8080). API root: /api/v1
 
-## Project Structure
+6. Run the worker (background job processor):
+   - make start-worker
+   - or: go run cmd/worker/main.go
+   - Ensure REDIS_ADDR is reachable; the worker processes Asynq tasks (email, internal transfer, etc.)
 
-```
-├── cmd/                  # Application entrypoint
-├── domain/              # Business logic and interfaces
-├── infrastructure/      # External service implementations
-├── internal/            # Internal packages
-│   ├── config/         # Configuration management
-│   ├── db/             # Database operations
-│   ├── handler/        # HTTP handlers
-│   ├── router/         # Route definitions
-│   └── server/         # Server setup
-├── service/            # Business service implementations
-└── test/               # Test utilities and mocks
-```
+7. CLI utilities:
+   - Seed database with fake data:
+     go run cmd/cli/main.go -seed
+   - The CLI uses TEST_DATABASE_URL from env for seeding by default.
 
-## Design Patterns
+## Docker
+Build and run a container (example):
+- Build:
+  docker build -t credora:latest .
+- Run (provide envs):
+  docker run -e DATABASE_URL="postgres://..." -e REDIS_ADDR="redis:6379" -p 8080:8080 credora:latest
 
-1. **Repository Pattern**
-   - Separation of data access logic
-   - Interface-based design for flexibility
-
-2. **Dependency Injection**
-   - Constructor-based dependency injection
-   - Clear service dependencies
-
-3. **Service Layer**
-   - Business logic encapsulation
-   - Service-to-service communication
-
-4. **Event-Driven Architecture**
-   - Asynchronous processing
-   - Loose coupling via events
-
-5. **Middleware Pattern**
-   - Authentication middleware
-   - Logging and recovery
-
-## Getting Started
-
-### Prerequisites
-- Go 1.x
-- PostgreSQL
-- Redis
-- Make
-
-### Setup
-
-1. Clone the repository
-2. Set up environment variables (copy `.env.example` to `.env`)
-3. Run database migrations:
-   ```bash
-   make migrate-up
-   ```
-
-4. Generate SQLC code:
-   ```bash
-   make sqlc-generate
-   ```
-
-5. Start the server:
-   ```bash
-   make run
-   ```
-
-### Development Commands
-
-- `make dev-setup` - Set up development environment
-- `make test-app` - Run all tests
-- `make build` - Build the application
-- `make migrate-create` - Create new migration files
+Notes:
+- Use a separate worker container for Asynq workers (run the worker binary / cmd/worker).
+- The Dockerfile builds a "server" binary under /app and exposes 8080.
 
 ## Testing
+- Unit tests:
+  make test
+- Integration tests:
+  make test-integration
+- Run all:
+  make test-all
 
-The project includes comprehensive test coverage:
+## Useful Makefile targets
+- make run            — run server
+- make build          — build server binary
+- make start-worker   — run worker (go run cmd/worker/main.go)
+- make migrate-up     — run DB migrations (interactive or use DATABASE_URL)
+- make migrate-create — scaffold a new SQL migration
+- make sqlc-generate  — regenerate SQLC code
+- make test           — run unit tests
+- make test-integration — run integration tests
 
-- Unit tests for services
-- Integration tests for API endpoints
-- Mock implementations for external dependencies
-- Stub data for consistent test scenarios
+## Project layout (short)
+- cmd/         — server, worker, cli entrypoints
+- internal/    — config, router, server, handlers, queues, seeder, db
+- infrastructure/ — adapters and repo implementations
+- service/     — business logic
+- domain/      — domain models and shared utilities
+
 

@@ -36,6 +36,7 @@ func NewOperationService(
 // InternalTransfer performs debit + credit + ledger atomically using DB-backed idempotency
 func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.InternalTransferReq) error {
 
+
 	// ---- 1️⃣ Wrap everything in a DB transaction ----
 	return s.acctRepo.WithTx(ctx, func(accTx account.AccountTx) error {
 		sqlTx := accTx.Tx()
@@ -51,20 +52,23 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 		if to < from {
 			first, second = to, from
 		}
+
 		if _, err := accTx.GetAccountForUpdate(ctx, first); err != nil {
-			return fmt.Errorf("lock account %s: %w", first, err)
+			return wrapAccountLockError(first, err)
 		}
+
 		if _, err := accTx.GetAccountForUpdate(ctx, second); err != nil {
-			return fmt.Errorf("lock account %s: %w", second, err)
+			return wrapAccountLockError(second, err)
 		}
 
 		fromAcct, err := accTx.GetAccountForUpdate(ctx, from)
 		if err != nil {
-			return fmt.Errorf("get from account: %w", err)
+			return wrapAccountLockError(from, err)
 		}
+
 		toAcct, err := accTx.GetAccountForUpdate(ctx, to)
 		if err != nil {
-			return fmt.Errorf("get to account: %w", err)
+			return wrapAccountLockError(to, err)
 		}
 
 		// ---- 3️⃣ Validate balance ----
