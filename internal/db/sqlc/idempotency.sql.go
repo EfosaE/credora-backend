@@ -79,43 +79,31 @@ func (q *Queries) InsertIdempotencyKey(ctx context.Context, arg InsertIdempotenc
 const saveIdempotencyFailure = `-- name: SaveIdempotencyFailure :exec
 UPDATE idempotency_keys
 SET status = 'FAILED',
-    payload = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1
 `
 
-type SaveIdempotencyFailureParams struct {
-	IdemKey string          `json:"idem_key"`
-	Payload json.RawMessage `json:"payload"`
-}
-
-func (q *Queries) SaveIdempotencyFailure(ctx context.Context, arg SaveIdempotencyFailureParams) error {
-	_, err := q.db.Exec(ctx, saveIdempotencyFailure, arg.IdemKey, arg.Payload)
+func (q *Queries) SaveIdempotencyFailure(ctx context.Context, idemKey string) error {
+	_, err := q.db.Exec(ctx, saveIdempotencyFailure, idemKey)
 	return err
 }
 
 const saveIdempotencySuccess = `-- name: SaveIdempotencySuccess :exec
 UPDATE idempotency_keys
 SET status = 'SUCCESS',
-    payload = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1
 `
 
-type SaveIdempotencySuccessParams struct {
-	IdemKey string          `json:"idem_key"`
-	Payload json.RawMessage `json:"payload"`
-}
-
-func (q *Queries) SaveIdempotencySuccess(ctx context.Context, arg SaveIdempotencySuccessParams) error {
-	_, err := q.db.Exec(ctx, saveIdempotencySuccess, arg.IdemKey, arg.Payload)
+func (q *Queries) SaveIdempotencySuccess(ctx context.Context, idemKey string) error {
+	_, err := q.db.Exec(ctx, saveIdempotencySuccess, idemKey)
 	return err
 }
 
 const updateIdempotencyStatus = `-- name: UpdateIdempotencyStatus :exec
 UPDATE idempotency_keys
 SET status = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1
 `
 

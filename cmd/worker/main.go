@@ -49,15 +49,16 @@ func main() {
 	handlers := queues.NewHandlers(
 		deps.EmailSvc,
 		*deps.OperationSvc,
-		// wallet.NewService(),
-		// transfer.NewService(),
-		// webhook.NewService(),
+		deps.AcctSvc,
+		deps.TrxSvc,
+		deps.Logger,
 	)
 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(queues.TypeWelcomeEmail, handlers.HandleSendEmail)
 	mux.HandleFunc(queues.TypeAccountNumberEmail, handlers.HandleSendAccountNumberEmail)
 	mux.HandleFunc(queues.TypeInternalTransfer, handlers.HandleInternalTransfer)
+	mux.HandleFunc(queues.TypeWebhookInboundTransfer, handlers.HandleInboundTransferWebhook)
 	// Uncomment and add other handlers when ready
 
 	// mux.HandleFunc(queues.TaskProcessInternalTransfer, handlers.HandleInternalTransfer)

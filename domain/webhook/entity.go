@@ -1,38 +1,37 @@
 package webhook
 
 import (
-	"time"
-
 	"github.com/shopspring/decimal"
+	"time"
 )
 
 type EventType string
 
 const (
 	EventSuccessfulTransaction EventType = "SUCCESSFUL_TRANSACTION"
-	// EventFailedTransaction     EventType = "FAILED_TRANSACTION"
-	EventCancelledTransaction EventType = "CANCELLED_TRANSACTION"
-	EventReversedTransaction  EventType = "TRANSACTION_REVERSED"
-	EventDisbursementSuccess  EventType = "DISBURSEMENT_SUCCESSFUL"
-	EventDisbursementFailure  EventType = "DISBURSEMENT_FAILED"
+	EventCancelledTransaction  EventType = "CANCELLED_TRANSACTION"
+	EventReversedTransaction   EventType = "TRANSACTION_REVERSED"
+	EventDisbursementSuccess   EventType = "DISBURSEMENT_SUCCESSFUL"
+	EventDisbursementFailure   EventType = "DISBURSEMENT_FAILED"
 )
 
 type SuccessfulTransaction struct {
 	Product                  Product            `json:"product"`
-	TransactionReference     string             `json:"transaction_reference"`
-	PaymentReference         string             `json:"payment_reference"`
-	PaidOn                   time.Time          `json:"paid_on"`
-	PaymentDescription       string             `json:"payment_description"`
-	Metadata                 map[string]any     `json:"metadata"`
-	PaymentSourceInformation []PaymentSource    `json:"payment_source_information"`
-	DestinationAccountInfo   DestinationAccount `json:"destination_account_information"`
-	AmountPaid               decimal.Decimal    `json:"amount_paid"`
-	TotalPayable             decimal.Decimal    `json:"total_payable"`
-	CardDetails              map[string]any     `json:"card_details"` // define explicitly if needed
-	PaymentMethod            string             `json:"payment_method"`
+	TransactionReference     string             `json:"transactionReference"`
+	PaymentReference         string             `json:"paymentReference"`
+	PaidOnRaw                string             `json:"paidOn"` // Monnify time is not a valid time.Time that Go expects
+	PaidOn                   time.Time          `json:"-"`
+	PaymentDescription       string             `json:"paymentDescription"`
+	Metadata                 map[string]any     `json:"metaData"`
+	PaymentSourceInformation []PaymentSource    `json:"paymentSourceInformation"`
+	DestinationAccountInfo   DestinationAccount `json:"destinationAccountInformation"`
+	AmountPaid               decimal.Decimal    `json:"amountPaid"`
+	TotalPayable             decimal.Decimal    `json:"totalPayable"`
+	CardDetails              map[string]any     `json:"cardDetails"`
+	PaymentMethod            string             `json:"paymentMethod"`
 	Currency                 string             `json:"currency"`
-	SettlementAmount         string             `json:"settlement_amount"`
-	PaymentStatus            string             `json:"payment_status"`
+	SettlementAmount         string             `json:"settlementAmount"`
+	PaymentStatus            string             `json:"paymentStatus"`
 	Customer                 Customer           `json:"customer"`
 }
 
@@ -42,20 +41,24 @@ type Product struct {
 }
 
 type PaymentSource struct {
-	BankCode      string          `json:"bank_code"`
-	AmountPaid    decimal.Decimal `json:"amount_paid"`
-	AccountName   string          `json:"account_name"`
-	SessionID     string          `json:"session_id"`
-	AccountNumber string          `json:"account_number"`
+	BankCode      string          `json:"bankCode"`
+	AmountPaid    decimal.Decimal `json:"amountPaid"`
+	AccountName   string          `json:"accountName"`
+	SessionID     string          `json:"sessionId"`
+	AccountNumber string          `json:"accountNumber"`
 }
 
 type DestinationAccount struct {
-	BankCode      string `json:"bank_code"`
-	BankName      string `json:"bank_name"`
-	AccountNumber string `json:"account_number"`
+	BankCode      string `json:"bankCode"`
+	BankName      string `json:"bankName"`
+	AccountNumber string `json:"accountNumber"`
 }
 
 type Customer struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+type InboundTransferPayload struct {
+	TransactionDetails SuccessfulTransaction `json:"transactionDetails"`
 }

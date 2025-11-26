@@ -16,8 +16,8 @@ type IdempotencyTx interface {
 	Delete(ctx context.Context, key string) error
 	Upsert(ctx context.Context, key string, operationType operation.OperationType, payload any, status transaction.TransactionStatus) error
 	UpdateStatus(ctx context.Context, key string, status transaction.TransactionStatus) error
-	SaveSuccess(ctx context.Context, key string, payload any) error
-	SaveFailure(ctx context.Context, key string, payload any) error
+	SaveSuccess(ctx context.Context, key string) error
+	SaveFailure(ctx context.Context, key string) error
 }
 
 // IdempotencyRepo defines non-transactional operations
@@ -28,8 +28,8 @@ type IdempotencyRepo interface {
 	Delete(ctx context.Context, key string) error
 	Upsert(ctx context.Context, key string, operationType operation.OperationType, payload any, status transaction.TransactionStatus) error
 	UpdateStatus(ctx context.Context, key string, status transaction.TransactionStatus) error
-	SaveSuccess(ctx context.Context, key string, payload any) error
-	SaveFailure(ctx context.Context, key string, payload any) error
+	SaveSuccess(ctx context.Context, key string) error
+	SaveFailure(ctx context.Context, key string) error
 
 	// Bind a pgx.Tx to this repo
 	WithTx(tx pgx.Tx) IdempotencyTx

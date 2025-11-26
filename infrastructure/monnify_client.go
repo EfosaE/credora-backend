@@ -5,7 +5,10 @@ package infrastructure
 import (
 	// "bytes"
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,15 +83,17 @@ func (m *MonnifyClient) Authenticate() error {
 }
 
 func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) bool {
-	// actual signature validation logic
-	return true
+	mac := hmac.New(sha512.New, []byte(m.config.SecretKey))
+	mac.Write(body)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	fmt.Println("Expected Signature:", expected)
+	fmt.Println("Received Signature:", signature)
+	return hmac.Equal([]byte(expected), []byte(signature))
 }
-
 
 // ============================================================================
 //                              RESERVED ACCOUNT
 // ============================================================================
-
 
 /** ----- CREATE RESERVED ACCOUNT ------ **/
 
@@ -170,4 +175,3 @@ func (m *MonnifyClient) DeleteReservedAccount(acctRef string) (*monnify.CreateCR
 
 	return &response, nil
 }
-

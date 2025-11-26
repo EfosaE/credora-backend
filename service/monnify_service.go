@@ -5,25 +5,26 @@ import (
 	"github.com/EfosaE/credora-backend/domain/monnify"
 )
 
-
-
 type MonnifyService struct {
-	monnifyRepo monnify.MonnifyRepository
+	MonnifyRepo monnify.MonnifyRepository
 	logger      *logger.Logger
 }
 
 func NewMonnifyService(monnifyRepo monnify.MonnifyRepository, logger *logger.Logger) *MonnifyService {
 	return &MonnifyService{
-		monnifyRepo: monnifyRepo,
+		MonnifyRepo: monnifyRepo,
 		logger:      logger,
 	}
 }
 
-
 func (s *MonnifyService) CreateCustomer(customer *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
-	return s.monnifyRepo.CreateReservedAccount(customer)
+	return s.MonnifyRepo.CreateReservedAccount(customer)
 }
 
 func (s *MonnifyService) DeleteCustomer(acctRef string) (*monnify.CreateCRAResponse, error) {
-	return s.monnifyRepo.DeleteReservedAccount(acctRef)
+	return s.MonnifyRepo.DeleteReservedAccount(acctRef)
+}
+
+func (s *MonnifyService) ValidateWebhook(body []byte, signature string) bool {
+	return s.MonnifyRepo.ValidateWebhookSignature(body, signature)
 }

@@ -38,6 +38,7 @@ func main() {
 		Cache:             deps.IdempotencyCache,
 		AcctSvc:           deps.AcctSvc,
 		IdempSvc:          deps.IdempotencySvc,
+		IdempHandler:      deps.IdempotencyHandler,
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

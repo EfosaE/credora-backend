@@ -12,9 +12,9 @@ import (
 type OperationType string
 
 const (
-	OperationTypeInternalTransfer OperationType = "INTERNAL_TRANSFER"
-	OperationTypeExternalTransfer OperationType = "EXTERNAL_TRANSFER"
-	OperationTypeWebhook          OperationType = "WEBHOOK"
+	OperationTypeInternalTransfer       OperationType = "INTERNAL_TRANSFER"
+	OperationTypeExternalTransfer       OperationType = "EXTERNAL_TRANSFER"
+	OperationTypeWebhookInboundTransfer OperationType = "WEBHOOK_INBOUND_TRANSFER"
 )
 
 type InternalTransferReq struct {
@@ -25,8 +25,8 @@ type InternalTransferReq struct {
 }
 
 type InternalTransferDTO struct {
-	ToAccount   string `json:"to_account" validate:"required"`
-	Amount      string `json:"amount" validate:"required,decimal"`
+	ToAccount string `json:"to_account" validate:"required"`
+	Amount    string `json:"amount" validate:"required,decimal"`
 }
 
 var ErrInsufficientFunds = errors.New("insufficient funds")

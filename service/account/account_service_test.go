@@ -1,10 +1,11 @@
-package accountsvc
+package accountsvc_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/EfosaE/credora-backend/domain/account"
+	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	"github.com/EfosaE/credora-backend/test/mocks"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -30,7 +31,7 @@ func TestCreditUserBalance(t *testing.T) {
 		return expectedResp, nil
 	}
 
-	service := &AccountService{acctRepo: mockRepo}
+	service := &accountsvc.AccountService{AcctRepo: mockRepo}
 
 	resp, err := service.CreditUserBalance(context.Background(), amount, acctNum)
 	require.NoError(t, err)

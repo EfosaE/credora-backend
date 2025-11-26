@@ -15,21 +15,21 @@ import (
 )
 
 type AccountService struct {
-	acctRepo account.AccountRepository
+	AcctRepo account.AccountRepository
 	logger   *logger.Logger
 	eventBus eventbus.EventBus
 }
 
 func NewAccountService(acctRepo account.AccountRepository, logger *logger.Logger, eventBus eventbus.EventBus) *AccountService {
 	return &AccountService{
-		acctRepo: acctRepo,
+		AcctRepo: acctRepo,
 		logger:   logger,
 		eventBus: eventBus,
 	}
 }
 
 func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
-	acct, err := a.acctRepo.CreateAcct(ctx, req)
+	acct, err := a.AcctRepo.CreateAcct(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateA
 }
 
 func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) (*user.User, error) {
-	acct, err := a.acctRepo.GetUserByAccountNumber(ctx, acctNum)
+	acct, err := a.AcctRepo.GetUserByAccountNumber(ctx, acctNum)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) 
 }
 
 func (a *AccountService) FindAccountByAcctNum(ctx context.Context, acctNum string) (*account.Account, error) {
-	acct, err := a.acctRepo.GetAccountByAccountNumber(ctx, acctNum)
+	acct, err := a.AcctRepo.GetAccountByAccountNumber(ctx, acctNum)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (a *AccountService) FindAccountByAcctNum(ctx context.Context, acctNum strin
 }
 
 func (a *AccountService) CreditUserBalance(ctx context.Context, amount decimal.Decimal, acctNum string) (*account.CreditAcctResp, error) {
-	result, err := a.acctRepo.CreditAccount(ctx, amount, acctNum)
+	result, err := a.AcctRepo.CreditAccount(ctx, amount, acctNum)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 		}
 
 		// Store user ID in accounts table
-		_, err := a.acctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
+		_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
 			UserId:         evt.UserID,
 			AccountNumber:  evt.AccountNumber,
 			AccountType:    "RESERVED ACCOUNT",

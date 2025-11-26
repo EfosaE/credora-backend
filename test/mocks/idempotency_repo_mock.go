@@ -67,13 +67,13 @@ func (m *MockIdempotencyRepo) Upsert(ctx context.Context, key string, opType ope
 }
 
 // SaveSuccess marks a key as SUCCESS
-func (m *MockIdempotencyRepo) SaveSuccess(ctx context.Context, key string, payload any) error {
-	return m.Upsert(ctx, key, operation.OperationTypeInternalTransfer, payload, transaction.StatusSuccess)
+func (m *MockIdempotencyRepo) SaveSuccess(ctx context.Context, key string) error {
+	return m.Upsert(ctx, key, operation.OperationTypeInternalTransfer, nil, transaction.StatusSuccess)
 }
 
 // SaveFailure marks a key as FAILED
-func (m *MockIdempotencyRepo) SaveFailure(ctx context.Context, key string, payload any) error {
-	return m.Upsert(ctx, key, operation.OperationTypeInternalTransfer, payload, transaction.StatusFailed)
+func (m *MockIdempotencyRepo) SaveFailure(ctx context.Context, key string) error {
+	return m.Upsert(ctx, key, operation.OperationTypeInternalTransfer, nil, transaction.StatusFailed)
 }
 
 // Delete removes a key from the store

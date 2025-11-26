@@ -26,6 +26,7 @@ type RouterSetupParams struct {
 	WbHkHandler       *handler.WebHookHandler
 	SimHandler        *handler.SimulatorHandler
 	HealthHandler     *handler.HealthHandler
+	IdempHandler      *handler.IdempotencyHandler
 	Cache             *infrastructure.IdempotencyCache
 	AcctSvc           *accountsvc.AccountService
 	IdempSvc          *idempotencysvc.IdempotencyService
@@ -63,6 +64,8 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 		api.Post("/auth/login", params.AuthHandler.LoginUserHandler)
 		api.Post("/webhooks/monnify", params.WbHkHandler.HandleMonnifyWebhook)
 		api.Post("/simulator/ext", params.SimHandler.SimulateTransferExt)
+		api.Post("/tests/idempotency", params.IdempHandler.CreateRecordHandler)
+		api.Get("/tests/idempotency", params.IdempHandler.CheckRecordHandler)
 
 		RegisterMonnifyRoutes(api, params.MonnifyHandler)
 

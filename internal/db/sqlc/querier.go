@@ -35,8 +35,8 @@ type Querier interface {
 	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
-	SaveIdempotencyFailure(ctx context.Context, arg SaveIdempotencyFailureParams) error
-	SaveIdempotencySuccess(ctx context.Context, arg SaveIdempotencySuccessParams) error
+	SaveIdempotencyFailure(ctx context.Context, idemKey string) error
+	SaveIdempotencySuccess(ctx context.Context, idemKey string) error
 	UpdateIdempotencyStatus(ctx context.Context, arg UpdateIdempotencyStatusParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	// -- name: UpsertIdempotencyKey :exec

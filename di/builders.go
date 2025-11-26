@@ -53,13 +53,14 @@ type AppDependencies struct {
 	IdempotencySvc *idempotencysvc.IdempotencyService
 
 	// Handlers
-	AuthHandler       *handler.AuthHandler
-	UserHandler       *handler.UserHandler
-	WebhookHandler    *handler.WebHookHandler
-	OperationsHandler *handler.OperationHandler
-	MonnifyHandler    *handler.MonnifyHandler
-	SimHandler        *handler.SimulatorHandler
-	HealthHandler     *handler.HealthHandler
+	AuthHandler        *handler.AuthHandler
+	UserHandler        *handler.UserHandler
+	WebhookHandler     *handler.WebHookHandler
+	OperationsHandler  *handler.OperationHandler
+	MonnifyHandler     *handler.MonnifyHandler
+	SimHandler         *handler.SimulatorHandler
+	HealthHandler      *handler.HealthHandler
+	IdempotencyHandler *handler.IdempotencyHandler
 
 	// Contexts
 	Ctx context.Context
@@ -330,11 +331,12 @@ func (b *AppBuilder) WithHandlers() *AppBuilder {
 
 	b.deps.AuthHandler = handler.NewAuthHandler(b.deps.UserSvc, b.deps.AuthSvc)
 	b.deps.UserHandler = handler.NewUserHandler(b.deps.UserSvc)
-	b.deps.WebhookHandler = handler.NewWebHookHandler(b.deps.AcctSvc, b.deps.TrxSvc)
+	b.deps.WebhookHandler = handler.NewWebHookHandler(b.deps.AcctSvc, b.deps.TrxSvc, b.deps.MonnifySvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.OperationsHandler = handler.NewOperationHandler(b.deps.OperationSvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.MonnifyHandler = handler.NewMonnifyHandler(b.deps.MonnifySvc)
 	b.deps.SimHandler = handler.NewSimulatorHandler(b.deps.SimulatorSvc)
 	b.deps.HealthHandler = handler.NewHealthHandler(b.deps.Redis)
+	b.deps.IdempotencyHandler = handler.NewIdempotencyHandler(b.deps.IdempotencySvc)
 
 	return b
 }
@@ -373,8 +375,11 @@ func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 		WithLogger().
 		WithDB().
 		WithRedis().
+		WithEventBus().
 		WithRepositories().
 		WithOperationService().
+		WithAccountService().
+		WithTransactionService().
 		Build()
 }
 

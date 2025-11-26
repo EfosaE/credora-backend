@@ -5,6 +5,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/domain/webhook"
 	"github.com/hibiken/asynq"
 )
 
@@ -13,6 +14,7 @@ const (
 	TypeWelcomeEmail       = "email:welcome"
 	TypeAccountNumberEmail = "email:account_number"
 	TypeInternalTransfer   = "operation:internal_transfer"
+	TypeWebhookInboundTransfer = "webhook:inbound_transfer"
 	// TypeExternalTransfer = "operation:external_transfer"
 	// TypeVACredit         = "webhook:va_credit"
 	// TypeImageResize     = "image:resize"
@@ -60,6 +62,16 @@ func NewInternalTransferTask(fromAcctNum string, req *operation.InternalTransfer
 	}
 	return asynq.NewTask(TypeInternalTransfer, payload), nil
 }
+
+func NewWebhookInboundTransferTask(req *webhook.InboundTransferPayload) (*asynq.Task, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	return asynq.NewTask(TypeWebhookInboundTransfer, payload), nil
+}
+
+
 
 // func NewImageResizeTask(src string) (*asynq.Task, error) {
 //     payload, err := json.Marshal(ImageResizePayload{SourceURL: src})

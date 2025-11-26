@@ -45,7 +45,7 @@ WHERE idem_key = $1;
 -- name: UpdateIdempotencyStatus :exec
 UPDATE idempotency_keys
 SET status = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1;
 
 
@@ -53,8 +53,7 @@ WHERE idem_key = $1;
 -- name: SaveIdempotencySuccess :exec
 UPDATE idempotency_keys
 SET status = 'SUCCESS',
-    payload = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1;
 
 
@@ -62,8 +61,7 @@ WHERE idem_key = $1;
 -- name: SaveIdempotencyFailure :exec
 UPDATE idempotency_keys
 SET status = 'FAILED',
-    payload = $2,
-    updated_at = NOW()
+    processed_at = NOW()
 WHERE idem_key = $1;
 
 

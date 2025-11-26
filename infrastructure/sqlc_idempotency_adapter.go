@@ -105,29 +105,15 @@ func (i *SqlcIdempotencyRepository) UpdateStatus(ctx context.Context, key string
 }
 
 // Mark as SUCCESS and save the final payload
-func (i *SqlcIdempotencyRepository) SaveSuccess(ctx context.Context, key string, payload any) error {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
+func (i *SqlcIdempotencyRepository) SaveSuccess(ctx context.Context, key string) error {
 
-	return i.q.SaveIdempotencySuccess(ctx, sqlc.SaveIdempotencySuccessParams{
-		IdemKey: key,
-		Payload: jsonPayload,
-	})
+	return i.q.SaveIdempotencySuccess(ctx, key)
 }
 
 // Mark as FAILED and save the final payload/error
-func (i *SqlcIdempotencyRepository) SaveFailure(ctx context.Context, key string, payload any) error {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
+func (i *SqlcIdempotencyRepository) SaveFailure(ctx context.Context, key string) error {
 
-	return i.q.SaveIdempotencyFailure(ctx, sqlc.SaveIdempotencyFailureParams{
-		IdemKey: key,
-		Payload: jsonPayload,
-	})
+	return i.q.SaveIdempotencyFailure(ctx, key)
 }
 
 //Unless the IdempotencyTx interface requires access to the underlying pgx.Tx, this method is unnecessary.

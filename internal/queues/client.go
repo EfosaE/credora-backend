@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/EfosaE/credora-backend/domain/operation"
+	"github.com/EfosaE/credora-backend/domain/webhook"
 	"github.com/hibiken/asynq"
 )
 
@@ -12,6 +13,7 @@ type Queue interface {
 	EnqueueWelcomeEmail(payload WelcomeEmailPayload) error
 	EnqueueAccountNumberEmail(payload AccountNumberEmailPayload) error
 	EnqueueInternalTransfer(payload *operation.InternalTransferReq) error
+	EnqueueWebhookInboundTransfer(payload *webhook.InboundTransferPayload) error
 }
 
 type QueueClient struct {
@@ -54,12 +56,12 @@ var (
 	}
 
 	// High-risk, long-running tasks: internal transfers
-	InternalTransferOptions = QueueOptions{
+	TransferOptions = QueueOptions{
 		Queue:     "critical",
 		MaxRetry:  10,
-		Timeout:   5 * time.Minute,  // give handler more time
-		Deadline:  7 * time.Minute,  // must be > timeout
-		Retention: 24 * time.Hour,   // auditing and replay
+		Timeout:   5 * time.Minute, // give handler more time
+		Deadline:  7 * time.Minute, // must be > timeout
+		Retention: 24 * time.Hour,  // auditing and replay
 	}
 )
 
@@ -96,7 +98,11 @@ func (q *QueueClient) EnqueueAccountNumberEmail(payload AccountNumberEmailPayloa
 }
 
 func (q *QueueClient) EnqueueInternalTransfer(payload *operation.InternalTransferReq) error {
-	return q.enqueue(TypeInternalTransfer, payload, InternalTransferOptions)
+	return q.enqueue(TypeInternalTransfer, payload, TransferOptions)
+}
+
+func (q *QueueClient) EnqueueWebhookInboundTransfer(payload *webhook.InboundTransferPayload) error {
+	return q.enqueue(TypeWebhookInboundTransfer, payload, TransferOptions)
 }
 
 // func (q *QueueClient) EnqueueExternalTransfer(payload ExternalTransferPayload) error {
