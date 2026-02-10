@@ -131,10 +131,9 @@ func (q *Queries) GetAccountByAccountNumber(ctx context.Context, accountNumber s
 }
 
 const getAccountForUpdate = `-- name: GetAccountForUpdate :one
-SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
-FROM accounts
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref FROM accounts 
 WHERE account_number = $1
-FOR UPDATE
+FOR UPDATE NOWAIT
 `
 
 func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error) {
@@ -153,6 +152,45 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string)
 		&i.MonnifyCustomerRef,
 	)
 	return i, err
+}
+
+const getAccountsForUpdate = `-- name: GetAccountsForUpdate :many
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
+FROM accounts
+WHERE account_number = ANY($1::text[])
+ORDER BY account_number ASC
+FOR UPDATE NOWAIT
+`
+
+func (q *Queries) GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error) {
+	rows, err := q.db.Query(ctx, getAccountsForUpdate, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AccountNumber,
+			&i.AccountType,
+			&i.Balance,
+			&i.Currency,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.VirtualAccountBank,
+			&i.MonnifyCustomerRef,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one

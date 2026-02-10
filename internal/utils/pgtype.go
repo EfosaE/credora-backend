@@ -23,12 +23,26 @@ func ToPgUUID(u uuid.UUID) pgtype.UUID {
 	}
 }
 
+// ToPgUUID converts a google/uuid.UUID to pgtype.UUID
+func ToPgNullableUUID(u *uuid.UUID) pgtype.UUID {
+	if u == nil {
+		return pgtype.UUID{
+			Valid: false,
+		}
+	}
+
+	return pgtype.UUID{
+		Bytes: *u,
+		Valid: true,
+	}
+}
+
 // FromPgUUID converts a pgtype.UUID to google/uuid.UUID
 func FromPgUUID(pg pgtype.UUID) uuid.UUID {
 	return uuid.UUID(pg.Bytes)
 }
 
-// Coverts pgtype.Numeric to string	
+// Coverts pgtype.Numeric to string
 func PgNumericToString(n pgtype.Numeric) string {
 	v, err := n.Value()
 	if err != nil {

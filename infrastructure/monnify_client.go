@@ -44,6 +44,7 @@ func (m *MonnifyClient) Authenticate() error {
 	// Encode credentials
 	authStr := fmt.Sprintf("%s:%s", m.config.ApiKey, m.config.SecretKey)
 	authHeader := base64.StdEncoding.EncodeToString([]byte(authStr))
+	fmt.Println("Auth Header:", authHeader)
 
 	// Build the request
 	req, err := http.NewRequest("POST", url, nil)

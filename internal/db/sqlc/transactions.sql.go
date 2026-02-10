@@ -14,31 +14,37 @@ import (
 const recordNewTransaction = `-- name: RecordNewTransaction :one
 INSERT INTO transactions (
     account_id,
+    counterparty_account_id,
     amount,
+    direction,
     status,
     description,
     reference,
     channel,
     meta
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, account_id, amount, status, description, reference, channel, meta, created_at
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, account_id, amount, status, description, reference, channel, meta, created_at, direction, counterparty_account_id
 `
 
 type RecordNewTransactionParams struct {
-	AccountID   pgtype.UUID    `json:"account_id"`
-	Amount      pgtype.Numeric `json:"amount"`
-	Status      string         `json:"status"`
-	Description pgtype.Text    `json:"description"`
-	Reference   pgtype.Text    `json:"reference"`
-	Channel     pgtype.Text    `json:"channel"`
-	Meta        []byte         `json:"meta"`
+	AccountID             pgtype.UUID    `json:"account_id"`
+	CounterpartyAccountID pgtype.UUID    `json:"counterparty_account_id"`
+	Amount                pgtype.Numeric `json:"amount"`
+	Direction             pgtype.Text    `json:"direction"`
+	Status                string         `json:"status"`
+	Description           pgtype.Text    `json:"description"`
+	Reference             pgtype.Text    `json:"reference"`
+	Channel               pgtype.Text    `json:"channel"`
+	Meta                  []byte         `json:"meta"`
 }
 
 func (q *Queries) RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error) {
 	row := q.db.QueryRow(ctx, recordNewTransaction,
 		arg.AccountID,
+		arg.CounterpartyAccountID,
 		arg.Amount,
+		arg.Direction,
 		arg.Status,
 		arg.Description,
 		arg.Reference,
@@ -56,6 +62,8 @@ func (q *Queries) RecordNewTransaction(ctx context.Context, arg RecordNewTransac
 		&i.Channel,
 		&i.Meta,
 		&i.CreatedAt,
+		&i.Direction,
+		&i.CounterpartyAccountID,
 	)
 	return i, err
 }

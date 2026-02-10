@@ -1,7 +1,6 @@
 package mocks
 
 import (
-	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/webhook"
 	"github.com/EfosaE/credora-backend/internal/queues"
 )
@@ -9,7 +8,7 @@ import (
 type MockQueueClient struct {
 	EnqueueWelcomeEmailFunc           func(payload queues.WelcomeEmailPayload) error
 	EnqueueAccountNumberEmailFunc     func(payload queues.AccountNumberEmailPayload) error
-	EnqueueInternalTransferFunc       func(payload operation.InternalTransferReq) error
+	EnqueueInternalTransferFunc       func(payload queues.InternalTransferTaskPayload) error
 	EnqueueWebhookInboundTransferFunc func(payload webhook.InboundTransferPayload) error
 }
 
@@ -27,9 +26,9 @@ func (m *MockQueueClient) EnqueueAccountNumberEmail(payload queues.AccountNumber
 	return nil
 }
 
-func (m *MockQueueClient) EnqueueInternalTransfer(payload *operation.InternalTransferReq) error {
+func (m *MockQueueClient) EnqueueInternalTransfer(payload queues.InternalTransferTaskPayload) error {
 	if m.EnqueueInternalTransferFunc != nil {
-		return m.EnqueueInternalTransferFunc(*payload)
+		return m.EnqueueInternalTransferFunc(payload)
 	}
 	return nil
 }

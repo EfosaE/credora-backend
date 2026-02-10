@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/webhook"
 	"github.com/hibiken/asynq"
 )
@@ -12,7 +11,7 @@ import (
 type Queue interface {
 	EnqueueWelcomeEmail(payload WelcomeEmailPayload) error
 	EnqueueAccountNumberEmail(payload AccountNumberEmailPayload) error
-	EnqueueInternalTransfer(payload *operation.InternalTransferReq) error
+	EnqueueInternalTransfer(payload InternalTransferTaskPayload) error
 	EnqueueWebhookInboundTransfer(payload *webhook.InboundTransferPayload) error
 }
 
@@ -37,31 +36,20 @@ type QueueOptions struct {
 // --- Task Option Profiles ---
 
 var (
-	// Email tasks (non-critical)
+	// Default tasks (emails, notifications, analytics, webhooks)
 	DefaultTaskOptions = QueueOptions{
 		Queue:     "default",
 		MaxRetry:  5,
 		Timeout:   60 * time.Second,
-		Deadline:  10 * time.Minute,
 		Retention: 1 * time.Hour,
 	}
 
-	// Critical tasks (account creation, etc.)
+	// Critical tasks (account creation, state transitions, payments)
 	CriticalTaskOptions = QueueOptions{
 		Queue:     "critical",
-		MaxRetry:  10,
-		Timeout:   60 * time.Second,
-		Deadline:  10 * time.Minute,
+		MaxRetry:  3,
+		Timeout:   90 * time.Second,
 		Retention: 1 * time.Hour,
-	}
-
-	// High-risk, long-running tasks: internal transfers
-	TransferOptions = QueueOptions{
-		Queue:     "critical",
-		MaxRetry:  10,
-		Timeout:   5 * time.Minute, // give handler more time
-		Deadline:  7 * time.Minute, // must be > timeout
-		Retention: 24 * time.Hour,  // auditing and replay
 	}
 )
 
@@ -75,15 +63,29 @@ func (q *QueueClient) enqueue(taskType string, payload any, opts QueueOptions) e
 
 	task := asynq.NewTask(taskType, b)
 
-	_, err = q.client.Enqueue(
-		task,
-		asynq.Queue(opts.Queue),
-		asynq.MaxRetry(opts.MaxRetry),
-		asynq.Timeout(opts.Timeout),
-		asynq.Deadline(time.Now().Add(opts.Deadline)),
-		asynq.Retention(opts.Retention),
-	)
+	var taskOpts []asynq.Option
 
+	if opts.Queue != "" {
+		taskOpts = append(taskOpts, asynq.Queue(opts.Queue))
+	}
+
+	if opts.MaxRetry > 0 {
+		taskOpts = append(taskOpts, asynq.MaxRetry(opts.MaxRetry))
+	}
+
+	if opts.Timeout > 0 {
+		taskOpts = append(taskOpts, asynq.Timeout(opts.Timeout))
+	}
+
+	if opts.Deadline > 0 {
+		taskOpts = append(taskOpts, asynq.Deadline(time.Now().Add(opts.Deadline)))
+	}
+
+	if opts.Retention > 0 {
+		taskOpts = append(taskOpts, asynq.Retention(opts.Retention))
+	}
+
+	_, err = q.client.Enqueue(task, taskOpts...)
 	return err
 }
 
@@ -97,12 +99,12 @@ func (q *QueueClient) EnqueueAccountNumberEmail(payload AccountNumberEmailPayloa
 	return q.enqueue(TypeAccountNumberEmail, payload, CriticalTaskOptions)
 }
 
-func (q *QueueClient) EnqueueInternalTransfer(payload *operation.InternalTransferReq) error {
-	return q.enqueue(TypeInternalTransfer, payload, TransferOptions)
+func (q *QueueClient) EnqueueInternalTransfer(payload InternalTransferTaskPayload) error {
+	return q.enqueue(TypeInternalTransfer, payload, CriticalTaskOptions)
 }
 
 func (q *QueueClient) EnqueueWebhookInboundTransfer(payload *webhook.InboundTransferPayload) error {
-	return q.enqueue(TypeWebhookInboundTransfer, payload, TransferOptions)
+	return q.enqueue(TypeWebhookInboundTransfer, payload, CriticalTaskOptions)
 }
 
 // func (q *QueueClient) EnqueueExternalTransfer(payload ExternalTransferPayload) error {

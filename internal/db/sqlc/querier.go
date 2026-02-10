@@ -28,6 +28,7 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
+	GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetIdempotencyKey(ctx context.Context, idemKey string) (IdempotencyKey, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)

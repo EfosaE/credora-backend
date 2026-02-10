@@ -22,6 +22,7 @@ type AccountRepository interface {
 // AccountTx defines operations allowed within a transaction
 type AccountTx interface {
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (*Account, error)
+	GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*Account, error)
 	CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 	DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 	Tx() pgx.Tx

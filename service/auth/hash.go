@@ -1,6 +1,9 @@
 package authsvc
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/EfosaE/credora-backend/internal/config"
+	"golang.org/x/crypto/bcrypt"
+)
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -8,6 +11,9 @@ func HashPassword(password string) (string, error) {
 }
 
 func CheckPasswordHash(password, hash string) bool {
+	if config.App.Env == "test" {
+		return password == hash // only for load-testing
+	}
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

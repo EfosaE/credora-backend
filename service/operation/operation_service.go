@@ -36,7 +36,6 @@ func NewOperationService(
 // InternalTransfer performs debit + credit + ledger atomically using DB-backed idempotency
 func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.InternalTransferReq) error {
 
-
 	// ---- 1️⃣ Wrap everything in a DB transaction ----
 	return s.acctRepo.WithTx(ctx, func(accTx account.AccountTx) error {
 		sqlTx := accTx.Tx()
@@ -53,22 +52,26 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 			first, second = to, from
 		}
 
-		if _, err := accTx.GetAccountForUpdate(ctx, first); err != nil {
-			return wrapAccountLockError(first, err)
-		}
-
-		if _, err := accTx.GetAccountForUpdate(ctx, second); err != nil {
-			return wrapAccountLockError(second, err)
-		}
-
-		fromAcct, err := accTx.GetAccountForUpdate(ctx, from)
+		// Lock both accounts at once to reduce round trips
+		accounts, err := accTx.GetAccountsForUpdate(ctx, []string{first, second})
 		if err != nil {
-			return wrapAccountLockError(from, err)
+			return fmt.Errorf("failed to lock accounts: %w", err)
 		}
 
-		toAcct, err := accTx.GetAccountForUpdate(ctx, to)
-		if err != nil {
-			return wrapAccountLockError(to, err)
+		// Map accounts by account number
+		accountMap := make(map[string]*account.Account)
+		for _, acc := range accounts {
+			accountMap[acc.AccountNumber] = acc
+		}
+
+		fromAcct, ok := accountMap[from]
+		if !ok {
+			return fmt.Errorf("from account %s not found", from)
+		}
+
+		toAcct, ok := accountMap[to]
+		if !ok {
+			return fmt.Errorf("to account %s not found", to)
 		}
 
 		// ---- 3️⃣ Validate balance ----
@@ -95,18 +98,37 @@ func (s *OperationService) InternalTransfer(ctx context.Context, req *operation.
 			return err
 		}
 
-		// ---- 5️⃣ Record ledger transaction ----
-		_, err = txTransactionRepo.RecordTransaction(ctx, &transaction.NewTransactionInput{
+		// ---- 5️⃣ Record ledger transactions ----
+
+		// Use ONE shared reference for both sides
+		ref := utils.GenerateTransactionReference(fromAcct.ID)
+
+		// Debit entry (from account)
+		if _, err := txTransactionRepo.RecordTransaction(ctx, &transaction.NewTransactionInput{
 			AccountID:      fromAcct.ID,
 			CounterpartyID: &toAcct.ID,
 			Amount:         req.Amount,
+			Direction:      transaction.TransactionTypeDebit,
 			Description:    fmt.Sprintf("Internal transfer to %s", to),
-			Reference:      utils.GenerateTransactionReference(fromAcct.ID),
+			Reference:      ref,
 			Channel:        "INTERNAL_TRANSFER",
 			Status:         transaction.StatusSuccess,
-		})
-		if err != nil {
-			return err
+		}); err != nil {
+			return fmt.Errorf("failed to record debit transaction: %w", err)
+		}
+
+		// Credit entry (to account)
+		if _, err = txTransactionRepo.RecordTransaction(ctx, &transaction.NewTransactionInput{
+			AccountID:      toAcct.ID,
+			CounterpartyID: &fromAcct.ID,
+			Amount:         req.Amount,
+			Direction:      transaction.TransactionTypeCredit,
+			Description:    fmt.Sprintf("Internal transfer from %s", from),
+			Reference:      ref,
+			Channel:        "INTERNAL_TRANSFER",
+			Status:         transaction.StatusSuccess,
+		}); err != nil {
+			return fmt.Errorf("failed to record credit transaction: %w", err)
 		}
 
 		// ---- 6️⃣ Upsert idempotency as SUCCESS ----

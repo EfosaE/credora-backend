@@ -5,6 +5,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/transaction"
@@ -41,7 +42,11 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 		))
 		return
 	}
-
+	// Wrap the req into InternalTransferTaskPayload
+	taskPayload := queues.InternalTransferTaskPayload{
+		Req:      req,
+		QueuedAt: time.Now().UnixNano(), // capture enqueue timestamp
+	}
 	// Add the record first to the idempotency table with PENDING status
 	if err := h.idempotencyService.AddToIdempotencyTable(r.Context(), req.IdempotencyKey, operation.OperationTypeInternalTransfer, &req, transaction.StatusPending); err != nil {
 
@@ -58,7 +63,7 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Call the Enqueue for Internal trasnfer
-	err := h.queue.EnqueueInternalTransfer(req)
+	err := h.queue.EnqueueInternalTransfer(taskPayload)
 	if err != nil {
 		response.SendError(w, r, response.InternalServerError(
 			err,
@@ -66,10 +71,6 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 		))
 		return
 	}
-	// if err := h.operationService.InternalTransfer(r.Context(), req); err != nil {
-	//     response.SendError(w, r, response.BadRequest(err, "transfer failed: "+err.Error()))
-	//     return
-	// }
 
 	response.SendSuccess(w, r, response.Accepted(map[string]any{"status": "pending", "transfer_id": req.IdempotencyKey}, "Your request is being processed"))
 }

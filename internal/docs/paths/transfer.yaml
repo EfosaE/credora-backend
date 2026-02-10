@@ -5,7 +5,17 @@ internal_post:
       - Operations
     security:
       - cookieAuth: []
-    parameters: []
+    parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        description: >
+          Unique key to guarantee idempotent internal transfers.
+          Re-using the same key with the same payload will return the same result.
+        schema:
+          type: string
+          example: "int-transfer-6f9a0c2e-8a4d-4e2f-bb9e-11c1e53a12d3"
+      
     requestBody:
       required: true
       content:

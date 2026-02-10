@@ -22,9 +22,9 @@ const (
 
 const (
 	StatusProcessing TransactionStatus = "PROCESSING"
-	StatusPending TransactionStatus = "PENDING"
-	StatusSuccess TransactionStatus = "SUCCESS"
-	StatusFailed  TransactionStatus = "FAILED"
+	StatusPending    TransactionStatus = "PENDING"
+	StatusSuccess    TransactionStatus = "SUCCESS"
+	StatusFailed     TransactionStatus = "FAILED"
 )
 
 // ============================================================================
@@ -33,16 +33,17 @@ const (
 
 // Transaction - A single ledger entry (credit or debit)
 type Transaction struct {
-	ID          uuid.UUID         `json:"id"`
-	AccountID   uuid.UUID         `json:"account_id"`
-	Amount      decimal.Decimal   `json:"amount"`
-	Type        TransactionType   `json:"type"` // Added: CREDIT or DEBIT
-	Status      TransactionStatus `json:"status"`
-	Description string            `json:"description"`
-	Reference   string            `json:"reference"`
-	Channel     string            `json:"channel"`
-	Meta        json.RawMessage   `json:"meta,omitempty"` // Changed from []byte
-	CreatedAt   time.Time         `json:"created_at"`
+	ID             uuid.UUID         `json:"id"`
+	AccountID      uuid.UUID         `json:"account_id"`
+	CounterpartyID *uuid.UUID        `json:"counterparty_id,omitempty"` // Added for internal transfers
+	Amount         decimal.Decimal   `json:"amount"`
+	Direction      TransactionType   `json:"direction"` // Added: CREDIT or DEBIT
+	Status         TransactionStatus `json:"status"`
+	Description    string            `json:"description"`
+	Reference      string            `json:"reference"`
+	Channel        string            `json:"channel"`
+	Meta           json.RawMessage   `json:"meta,omitempty"` // Changed from []byte
+	CreatedAt      time.Time         `json:"created_at"`
 }
 
 // ============================================================================
@@ -52,9 +53,9 @@ type Transaction struct {
 // NewTransactionInput - For creating a single transaction
 type NewTransactionInput struct {
 	AccountID      uuid.UUID  // The account being debited/credited
-	CounterpartyID *uuid.UUID // Optional: the other account (for internal transfers)
+	CounterpartyID *uuid.UUID // For internal transfers, the other account involved
 	Amount         decimal.Decimal
-	Type           TransactionType // CREDIT or DEBIT
+	Direction      TransactionType // CREDIT or DEBIT
 	Status         TransactionStatus
 	Description    string
 	Reference      string

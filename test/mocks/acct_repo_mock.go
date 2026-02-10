@@ -12,14 +12,15 @@ import (
 )
 
 type MockAcctRepo struct {
-	CreateFunc              func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
-	CreditFunc              func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
-	DebitFunc               func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
-	GetAccountForUpdateFunc func(ctx context.Context, accountNumber string) (*account.Account, error) // NEW
-	GetAccountByAcctNumFunc    func(ctx context.Context, accountNumber string) (*account.Account, error)
-	WithTxFunc              func(ctx context.Context, fn func(tx account.AccountTx) error) error
-	Accounts                map[int]*account.Account
-	Txm                     func() pgx.Tx
+	CreateFunc               func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
+	CreditFunc               func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+	DebitFunc                func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+	GetAccountForUpdateFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)      // NEW
+	GetAccountsForUpdateFunc func(ctx context.Context, accountNumbers []string) ([]*account.Account, error) // NEW
+	GetAccountByAcctNumFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)
+	WithTxFunc               func(ctx context.Context, fn func(tx account.AccountTx) error) error
+	Accounts                 map[int]*account.Account
+	Txm                      func() pgx.Tx
 }
 
 // Tx implements account.AccountTx.
@@ -57,6 +58,13 @@ func (m *MockAcctRepo) GetAccountForUpdate(ctx context.Context, accountNumber st
 		if acct.AccountNumber == accountNumber {
 			return acct, nil
 		}
+	}
+	return nil, nil
+}
+
+func (m *MockAcctRepo) GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*account.Account, error) {
+	if m.GetAccountsForUpdateFunc != nil {
+		return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
 	}
 	return nil, nil
 }

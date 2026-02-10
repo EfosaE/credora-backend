@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/operation"
@@ -81,19 +82,39 @@ func (h *Handlers) HandleSendAccountNumberEmail(ctx context.Context, t *asynq.Ta
 
 // TRANSFER HANDLER
 func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) error {
-	var p operation.InternalTransferReq
-	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+	var payload InternalTransferTaskPayload
+
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		h.logError(ctx, err, "failed to unmarshal InternalTransferReq", nil)
 		return fmt.Errorf("json.Unmarshal failed: %v: %w", err, asynq.SkipRetry)
 	}
 
+	startedAt := time.Now()
+	queuedAt := time.Unix(0, payload.QueuedAt)
+
+	queueWait := startedAt.Sub(queuedAt)
+
+	p := payload.Req
+
 	h.logInfo("processing internal transfer", map[string]any{
-		"from":   p.FromAcctNum,
-		"to":     p.ToAcctNum,
-		"amount": p.Amount.String(),
+		"from":       p.FromAcctNum,
+		"to":         p.ToAcctNum,
+		"amount":     p.Amount.String(),
+		"queue_wait": queueWait.String(),
 	})
 
-	err := h.OperationSvc.InternalTransfer(ctx, &p)
+	err := h.OperationSvc.InternalTransfer(ctx, p)
+	finishedAt := time.Now()
+	processingTime := finishedAt.Sub(startedAt)
+	totalTime := finishedAt.Sub(queuedAt)
+	h.logInfo("internal transfer timing", map[string]any{
+		"from":          p.FromAcctNum,
+		"to":            p.ToAcctNum,
+		"queue_wait_ms": queueWait.Milliseconds(),
+		"processing_ms": processingTime.Milliseconds(),
+		"total_time_ms": totalTime.Milliseconds(),
+	})
+
 	if err != nil {
 		switch {
 		case errors.Is(err, operation.ErrInsufficientFunds):
@@ -108,7 +129,7 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 				"to":   p.ToAcctNum,
 			})
 			return nil
-
+		// like lock errors
 		default:
 			h.logError(ctx, err, "internal transfer failed (retrying)", map[string]any{
 				"from": p.FromAcctNum,
@@ -118,11 +139,11 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 		}
 	}
 
-	h.logInfo("internal transfer completed successfully", map[string]any{
-		"from":   p.FromAcctNum,
-		"to":     p.ToAcctNum,
-		"amount": p.Amount.String(),
-	})
+	// h.logInfo("internal transfer completed successfully", map[string]any{
+	// 	"from":   p.FromAcctNum,
+	// 	"to":     p.ToAcctNum,
+	// 	"amount": p.Amount.String(),
+	// })
 
 	return nil
 }

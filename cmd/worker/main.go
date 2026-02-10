@@ -32,7 +32,7 @@ func main() {
 	srv := asynq.NewServer(
 		asynqRedis,
 		asynq.Config{
-			Concurrency: 10, // number of parallel jobs
+			Concurrency: 20, // number of parallel jobs
 			Queues: map[string]int{
 				"critical": 6,
 				"default":  3,

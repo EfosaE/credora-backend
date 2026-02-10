@@ -39,7 +39,13 @@ WHERE account_number = @account_number
 RETURNING id, balance;
 
 -- name: GetAccountForUpdate :one
+SELECT * FROM accounts 
+WHERE account_number = @account_number
+FOR UPDATE NOWAIT;
+
+-- name: GetAccountsForUpdate :many
 SELECT *
 FROM accounts
-WHERE account_number = @account_number
-FOR UPDATE;
+WHERE account_number = ANY($1::text[])
+ORDER BY account_number ASC
+FOR UPDATE NOWAIT;

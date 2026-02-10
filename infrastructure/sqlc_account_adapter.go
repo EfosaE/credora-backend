@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
@@ -101,6 +102,35 @@ func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, a
 // ------------------------------------
 // Transaction-bound methods
 // ------------------------------------
+
+func (r *SqlcAccountRepository) GetAccountsForUpdate(
+	ctx context.Context,
+	accountNumbers []string,
+) ([]*account.Account, error) {
+
+	rows, err := r.q.GetAccountsForUpdate(ctx, accountNumbers)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*account.Account, 0, len(rows))
+
+	for _, row := range rows {
+		accounts = append(accounts, &account.Account{
+			ID:            row.ID,
+			UserId:        row.UserID.String(),
+			AccountNumber: row.AccountNumber,
+			Balance:       utils.MustPgNumericToDecimal(row.Balance),
+		})
+	}
+
+	// Safety check: ensure all requested accounts were locked/found
+	if len(accounts) != len(accountNumbers) {
+		return nil, fmt.Errorf("one or more accounts not found or locked")
+	}
+
+	return accounts, nil
+}
 
 func (r *SqlcAccountRepository) GetAccountForUpdate(ctx context.Context, accountNumber string) (*account.Account, error) {
 	row, err := r.q.GetAccountForUpdate(ctx, accountNumber)
