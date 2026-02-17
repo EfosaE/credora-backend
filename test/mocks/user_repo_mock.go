@@ -22,3 +22,12 @@ func (m *MockUserRepo) GetByID(ctx context.Context, id uuid.UUID) (*user.User, e
 	// Implement this method if needed for your tests
 	return nil, nil
 }
+
+func (m *MockUserRepo) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	// Implement this method if needed for your tests
+	return nil, nil
+}
+func (m *MockUserRepo) UpdatePassword(ctx context.Context, id uuid.UUID, hashedPassword string) error {
+	// Implement this method if needed for your tests
+	return nil
+}

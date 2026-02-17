@@ -39,5 +39,9 @@ func (h *UserHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 		AccountNumber: claims["account_number"].(string),
 	}
 
-	response.SendSuccess(w, r, response.OK(user, "User info retrieved successfully"))
+	response.SendSuccess(w, r, response.OK(
+		response.Obj("user", user),
+		nil,
+		"User info retrieved successfully",
+	))
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -108,4 +109,42 @@ func NewPgNumericFromString(s string) pgtype.Numeric {
 		panic(fmt.Sprintf("failed to convert string to pgtype.Numeric: %v", err))
 	}
 	return n
+}
+
+// TimeToPgTimestamp converts time.Time to pgtype.Timestamp (NOT NULL)
+func TimeToPgTimestamp(t time.Time) pgtype.Timestamp {
+	return pgtype.Timestamp{
+		Time:  t,
+		Valid: true,
+	}
+}
+
+// NullTimeToPgTimestamp converts *time.Time to pgtype.Timestamp (nullable)
+func NullTimeToPgTimestamp(t *time.Time) pgtype.Timestamp {
+	if t == nil {
+		return pgtype.Timestamp{
+			Valid: false,
+		}
+	}
+
+	return pgtype.Timestamp{
+		Time:  *t,
+		Valid: true,
+	}
+}
+
+// PgTimestampToTime converts pgtype.Timestamp → time.Time
+func PgTimestampToTime(ts pgtype.Timestamp) time.Time {
+	if !ts.Valid {
+		return time.Time{}
+	}
+	return ts.Time
+}
+
+// PgTimestampToNullTime converts pgtype.Timestamp → *time.Time
+func PgTimestampToNullTime(ts pgtype.Timestamp) *time.Time {
+	if !ts.Valid {
+		return nil
+	}
+	return &ts.Time
 }

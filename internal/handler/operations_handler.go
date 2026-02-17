@@ -72,7 +72,11 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response.SendSuccess(w, r, response.Accepted(map[string]any{"status": "pending", "transfer_id": req.IdempotencyKey}, "Your request is being processed"))
+	response.SendSuccess(w, r, response.Accepted(
+		map[string]any{"status": "pending", "transfer_id": req.IdempotencyKey},
+		nil,
+		"Your request is being processed",
+	))
 }
 
 func (h *OperationHandler) GetTransferStatus(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +102,8 @@ func (h *OperationHandler) GetTransferStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	response.SendSuccess(w, r, response.OK(
-		&record,
+		response.Obj("status", &record),
+		nil,
 		"Transfer status retrieved successfully",
 	))
 }

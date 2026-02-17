@@ -52,7 +52,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	mockQueue := &mocks.MockQueueClient{}
 
 	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc, mockQueue)
-	authSvc := authsvc.NewAuthService(nil, nil)
+	authSvc := authsvc.NewAuthService(nil, nil, nil, nil, nil, nil)
 
 	handler := NewAuthHandler(userSvc, authSvc)
 

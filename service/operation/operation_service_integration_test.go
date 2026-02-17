@@ -84,7 +84,16 @@ func TestInternalTransfer_Success(t *testing.T) {
 	idempRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
 	// idemp := mocks.NewMockIdempotencyRepo()
 
-	svc := operationsvc.NewOperationService(acctRepo, txRepo, idempRepo, test.SetupTestLogger())
+	// transaction manager used by service for running operations inside a db tx
+	txManager := infrastructure.NewTxManager(pool)
+
+	svc := operationsvc.NewOperationService(
+		txManager,
+		acctRepo,
+		txRepo,
+		idempRepo,
+		test.SetupTestLogger(),
+	)
 
 	req := &operation.InternalTransferReq{
 		FromAcctNum:    "1111111111",
@@ -176,8 +185,16 @@ func TestInternalTransfer_RollbackOnFailure(t *testing.T) {
 	acctRepo := infrastructure.NewSqlcAccountRepository(pool)
 	txRepo := infrastructure.NewSqlcTransactionRepository(pool)
 	idempRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
+	// create tx manager too
+	txManager := infrastructure.NewTxManager(pool)
 
-	svc := operationsvc.NewOperationService(acctRepo, txRepo, idempRepo, test.SetupTestLogger())
+	svc := operationsvc.NewOperationService(
+		txManager,
+		acctRepo,
+		txRepo,
+		idempRepo,
+		test.SetupTestLogger(),
+	)
 
 	// Attempt a transfer that should fail (insufficient funds)
 	req := &operation.InternalTransferReq{
@@ -208,6 +225,17 @@ func TestInternalTransfer_RollbackOnFailure(t *testing.T) {
 	idem, err := idempRepo.Get(ctx, "idem-fail-1")
 	require.NoError(t, err)
 	require.Equal(t, "FAILED", string(idem.Status))
+
+	// ---- Retry same idempotency key → should return same error ----
+	// err = svc.InternalTransfer(ctx, req)
+	// require.Error(t, err)
+	// require.ErrorIs(t, err, operation.ErrInsufficientFunds)
+
+	// ---- Ensure balances still unchanged after retry ----
+	// updatedFrom2, _ := queries.GetAccountByAccountNumber(ctx, fromAcct.AccountNumber)
+	// updatedTo2, _ := queries.GetAccountByAccountNumber(ctx, toAcct.AccountNumber)
+	// require.Equal(t, "5000.00", utils.PgNumericToString(updatedFrom2.Balance))
+	// require.Equal(t, "2000.00", utils.PgNumericToString(updatedTo2.Balance))
 }
 
 // func TestInternalTransfer_InsufficientFunds(t *testing.T) {

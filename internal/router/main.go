@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/handler"
@@ -14,22 +15,24 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	// "github.com/go-chi/jwtauth/v5"
 )
 
 type RouterSetupParams struct {
-	AuthHandler       *handler.AuthHandler
-	OperationsHandler *handler.OperationHandler
-	UserHandler       *handler.UserHandler
-	MonnifyHandler    *handler.MonnifyHandler
-	Auth              *authsvc.JWTTokenService
-	WbHkHandler       *handler.WebHookHandler
-	SimHandler        *handler.SimulatorHandler
-	HealthHandler     *handler.HealthHandler
-	IdempHandler      *handler.IdempotencyHandler
-	Cache             *infrastructure.IdempotencyCache
-	AcctSvc           *accountsvc.AccountService
-	IdempSvc          *idempotencysvc.IdempotencyService
+	AuthHandler            *handler.AuthHandler
+	OperationsHandler      *handler.OperationHandler
+	UserHandler            *handler.UserHandler
+	MonnifyHandler         *handler.MonnifyHandler
+	Auth                   *authsvc.JWTTokenService
+	WbHkHandler            *handler.WebHookHandler
+	SimHandler             *handler.SimulatorHandler
+	HealthHandler          *handler.HealthHandler
+	IdempHandler           *handler.IdempotencyHandler
+	Cache                  *infrastructure.IdempotencyCache
+	AcctSvc                *accountsvc.AccountService
+	IdempSvc               *idempotencysvc.IdempotencyService
+	BackPressureMiddleware *custmiddleware.BackpressureMiddleware
 }
 
 func SetupRouter(params RouterSetupParams) chi.Router {
@@ -62,6 +65,8 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 		// Public Routes
 		api.Post("/auth/register", params.AuthHandler.RegisterUserHandler)
 		api.Post("/auth/login", params.AuthHandler.LoginUserHandler)
+		api.Post("/auth/reset-password", params.AuthHandler.ResetPasswordHandler)
+		api.Post("/auth/reset-password/validate", params.AuthHandler.ValidatePasswordRequestHandler)
 		api.Post("/webhooks/monnify", params.WbHkHandler.HandleMonnifyWebhook)
 		api.Post("/simulator/ext", params.SimHandler.SimulateTransferExt)
 		api.Post("/tests/idempotency", params.IdempHandler.CreateRecordHandler)
@@ -78,7 +83,9 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(200, 1*time.Minute))
 				r.Use(custmiddleware.InternalTransferMiddleware(*params.AcctSvc, *params.IdempSvc))
+				r.Use(params.BackPressureMiddleware.Handler)
 				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)
 			})
 

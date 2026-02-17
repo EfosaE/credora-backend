@@ -11,4 +11,6 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrUnauthorized = errors.New("unauthorized access")
 	ErrTokenExpired = errors.New("token expired")
+
+	ErrTooManyPendingJobs = errors.New("Service temporarily unavailable")
 )

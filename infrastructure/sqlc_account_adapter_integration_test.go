@@ -10,7 +10,6 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
@@ -56,17 +55,19 @@ func TestCreditAccount(t *testing.T) {
 
 	creditAmt := decimal.NewFromInt(500)
 
-	// ---------- Perform action inside transaction wrapper ----------
-	err = repo.WithTx(ctx, func(tx account.AccountTx) error {
+	// ---------- Perform action inside transaction wrapper using TxManager ----------
+	txManager := infrastructure.NewTxManager(pool)
+
+	err = txManager.WithTx(ctx, func(txCtx context.Context) error {
 
 		// Fetch original balance inside the transaction
-		before, err := tx.GetAccountForUpdate(ctx, acct.AccountNumber)
+		before, err := repo.GetAccountForUpdate(txCtx, acct.AccountNumber)
 		require.NoError(t, err)
 
 		beforeBal := before.Balance
 
 		// Perform credit
-		resp, err := tx.CreditAccount(ctx, creditAmt, acct.AccountNumber)
+		resp, err := repo.CreditAccount(txCtx, creditAmt, acct.AccountNumber)
 		require.NoError(t, err)
 
 		expected := beforeBal.Add(creditAmt)

@@ -23,11 +23,6 @@ func NewMockIdempotencyRepo() *MockIdempotencyRepo {
 	}
 }
 
-// WithTx returns the same mock for transaction-bound repo
-func (m *MockIdempotencyRepo) WithTx(_ any) idempotency.IdempotencyTx {
-	return m
-}
-
 // Check if key exists
 func (m *MockIdempotencyRepo) Check(ctx context.Context, key string) (bool, error) {
 	m.mu.Lock()

@@ -67,8 +67,10 @@ func (s *EmailServiceImpl) SendWelcomeEmail(ctx context.Context, user user.User)
 }
 
 func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, to, resetLink string) error {
-	html, err := email.RenderTemplate("password_reset", map[string]string{
-		"ResetLink": resetLink,
+	html, err := email.RenderTemplate("password_email", map[string]string{
+		"ResetLink":   resetLink,
+		"ExpiresIn":   "10 minutes",
+		"CompanyName": "Credora",
 	})
 	if err != nil {
 		return err

@@ -33,6 +33,15 @@ type IdempotencyKey struct {
 	Status        string             `json:"status"`
 }
 
+type PasswordReset struct {
+	ID        int64            `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	TokenHash string           `json:"token_hash"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	UsedAt    pgtype.Timestamp `json:"used_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type Transaction struct {
 	ID                    uuid.UUID        `json:"id"`
 	AccountID             pgtype.UUID      `json:"account_id"`

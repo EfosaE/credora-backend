@@ -23,7 +23,7 @@ func (s *IdempotencyService) Exists(ctx context.Context, key string) (bool, erro
 }
 
 func (s *IdempotencyService) AddToIdempotencyTable(ctx context.Context, key string, opType operation.OperationType, data any, status transaction.TransactionStatus) error {
-	return s.idempRepo.Insert(ctx, key, opType, data, status)
+	return s.idempRepo.Upsert(ctx, key, opType, data, status)
 }
 
 func (s *IdempotencyService) GetRecord(ctx context.Context, key string) (*idempotency.IdempotencyData, error) {

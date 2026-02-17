@@ -52,18 +52,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-
 DELETE FROM users
 WHERE id = $1
 `
 
-// -- name: UpdateUser :one
-// This query is commented out because it updates manually but I have associated trigger
-// that automatically updates the `updated_at` field on any update.
-// UPDATE users
-// SET name = $2, email = $3, updated_at = NOW()
-// WHERE id = $1
-// RETURNING *;
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
@@ -160,21 +152,21 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	return items, nil
 }
 
-const updateUser = `-- name: UpdateUser :one
+const updateUserFullNameAndEmail = `-- name: UpdateUserFullNameAndEmail :one
 UPDATE users
 SET full_name = $2, email = $3
 WHERE id = $1
 RETURNING id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref
 `
 
-type UpdateUserParams struct {
+type UpdateUserFullNameAndEmailParams struct {
 	ID       uuid.UUID   `json:"id"`
 	FullName string      `json:"full_name"`
 	Email    pgtype.Text `json:"email"`
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.FullName, arg.Email)
+func (q *Queries) UpdateUserFullNameAndEmail(ctx context.Context, arg UpdateUserFullNameAndEmailParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserFullNameAndEmail, arg.ID, arg.FullName, arg.Email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -190,4 +182,20 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.MonnifyCustomerRef,
 	)
 	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $2
+WHERE id = $1
+`
+
+type UpdateUserPasswordParams struct {
+	ID       uuid.UUID `json:"id"`
+	Password string    `json:"password"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.Password)
+	return err
 }

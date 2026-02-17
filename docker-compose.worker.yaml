@@ -1,17 +1,17 @@
 services:
-  app:
-    container_name: credora-server
-    image: credora-backend:v1.00  # or build: . if you have a Dockerfile in the same directory
+  worker:
+    # container_name: credora-worker
+    image: credora-backend:v1.00
     restart: unless-stopped
     depends_on:
       - redis
     env_file:
       - .env
-    ports:
-      - "8080:8080"   # change to your Go app port
     networks:
       - app-network
-    command: ./server   # or whatever your Go binary entrypoint is
+    command: ./worker
+    deploy:
+      replicas: 3
 
   redis:
     container_name: redis

@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/response"
 	"github.com/EfosaE/credora-backend/internal/validation"
@@ -12,8 +15,6 @@ import (
 	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/shopspring/decimal"
-	"io"
-	"net/http"
 )
 
 type ctxKey string
@@ -35,8 +36,12 @@ func InternalTransferMiddleware(acctService accountsvc.AccountService,
 
 			// Check if request was already processed
 			if existing, _ := idemSvc.GetRecord(r.Context(), key); existing != nil {
-				// Return the saved response directly
-				response.SendSuccess(w, r, response.OK(existing, "This request has already been processed"))
+				// Return the saved response directly using the new API contract
+				response.SendSuccess(w, r, response.OK(
+					response.Obj("status", existing),
+					nil,
+					"This request has already been processed",
+				))
 				return
 			}
 

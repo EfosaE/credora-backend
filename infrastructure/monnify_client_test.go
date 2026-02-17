@@ -1,4 +1,4 @@
-package infrastructure
+package infrastructure_test
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/EfosaE/credora-backend/domain/monnify"
+	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/test/mocks"
 	"github.com/EfosaE/credora-backend/test/stubs"
 	"github.com/stretchr/testify/assert"
@@ -33,10 +34,9 @@ func TestAuthenticate_Success(t *testing.T) {
 	}
 
 	httpClient := &http.Client{Transport: mockTransport}
-	client := NewMonnifyClient(&monnify.MonnifyConfig{}, httpClient)
+	client := infrastructure.NewMonnifyClient(&monnify.MonnifyConfig{}, httpClient)
 
 	err := client.Authenticate()
 	assert.NoError(t, err)
-	assert.Equal(t, "mocked-token", client.config.Token)
+	assert.Equal(t, "mocked-token", client.Config.Token)
 }
-

@@ -99,3 +99,23 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	}
 	return userResp, nil
 }
+
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
+	s.logger.Info("Fetching user by email", map[string]any{"email": email})
+	usr, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		s.logger.Error("failed to fetch user by email", map[string]any{"error": err.Error()})
+		return nil, err
+	}
+	return usr, nil
+}
+
+// func (s *UserService) GetUserByID(ctx context.Context, id string) (*user.User, error) {
+// 	s.logger.Info("Fetching user by ID", map[string]any{"id": id})
+// 	usr, err := s.userRepo.GetByID(ctx, id)
+// 	if err != nil {
+// 		s.logger.Error("failed to fetch user by ID", map[string]any{"error": err.Error()})
+// 		return nil, err
+// 	}
+// 	return usr, nil
+// }

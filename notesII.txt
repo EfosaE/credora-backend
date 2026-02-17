@@ -1,0 +1,91 @@
+For Maximum:
+grep "internal transfer timing" app.log | \
+grep -o '"queue_wait_ms":[0-9.]*' | \
+cut -d':' -f2 | \
+awk '{if(NR==1 || $1>max) max=$1} END {if(NR>0) print "max_queue_wait_ms:", max; else print "No data found"}'
+
+For Minimum:
+grep "internal transfer timing" app.log | \
+grep -o '"queue_wait_ms":[0-9.]*' | \
+cut -d':' -f2 | \
+awk '{if(NR==1 || $1<min) min=$1} END {if(NR>0) print "min_queue_wait_ms:", min; else print "No data found"}'
+
+For Average
+grep "internal transfer timing" app.log | \
+grep -o '"queue_wait_ms":[0-9.]*' | \
+cut -d':' -f2 | \
+awk '{
+    sum+=$1; 
+    count++; 
+    if(NR==1 || $1>max) max=$1; 
+    if(NR==1 || $1<min) min=$1
+} END {
+    if(count>0) {
+        print "avg_queue_wait_ms:", sum/count;
+        print "min_queue_wait_ms:", min;
+        print "max_queue_wait_ms:", max
+    } else {
+        print "No data found"
+    }
+}'
+
+For Processing:
+grep "internal transfer timing" app.log | \
+grep -o '"processing_ms":[0-9.]*' | \
+cut -d':' -f2 | \
+awk '{
+    sum+=$1; 
+    count++; 
+    if(NR==1 || $1>max) max=$1; 
+    if(NR==1 || $1<min) min=$1
+} END {
+    if(count>0) {
+        print "avg_processing_ms:", sum/count;
+        print "min_processing_ms:", min;
+        print "max_processing_ms:", max
+    } else {
+        print "No data found"
+    }
+}'
+
+For Queue_Wait:
+grep "internal transfer timing" app.log | \
+grep -o '"queue_wait_ms":[0-9.]*' | \
+cut -d':' -f2 | \
+awk '{
+    sum+=$1;
+    values[NR]=$1;
+    count++;
+    if(NR==1 || $1>max) max=$1;
+    if(NR==1 || $1<min) min=$1
+} END {
+    if(count>0) {
+        # Sort values for percentile calculation
+        asort(values);
+
+        # Calculate 95th percentile
+        p95_index = int(count * 0.95);
+        if(p95_index < 1) p95_index = 1;
+        p95 = values[p95_index];
+
+        # Calculate 99th percentile as bonus
+        p99_index = int(count * 0.99);
+        if(p99_index < 1) p99_index = 1;
+        p99 = values[p99_index];
+
+        # Calculate median (50th percentile)
+        median_index = int(count * 0.5);
+        if(median_index < 1) median_index = 1;
+        median = values[median_index];
+
+        print "count:", count;
+        print "avg_queue_wait_ms:", sum/count;
+        print "min_queue_wait_ms:", min;
+        print "median_queue_wait_ms:", median;
+        print "p95_queue_wait_ms:", p95;
+        print "p99_queue_wait_ms:", p99;
+        print "max_queue_wait_ms:", max;
+    } else {
+        print "No data found"
+    }
+}'

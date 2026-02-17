@@ -4,3 +4,79 @@
 {"timestamp":"2026-02-10T23:49:15.8948683+01:00","level":"INFO","message":"internal transfer timing","file":"helpers.go","line":24,"meta":{"from":"3057807605","processing_ms":3562,"queue_wait_ms":9375,"to":"3490172486","total_time_ms":12938}}
 {"timestamp":"2026-02-10T23:49:15.9025991+01:00","level":"INFO","message":"processing internal transfer","file":"helpers.go","line":24,"meta":{"amount":"162","from":"3020108314","queue_wait":"11.0357232s","to":"3723211659"}}
 {"timestamp":"2026-02-10T23:49:16.0760993+01:00","level":"INFO","message":"internal transfer timing","file":"helpers.go","line":24,"meta":{"from":"3606732017","processing_ms":3432,"queue_wait_ms":9336,"to":"3550646134","total_time_ms":12769}}
+
+
+grep "internal transfer timing" app.log | \
+awk '
+{
+    # Extract values using match and regex
+    if (match($0, /"queue_wait_ms":([0-9.]+)/, arr)) {
+        queue_wait = arr[1];
+        q_sum += queue_wait;
+        if (queue_wait > q_max || NR == 1) q_max = queue_wait;
+        if (queue_wait < q_min || NR == 1) q_min = queue_wait;
+    }
+    
+    if (match($0, /"processing_ms":([0-9.]+)/, arr)) {
+        processing = arr[1];
+        p_sum += processing;
+        if (processing > p_max || NR == 1) p_max = processing;
+        if (processing < p_min || NR == 1) p_min = processing;
+    }
+    
+    if (match($0, /"total_time_ms":([0-9.]+)/, arr)) {
+        total = arr[1];
+        t_sum += total;
+        if (total > t_max || NR == 1) t_max = total;
+        if (total < t_min || NR == 1) t_min = total;
+    }
+    
+    count++;
+}
+END {
+    if (count > 0) {
+        print "=== Queue Wait Stats ===";
+        print "avg_queue_wait_ms:", q_sum/count;
+        print "max_queue_wait_ms:", q_max;
+        print "min_queue_wait_ms:", q_min;
+        print "";
+        
+        print "=== Processing Stats ===";
+        print "avg_processing_ms:", p_sum/count;
+        print "max_processing_ms:", p_max;
+        print "min_processing_ms:", p_min;
+        print "";
+        
+        print "=== Total Time Stats ===";
+        print "avg_total_time_ms:", t_sum/count;
+        print "max_total_time_ms:", t_max;
+        print "min_total_time_ms:", t_min;
+        print "";
+        
+        print "=== Worker Efficiency ===";
+        if (p_sum + q_sum > 0) {
+            print "worker_utilization:", sprintf("%.2f%%", (p_sum/(p_sum+q_sum))*100);
+            print "queue_overhead:", sprintf("%.2f%%", (q_sum/(p_sum+q_sum))*100);
+        }
+        
+        print "";
+        print "=== Analysis ===";
+        queue_ratio = (q_sum/count) / (p_sum/count);
+        print "queue_to_processing_ratio:", sprintf("%.2f", queue_ratio);
+        
+        if (queue_ratio > 3) {
+            print "⚠️  CRITICAL: Queue wait is", sprintf("%.1fx", queue_ratio), "processing time";
+            print "   Recommendation: DOUBLE workers immediately";
+        } else if (queue_ratio > 1.5) {
+            print "⚠️  WARNING: Queue wait is", sprintf("%.1fx", queue_ratio), "processing time";
+            print "   Recommendation: Add 50% more workers";
+        } else if (queue_ratio < 0.3) {
+            print "ℹ️  INFO: Low queue wait - workers may be over-provisioned";
+        } else {
+            print "✓ OK: Queue levels acceptable";
+        }
+    } else {
+        print "No data found";
+    }
+}
+'

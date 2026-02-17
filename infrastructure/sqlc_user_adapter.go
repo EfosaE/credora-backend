@@ -6,42 +6,65 @@ import (
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
-	// "github.com/google/uuid"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SqlcUserRepository struct {
-    q  *sqlc.Queries      // sqlc Queries, can be db or tx
+	db *pgxpool.Pool
 }
 
-
-
-
-func NewSqlcUserRepository(ctx context.Context, q *sqlc.Queries) *SqlcUserRepository {
+func NewSqlcUserRepository(db *pgxpool.Pool) *SqlcUserRepository {
 	return &SqlcUserRepository{
-		q: q,
+		db: db,
 	}
 }
 
+func (r *SqlcUserRepository) queries(ctx context.Context) *sqlc.Queries {
+	if tx, ok := GetTx(ctx); ok {
+		return sqlc.New(tx)
+	}
+	return sqlc.New(r.db)
+}
 
-// this SqlcUserRepository implements the UserRepository interface because it has all the methods defined in the interface
-func (s *SqlcUserRepository) Create(ctx context.Context, user *user.CreateUserRequest) (*user.User, error) {
-	sqlcUser, err := s.q.CreateUser(ctx, sqlc.CreateUserParams{
-		FullName:    user.Name,
-		Email:       utils.ToPgText(user.Email),
-		Password:    user.Password,
-		PhoneNumber: user.PhoneNumber,
-		Nin:         user.Nin,
+// ------------------------------------
+// Methods
+// ------------------------------------
+
+func (r *SqlcUserRepository) Create(ctx context.Context, u *user.CreateUserRequest) (*user.User, error) {
+	sqlcUser, err := r.queries(ctx).CreateUser(ctx, sqlc.CreateUserParams{
+		FullName:    u.Name,
+		Email:       utils.ToPgText(u.Email),
+		Password:    u.Password,
+		PhoneNumber: u.PhoneNumber,
+		Nin:         u.Nin,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert sqlc.User to User
 	return toDomainUser(sqlcUser), nil
 }
 
-// 🔑 KEY: Conversion between sqlc and domain types
-// This is where you control what gets exposed vs hidden
+func (r *SqlcUserRepository) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	sqlcUser, err := r.queries(ctx).GetUserByEmail(ctx, utils.ToPgText(email))
+	if err != nil {
+		return nil, err
+	}
+	return toDomainUser(sqlcUser), nil
+}
+
+func (r *SqlcUserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, hashedPassword string) error {
+	return r.queries(ctx).UpdateUserPassword(ctx, sqlc.UpdateUserPasswordParams{
+		ID:       id,
+		Password: hashedPassword,
+	})
+}
+
+// ------------------------------------
+// Helpers
+// ------------------------------------
+
 func toDomainUser(sqlcUser sqlc.User) *user.User {
 	return &user.User{
 		ID:        sqlcUser.ID,
@@ -49,7 +72,5 @@ func toDomainUser(sqlcUser sqlc.User) *user.User {
 		Email:     sqlcUser.Email.String,
 		CreatedAt: sqlcUser.CreatedAt.Time,
 		UpdatedAt: sqlcUser.UpdatedAt.Time,
-		// Notice: password_hash, internal_notes, etc. are NOT mapped
-		// This prevents accidental exposure of sensitive data
 	}
 }

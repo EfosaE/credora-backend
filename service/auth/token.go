@@ -2,8 +2,12 @@ package authsvc
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/EfosaE/credora-backend/domain/auth"
 	"github.com/EfosaE/credora-backend/internal/response"
@@ -114,4 +118,27 @@ func CustomAuthenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 		}
 		return http.HandlerFunc(hfn)
 	}
+}
+
+func GenerateResetToken() (rawToken string, hashedToken string, expiresAt time.Time, err error) {
+	// 1. Generate random bytes
+	b := make([]byte, 32)
+	if _, err = rand.Read(b); err != nil {
+		return
+	}
+
+	// 2. Encode as hex string (same as Node)
+	rawToken = hex.EncodeToString(b)
+
+	// 3. Hash token using bcrypt (cost 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(rawToken), 12)
+	if err != nil {
+		return
+	}
+	hashedToken = string(hash)
+
+	// 4. Expiration time (1 hour)
+	expiresAt = time.Now().Add(1 * time.Hour)
+
+	return
 }

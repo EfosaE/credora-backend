@@ -30,6 +30,8 @@ type Config struct {
 	RedisAddr string
 
 	WebhookURL string
+
+	FrontendURL string
 }
 
 var App Config
@@ -64,6 +66,7 @@ func Load() {
 		RedisAddr: mustGetEnv("REDIS_ADDR"),
 
 		WebhookURL: mustGetEnv("WEBHOOK_URL"),
+		FrontendURL: mustGetEnv("FRONTEND_URL"),
 	}
 }
 

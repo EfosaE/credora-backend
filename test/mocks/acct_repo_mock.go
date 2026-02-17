@@ -18,7 +18,6 @@ type MockAcctRepo struct {
 	GetAccountForUpdateFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)      // NEW
 	GetAccountsForUpdateFunc func(ctx context.Context, accountNumbers []string) ([]*account.Account, error) // NEW
 	GetAccountByAcctNumFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)
-	WithTxFunc               func(ctx context.Context, fn func(tx account.AccountTx) error) error
 	Accounts                 map[int]*account.Account
 	Txm                      func() pgx.Tx
 }
@@ -67,13 +66,4 @@ func (m *MockAcctRepo) GetAccountsForUpdate(ctx context.Context, accountNumbers 
 		return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
 	}
 	return nil, nil
-}
-
-// WithTx mocks the transactional execution
-func (m *MockAcctRepo) WithTx(ctx context.Context, fn func(tx account.AccountTx) error) error {
-	if m.WithTxFunc != nil {
-		return m.WithTxFunc(ctx, fn)
-	}
-	// Default: just call the function with the mock itself as the tx
-	return fn(m)
 }

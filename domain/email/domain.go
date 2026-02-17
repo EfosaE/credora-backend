@@ -10,7 +10,7 @@ import (
 )
 
 type EmailSender interface {
-	SendEmail(ctx context.Context, req SendEmailRequest)  error
+	SendEmail(ctx context.Context, req SendEmailRequest) error
 }
 
 // email/domain.go continued
@@ -30,13 +30,13 @@ var accountTemplate string
 //go:embed templates/welcome_email.html
 var welcomeTemplate string
 
-// //go:embed templates/password_reset.html
-// var passwordResetTemplate string
+//go:embed templates/password_email.html
+var passwordResetTemplate string
 
 var templates = map[string]string{
-	"account_email": accountTemplate,
-	"welcome_email": welcomeTemplate,
-	// "password_reset": passwordResetTemplate,
+	"account_email":  accountTemplate,
+	"welcome_email":  welcomeTemplate,
+	"password_email": passwordResetTemplate,
 }
 
 func GetTemplateContent(name string) (string, error) {

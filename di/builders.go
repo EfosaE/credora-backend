@@ -13,6 +13,7 @@ import (
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/db"
 	"github.com/EfosaE/credora-backend/internal/handler"
+	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/queues"
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
@@ -21,6 +22,7 @@ import (
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
+	"github.com/hibiken/asynq"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -33,12 +35,16 @@ type AppDependencies struct {
 	EventBus    *infrastructure.StreamEventBus
 	QueueClient *queues.QueueClient
 
+	//Transaction Manager
+	TxManager infrastructure.TxManager
+
 	// Repositories
-	AcctRepo         *infrastructure.SqlcAccountRepository
-	TrxRepo          *infrastructure.SqlcTransactionRepository
-	UserRepo         *infrastructure.SqlcUserRepository
-	IdempotencyRepo  *infrastructure.SqlcIdempotencyRepository
-	IdempotencyCache *infrastructure.IdempotencyCache
+	AcctRepo          *infrastructure.SqlcAccountRepository
+	TrxRepo           *infrastructure.SqlcTransactionRepository
+	UserRepo          *infrastructure.SqlcUserRepository
+	PasswordResetRepo *infrastructure.SqlcPasswordResetRepository
+	IdempotencyRepo   *infrastructure.SqlcIdempotencyRepository
+	IdempotencyCache  *infrastructure.IdempotencyCache
 
 	// Services
 	MonnifySvc     *service.MonnifyService
@@ -51,6 +57,9 @@ type AppDependencies struct {
 	OperationSvc   *operationsvc.OperationService
 	SimulatorSvc   *service.SimulatorService
 	IdempotencySvc *idempotencysvc.IdempotencyService
+
+	// Middleware
+	BackPressureMiddleware *custmiddleware.BackpressureMiddleware
 
 	// Handlers
 	AuthHandler        *handler.AuthHandler
@@ -155,15 +164,25 @@ func (b *AppBuilder) WithRepositories() *AppBuilder {
 		return b
 	}
 
-	if b.deps.DB == nil || b.deps.Redis == nil {
-		b.err = fmt.Errorf("DB and Redis must be initialized before repositories")
+	if b.deps.DB == nil {
+		log.Println("[ERROR] DB dependency is missing: DB must be initialized before repositories")
+		b.err = fmt.Errorf("DB must be initialized before repositories")
+		return b
+	}
+	if b.deps.Redis == nil {
+		log.Println("[ERROR] Redis dependency is missing: Redis must be initialized before repositories")
+		b.err = fmt.Errorf("Redis must be initialized before repositories")
 		return b
 	}
 
+	b.deps.TxManager = infrastructure.NewTxManager(b.deps.DB.Pool)
+
+	//POOL VS QUERIES: We use the DB pool to create repositories that need direct access to the connection pool (like those that need transactions), and we use the DB queries for repositories that only need to execute queries without managing transactions. This allows us to optimize resource usage while still providing the necessary functionality for each repository.
 	b.deps.AcctRepo = infrastructure.NewSqlcAccountRepository(b.deps.DB.Pool)
 	b.deps.TrxRepo = infrastructure.NewSqlcTransactionRepository(b.deps.DB.Pool)
-	b.deps.UserRepo = infrastructure.NewSqlcUserRepository(b.deps.Ctx, b.deps.DB.Queries)
+	b.deps.UserRepo = infrastructure.NewSqlcUserRepository(b.deps.DB.Pool)
 	b.deps.IdempotencyRepo = infrastructure.NewSqlcIdempotencyRepository(b.deps.DB.Pool)
+	b.deps.PasswordResetRepo = infrastructure.NewSqlcPasswordResetRepository(b.deps.DB.Pool)
 	b.deps.IdempotencyCache = infrastructure.NewIdempotencyCache(b.deps.Redis, 5*time.Minute)
 	return b
 }
@@ -178,6 +197,7 @@ func (b *AppBuilder) WithMonnifyService() *AppBuilder {
 	}
 
 	if b.deps.Logger == nil {
+		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before Monnify service")
 		b.err = fmt.Errorf("logger must be initialized before Monnify service")
 		return b
 	}
@@ -199,6 +219,7 @@ func (b *AppBuilder) WithEmailService() *AppBuilder {
 	}
 
 	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before email service")
 		b.err = fmt.Errorf("event bus must be initialized before email service")
 		return b
 	}
@@ -211,8 +232,19 @@ func (b *AppBuilder) WithAccountService() *AppBuilder {
 	if b.err != nil {
 		return b
 	}
-	if b.deps.EventBus == nil || b.deps.AcctRepo == nil || b.deps.Logger == nil {
-		b.err = fmt.Errorf("event bus, account repository, and logger must be initialized before account service")
+	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before account service")
+		b.err = fmt.Errorf("event bus must be initialized before account service")
+		return b
+	}
+	if b.deps.AcctRepo == nil {
+		log.Println("[ERROR] AccountRepo dependency is missing: Account repository must be initialized before account service")
+		b.err = fmt.Errorf("account repository must be initialized before account service")
+		return b
+	}
+	if b.deps.Logger == nil {
+		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before account service")
+		b.err = fmt.Errorf("logger must be initialized before account service")
 		return b
 	}
 	b.deps.AcctSvc = accountsvc.NewAccountService(b.deps.AcctRepo, b.deps.Logger, b.deps.EventBus)
@@ -224,6 +256,7 @@ func (b *AppBuilder) WithIdempotencyService() *AppBuilder {
 		return b
 	}
 	if b.deps.IdempotencyRepo == nil {
+		log.Println("[ERROR] IdempotencyRepo dependency is missing: Idempotency repo must be initialized before Idempotency Service")
 		b.err = fmt.Errorf("the idempotency repo must be initialized before Idemp Service")
 		return b
 	}
@@ -236,8 +269,14 @@ func (b *AppBuilder) WithTransactionService() *AppBuilder {
 		return b
 	}
 
-	if b.deps.TrxRepo == nil || b.deps.Logger == nil {
-		b.err = fmt.Errorf("transaction repository and logger must be initialized before transaction service")
+	if b.deps.TrxRepo == nil {
+		log.Println("[ERROR] TrxRepo dependency is missing: Transaction repository must be initialized before transaction service")
+		b.err = fmt.Errorf("transaction repository must be initialized before transaction service")
+		return b
+	}
+	if b.deps.Logger == nil {
+		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before transaction service")
+		b.err = fmt.Errorf("logger must be initialized before transaction service")
 		return b
 	}
 	b.deps.TrxSvc = transactionsvc.NewTransactionService(b.deps.TrxRepo, b.deps.Logger)
@@ -257,8 +296,29 @@ func (b *AppBuilder) WithUserService() *AppBuilder {
 		return b
 	}
 
-	if b.deps.UserRepo == nil || b.deps.Logger == nil || b.deps.EventBus == nil || b.deps.MonnifySvc == nil || b.deps.QueueClient == nil {
-		b.err = fmt.Errorf("user repository, logger, event bus, Monnify service, and queue client must be initialized before user service")
+	if b.deps.UserRepo == nil {
+		log.Println("[ERROR] UserRepo dependency is missing: User repository must be initialized before user service")
+		b.err = fmt.Errorf("user repository must be initialized before user service")
+		return b
+	}
+	if b.deps.Logger == nil {
+		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before user service")
+		b.err = fmt.Errorf("logger must be initialized before user service")
+		return b
+	}
+	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before user service")
+		b.err = fmt.Errorf("event bus must be initialized before user service")
+		return b
+	}
+	if b.deps.MonnifySvc == nil {
+		log.Println("[ERROR] MonnifySvc dependency is missing: Monnify service must be initialized before user service")
+		b.err = fmt.Errorf("Monnify service must be initialized before user service")
+		return b
+	}
+	if b.deps.QueueClient == nil {
+		log.Println("[ERROR] QueueClient dependency is missing: Queue client must be initialized before user service")
+		b.err = fmt.Errorf("queue client must be initialized before user service")
 		return b
 	}
 	b.deps.UserSvc = usersvc.NewUserService(
@@ -276,12 +336,28 @@ func (b *AppBuilder) WithAuthService() *AppBuilder {
 		return b
 	}
 
+	if b.deps.TxManager == nil {
+		log.Println("[ERROR] TxManager dependency is missing")
+		b.err = fmt.Errorf("transaction manager must be initialized before auth service")
+		return b
+	}
 	if b.deps.AcctRepo == nil {
+		log.Println("[ERROR] AcctRepo dependency is missing: Account repository must be initialized before auth service")
 		b.err = fmt.Errorf("account repository must be initialized before auth service")
 		return b
 	}
+	if b.deps.PasswordResetRepo == nil {
+		log.Println("[ERROR] PasswordResetRepo dependency is missing: Password reset repository must be initialized before auth service")
+		b.err = fmt.Errorf("password reset repository must be initialized before auth service")
+		return b
+	}
+	if b.deps.EmailSvc == nil {
+		log.Println("[ERROR] EmailSvc dependency is missing")
+		b.err = fmt.Errorf("email service must be initialized before auth service")
+		return b
+	}
 	b.deps.TokenSvc = authsvc.NewJWTTokenService(b.cfg.JwtSecret, 24*time.Hour)
-	b.deps.AuthSvc = authsvc.NewAuthService(b.deps.TokenSvc, b.deps.AcctRepo)
+	b.deps.AuthSvc = authsvc.NewAuthService(b.deps.TxManager, b.deps.UserRepo, b.deps.PasswordResetRepo, b.deps.TokenSvc, b.deps.AcctRepo, b.deps.EmailSvc)
 	return b
 }
 
@@ -290,12 +366,34 @@ func (b *AppBuilder) WithOperationService() *AppBuilder {
 		return b
 	}
 
-	if b.deps.AcctRepo == nil || b.deps.TrxRepo == nil || b.deps.IdempotencyRepo == nil || b.deps.Logger == nil {
-		b.err = fmt.Errorf("account repo, transaction repo, idempotency repo, and logger must be initialized before operation service")
+	if b.deps.TxManager == nil {
+		log.Println("[ERROR] TxManager dependency is missing")
+		b.err = fmt.Errorf("transaction manager must be initialized before operation service")
+		return b
+	}
+	if b.deps.AcctRepo == nil {
+		log.Println("[ERROR] AcctRepo dependency is missing: Account repo must be initialized before operation service")
+		b.err = fmt.Errorf("account repo must be initialized before operation service")
+		return b
+	}
+	if b.deps.TrxRepo == nil {
+		log.Println("[ERROR] TrxRepo dependency is missing: Transaction repo must be initialized before operation service")
+		b.err = fmt.Errorf("transaction repo must be initialized before operation service")
+		return b
+	}
+	if b.deps.IdempotencyRepo == nil {
+		log.Println("[ERROR] IdempotencyRepo dependency is missing: Idempotency repo must be initialized before operation service")
+		b.err = fmt.Errorf("idempotency repo must be initialized before operation service")
+		return b
+	}
+	if b.deps.Logger == nil {
+		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before operation service")
+		b.err = fmt.Errorf("logger must be initialized before operation service")
 		return b
 	}
 
 	b.deps.OperationSvc = operationsvc.NewOperationService(
+		b.deps.TxManager,
 		b.deps.AcctRepo,
 		b.deps.TrxRepo,
 		b.deps.IdempotencyRepo,
@@ -319,6 +417,18 @@ func (b *AppBuilder) WithEventSubscriptions() *AppBuilder {
 	if err := b.deps.AcctSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
 		b.err = err
 	}
+
+	return b
+}
+
+func (b *AppBuilder) WithMiddlewares() *AppBuilder {
+	if b.err != nil {
+		return b
+	}
+	inspector := asynq.NewInspector(asynq.RedisClientOpt{
+		Addr: b.cfg.RedisAddr,
+	})
+	b.deps.BackPressureMiddleware = custmiddleware.NewBackpressure(inspector, 250, "critical")
 
 	return b
 }
@@ -366,6 +476,7 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 		WithOperationService().
 		WithIdempotencyService().
 		WithEventSubscriptions().
+		WithMiddlewares().
 		WithHandlers().
 		Build()
 }

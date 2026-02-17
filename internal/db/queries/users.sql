@@ -16,20 +16,18 @@ SELECT * FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
--- name: UpdateUser :one
+-- name: UpdateUserFullNameAndEmail :one
 UPDATE users
 SET full_name = $2, email = $3
 WHERE id = $1
 RETURNING *;
 
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $2
+WHERE id = $1;
 
--- -- name: UpdateUser :one
--- This query is commented out because it updates manually but I have associated trigger
--- that automatically updates the `updated_at` field on any update.
--- UPDATE users
--- SET name = $2, email = $3, updated_at = NOW()
--- WHERE id = $1
--- RETURNING *;
+
 
 -- name: DeleteUser :exec
 DELETE FROM users

@@ -9,31 +9,26 @@ import (
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // SqlcIdempotencyRepository implements both IdempotencyRepo and IdempotencyTx
 type SqlcIdempotencyRepository struct {
 	db *pgxpool.Pool
-	tx pgx.Tx // nil when not inside a transaction
-	q  *sqlc.Queries
 }
 
 func NewSqlcIdempotencyRepository(db *pgxpool.Pool) *SqlcIdempotencyRepository {
 	return &SqlcIdempotencyRepository{
 		db: db,
-		q:  sqlc.New(db),
 	}
 }
 
-// create a repo bound to a transaction
-func (r *SqlcIdempotencyRepository) WithTx(tx pgx.Tx) idempotency.IdempotencyTx {
-	return &SqlcIdempotencyRepository{
-		db: r.db,
-		tx: tx,
-		q:  sqlc.New(tx),
+func (r *SqlcIdempotencyRepository) queries(ctx context.Context) *sqlc.Queries {
+	// create a repo bound to a transaction if it exists in the context, otherwise use the main DB connection
+	if tx, ok := GetTx(ctx); ok {
+		return sqlc.New(tx)
 	}
+	return sqlc.New(r.db)
 }
 
 // ------------------------------------
@@ -42,7 +37,7 @@ func (r *SqlcIdempotencyRepository) WithTx(tx pgx.Tx) idempotency.IdempotencyTx 
 
 // Check if an idempotency key exists
 func (i *SqlcIdempotencyRepository) Check(ctx context.Context, key string) (bool, error) {
-	return i.q.CheckIdempotency(ctx, key)
+	return i.queries(ctx).CheckIdempotency(ctx, key)
 }
 
 // Insert a new idempotency key with a status
@@ -52,7 +47,7 @@ func (i *SqlcIdempotencyRepository) Insert(ctx context.Context, key string, opTy
 		return err
 	}
 
-	return i.q.InsertIdempotencyKey(ctx, sqlc.InsertIdempotencyKeyParams{
+	return i.queries(ctx).InsertIdempotencyKey(ctx, sqlc.InsertIdempotencyKeyParams{
 		IdemKey:       key,
 		OperationType: string(opType),
 		Payload:       b,
@@ -62,7 +57,7 @@ func (i *SqlcIdempotencyRepository) Insert(ctx context.Context, key string, opTy
 
 // Get an idempotency record
 func (i *SqlcIdempotencyRepository) Get(ctx context.Context, key string) (*idempotency.IdempotencyData, error) {
-	data, err := i.q.GetIdempotencyKey(ctx, key)
+	data, err := i.queries(ctx).GetIdempotencyKey(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +72,7 @@ func (i *SqlcIdempotencyRepository) Get(ctx context.Context, key string) (*idemp
 
 // Delete an idempotency record
 func (i *SqlcIdempotencyRepository) Delete(ctx context.Context, key string) error {
-	return i.q.DeleteIdempotencyKey(ctx, key)
+	return i.queries(ctx).DeleteIdempotencyKey(ctx, key)
 }
 
 // Upsert an idempotency key with status
@@ -88,17 +83,23 @@ func (i *SqlcIdempotencyRepository) Upsert(ctx context.Context, key string, oper
 		return err
 	}
 
-	return i.q.UpsertIdempotencyKey(ctx, sqlc.UpsertIdempotencyKeyParams{
+	iErr := i.queries(ctx).UpsertIdempotencyKey(ctx, sqlc.UpsertIdempotencyKeyParams{
 		IdemKey:       key,
 		OperationType: string(operationType),
 		Payload:       jsonPayload,
 		Status:        string(status),
 	})
+	if iErr != nil {
+		log.Println("Error upserting idempotency key:", iErr)
+		return iErr
+	}
+	log.Println("Successfully upserted idempotency key:", key)
+	return nil
 }
 
 // Update the status of an existing key
 func (i *SqlcIdempotencyRepository) UpdateStatus(ctx context.Context, key string, status transaction.TransactionStatus) error {
-	return i.q.UpdateIdempotencyStatus(ctx, sqlc.UpdateIdempotencyStatusParams{
+	return i.queries(ctx).UpdateIdempotencyStatus(ctx, sqlc.UpdateIdempotencyStatusParams{
 		IdemKey: key,
 		Status:  string(status),
 	})
@@ -107,36 +108,11 @@ func (i *SqlcIdempotencyRepository) UpdateStatus(ctx context.Context, key string
 // Mark as SUCCESS and save the final payload
 func (i *SqlcIdempotencyRepository) SaveSuccess(ctx context.Context, key string) error {
 
-	return i.q.SaveIdempotencySuccess(ctx, key)
+	return i.queries(ctx).SaveIdempotencySuccess(ctx, key)
 }
 
 // Mark as FAILED and save the final payload/error
 func (i *SqlcIdempotencyRepository) SaveFailure(ctx context.Context, key string) error {
 
-	return i.q.SaveIdempotencyFailure(ctx, key)
+	return i.queries(ctx).SaveIdempotencyFailure(ctx, key)
 }
-
-//Unless the IdempotencyTx interface requires access to the underlying pgx.Tx, this method is unnecessary.
-// func (r *SqlcIdempotencyRepository) Tx() pgx.Tx {
-// 	return r.tx
-// }
-
-// ------------------------------------
-// Transaction wrapper
-// ------------------------------------
-// func (r *SqlcIdempotencyRepository) WithTx(ctx context.Context, fn func(tx idempotency.IdempotencyTx) error) error {
-// 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// bind repo to transaction
-// 	txRepo := r.withTx(tx)
-
-// 	if err := fn(txRepo); err != nil {
-// 		_ = tx.Rollback(ctx)
-// 		return err
-// 	}
-
-// 	return tx.Commit(ctx)
-// }

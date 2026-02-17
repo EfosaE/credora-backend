@@ -17,3 +17,10 @@ func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
+
+func ValidateResetToken(rawToken, storedHash string) bool {
+	return bcrypt.CompareHashAndPassword(
+		[]byte(storedHash),
+		[]byte(rawToken),
+	) == nil
+}

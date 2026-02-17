@@ -49,7 +49,9 @@ func (h *SimulatorHandler) SimulateTransferExt(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	response.SendSuccess(w, r, response.OK(nil, "Simulated transfer successfully triggered."))
+	response.SendSuccess(w, r, response.OK(
+		nil,
+		nil,
+		"Simulated transfer successfully triggered.",
+	))
 }
-
-

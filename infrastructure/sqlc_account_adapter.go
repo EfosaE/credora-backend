@@ -8,7 +8,6 @@ import (
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
@@ -16,56 +15,52 @@ import (
 // SqlcAccountRepository implements both AccountRepository and AccountTx
 type SqlcAccountRepository struct {
 	db *pgxpool.Pool
-	tx pgx.Tx // nil when not inside a transaction
-	q  *sqlc.Queries
 }
 
 func NewSqlcAccountRepository(db *pgxpool.Pool) *SqlcAccountRepository {
 	return &SqlcAccountRepository{
 		db: db,
-		q:  sqlc.New(db),
 	}
 }
 
-// create a repo bound to a transaction
-func (r *SqlcAccountRepository) withTx(tx pgx.Tx) *SqlcAccountRepository {
-	return &SqlcAccountRepository{
-		db: r.db,
-		tx: tx,
-		q:  sqlc.New(tx),
+func (r *SqlcAccountRepository) queries(ctx context.Context) *sqlc.Queries {
+	// create a repo bound to a transaction if it exists in the context, otherwise use the main DB connection
+	if tx, ok := GetTx(ctx); ok {
+		return sqlc.New(tx)
 	}
+	return sqlc.New(r.db)
 }
 
-func (r *SqlcAccountRepository) Tx() pgx.Tx {
-	return r.tx
-}
+// func (r *SqlcAccountRepository) Tx() pgx.Tx {
+// 	return r.tx
+// }
 
 // ------------------------------------
 // Transaction wrapper
 // ------------------------------------
-func (r *SqlcAccountRepository) WithTx(ctx context.Context, fn func(tx account.AccountTx) error) error {
-	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return err
-	}
+// func (r *SqlcAccountRepository) WithTx(ctx context.Context, fn func(tx account.AccountTx) error) error {
+// 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// bind repo to transaction
-	txRepo := r.withTx(tx)
+// 	// bind repo to transaction
+// 	txRepo := r.withTx(tx)
 
-	if err := fn(txRepo); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
-	}
+// 	if err := fn(txRepo); err != nil {
+// 		_ = tx.Rollback(ctx)
+// 		return err
+// 	}
 
-	return tx.Commit(ctx)
-}
+// 	return tx.Commit(ctx)
+// }
 
 // ------------------------------------
 // Normal methods
 // ------------------------------------
 
 func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
-	sqlcAcct, err := r.q.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
+	sqlcAcct, err := r.queries(ctx).CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
 		UserID:             utils.ToPgUUID(req.UserId),
 		AccountNumber:      req.AccountNumber,
 		AccountType:        req.AccountType,
@@ -80,7 +75,7 @@ func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.Cre
 }
 
 func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct string) (*sqlc.GetUserByAccountNumberRow, error) {
-	row, err := r.q.GetUserByAccountNumber(ctx, acct)
+	row, err := r.queries(ctx).GetUserByAccountNumber(ctx, acct)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +83,7 @@ func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct
 }
 
 func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, acct string) (*account.Account, error) {
-	row, err := r.q.GetAccountByAccountNumber(ctx, acct)
+	row, err := r.queries(ctx).GetAccountByAccountNumber(ctx, acct)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +103,7 @@ func (r *SqlcAccountRepository) GetAccountsForUpdate(
 	accountNumbers []string,
 ) ([]*account.Account, error) {
 
-	rows, err := r.q.GetAccountsForUpdate(ctx, accountNumbers)
+	rows, err := r.queries(ctx).GetAccountsForUpdate(ctx, accountNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +128,7 @@ func (r *SqlcAccountRepository) GetAccountsForUpdate(
 }
 
 func (r *SqlcAccountRepository) GetAccountForUpdate(ctx context.Context, accountNumber string) (*account.Account, error) {
-	row, err := r.q.GetAccountForUpdate(ctx, accountNumber)
+	row, err := r.queries(ctx).GetAccountForUpdate(ctx, accountNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +144,7 @@ func (r *SqlcAccountRepository) GetAccountForUpdate(ctx context.Context, account
 func (r *SqlcAccountRepository) CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
 	pgAmount, _ := utils.DecimalToPgNumeric(amount)
 
-	row, err := r.q.CreditAccountBalance(ctx, sqlc.CreditAccountBalanceParams{
+	row, err := r.queries(ctx).CreditAccountBalance(ctx, sqlc.CreditAccountBalanceParams{
 		Amount:        pgAmount,
 		AccountNumber: accountNumber,
 	})
@@ -168,7 +163,7 @@ func (r *SqlcAccountRepository) CreditAccount(ctx context.Context, amount decima
 func (r *SqlcAccountRepository) DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
 	pgAmount, _ := utils.DecimalToPgNumeric(amount)
 
-	row, err := r.q.DebitAccountBalance(ctx, sqlc.DebitAccountBalanceParams{
+	row, err := r.queries(ctx).DebitAccountBalance(ctx, sqlc.DebitAccountBalanceParams{
 		Amount:        pgAmount,
 		AccountNumber: accountNumber,
 	})

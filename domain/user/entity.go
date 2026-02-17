@@ -29,6 +29,16 @@ type LoginUserRequest struct {
 	Password      string `json:"password" validate:"required,min=8,max=100"`
 }
 
+type ResetPasswordRequest struct {
+	Email string `json:"email" validate:"required,email,max=255"`
+}
+
+type ValidatePasswordRequest struct {
+	Email              string `json:"email" validate:"required,email,max=255"`
+	PasswordResetToken string `json:"password_reset_token" validate:"required"`
+	NewPassword        string `json:"new_password" validate:"required,min=8,max=100"`
+}
+
 type CreateUserResponse struct {
 	ID                   uuid.UUID                 `json:"id"`
 	Name                 string                    `json:"name"`

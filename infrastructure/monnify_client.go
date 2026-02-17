@@ -19,14 +19,14 @@ import (
 )
 
 type MonnifyClient struct {
-	config *monnify.MonnifyConfig
+	Config *monnify.MonnifyConfig
 	client *http.Client
 }
 
 func NewMonnifyClient(config *monnify.MonnifyConfig, client *http.Client) *MonnifyClient {
 
 	return &MonnifyClient{
-		config: config,
+		Config: config,
 		client: client,
 	}
 }
@@ -39,10 +39,10 @@ func NewMonnifyClient(config *monnify.MonnifyConfig, client *http.Client) *Monni
 
 // AUTHENTICATE
 func (m *MonnifyClient) Authenticate() error {
-	url := fmt.Sprintf("%s/api/v1/auth/login", m.config.BaseURL)
+	url := fmt.Sprintf("%s/api/v1/auth/login", m.Config.BaseURL)
 
 	// Encode credentials
-	authStr := fmt.Sprintf("%s:%s", m.config.ApiKey, m.config.SecretKey)
+	authStr := fmt.Sprintf("%s:%s", m.Config.ApiKey, m.Config.SecretKey)
 	authHeader := base64.StdEncoding.EncodeToString([]byte(authStr))
 	fmt.Println("Auth Header:", authHeader)
 
@@ -79,12 +79,12 @@ func (m *MonnifyClient) Authenticate() error {
 	}
 
 	// Save token
-	m.config.Token = authResp.ResponseBody.AccessToken
+	m.Config.Token = authResp.ResponseBody.AccessToken
 	return nil
 }
 
 func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) bool {
-	mac := hmac.New(sha512.New, []byte(m.config.SecretKey))
+	mac := hmac.New(sha512.New, []byte(m.Config.SecretKey))
 	mac.Write(body)
 	expected := hex.EncodeToString(mac.Sum(nil))
 	fmt.Println("Expected Signature:", expected)
@@ -100,8 +100,8 @@ func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) 
 
 func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 	// actual HTTP call to Monnify
-	url := fmt.Sprintf("%s/api/v2/bank-transfer/reserved-accounts", m.config.BaseURL)
-	if m.config.Token == "" {
+	url := fmt.Sprintf("%s/api/v2/bank-transfer/reserved-accounts", m.Config.BaseURL)
+	if m.Config.Token == "" {
 		if err := m.Authenticate(); err != nil {
 			return nil, err
 		}
@@ -118,7 +118,7 @@ func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAPara
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.config.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.Config.Token))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := m.client.Do(req)
@@ -142,9 +142,9 @@ func (m *MonnifyClient) CreateReservedAccount(monnifyCust *monnify.CreateCRAPara
 
 /** ----- DELETE RESERVED ACCOUNT ------ **/
 func (m *MonnifyClient) DeleteReservedAccount(acctRef string) (*monnify.CreateCRAResponse, error) {
-	url := fmt.Sprintf("%s/api/v1/bank-transfer/reserved-accounts/reference/%s", m.config.BaseURL, acctRef)
+	url := fmt.Sprintf("%s/api/v1/bank-transfer/reserved-accounts/reference/%s", m.Config.BaseURL, acctRef)
 
-	if m.config.Token == "" {
+	if m.Config.Token == "" {
 		if err := m.Authenticate(); err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func (m *MonnifyClient) DeleteReservedAccount(acctRef string) (*monnify.CreateCR
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.config.Token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", m.Config.Token))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := m.client.Do(req)

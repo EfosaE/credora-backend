@@ -1,58 +1,79 @@
 package response
 
-
 import (
 	"net/http"
 
 	"github.com/go-chi/render"
 )
 
-// SuccessResponse represents a standard success response structure
-type SuccessResponse struct {
-	StatusCode int    `json:"-"`              // Not rendered in the JSON body
-	Data       any    `json:"data,omitempty"` // Optional payload
-	Message    string `json:"message,omitempty"`
+func Obj(key string, value any) map[string]any {
+	return map[string]any{key: value}
 }
 
-// Render sets the HTTP status code before rendering the response
+// SuccessResponse represents the standard API success contract.
+type SuccessResponse struct {
+	StatusCode int            `json:"-"`
+	Data       map[string]any `json:"data"`
+	Message    string         `json:"message,omitempty"`
+	Meta       map[string]any `json:"meta,omitempty"`
+}
+
+// Render sets the HTTP status code before rendering.
 func (s *SuccessResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, s.StatusCode)
 	return nil
 }
 
-// NewSuccess creates a new SuccessResponse with data and optional message
-func NewSuccess(statusCode int, data any, message string) *SuccessResponse {
+// NewSuccess creates a success response following the API contract.
+func NewSuccess(
+	statusCode int,
+	data map[string]any,
+	meta map[string]any,
+	message string,
+) *SuccessResponse {
+
+	// Ensure contract consistency (never nil objects)
+	if data == nil {
+		data = map[string]any{}
+	}
+
+	if meta == nil {
+		meta = map[string]any{}
+	}
+
 	return &SuccessResponse{
 		StatusCode: statusCode,
 		Data:       data,
+		Meta:       meta,
 		Message:    message,
 	}
 }
 
-// OK returns a 200 OK success response
-func OK(data any, message string) *SuccessResponse {
-	return NewSuccess(http.StatusOK, data, message)
+// OK returns 200 OK.
+func OK(data map[string]any, meta map[string]any, message string) *SuccessResponse {
+	return NewSuccess(http.StatusOK, data, meta, message)
 }
 
-// Accepted returns a 202 Accepted success response
-func Accepted(data any, message string) *SuccessResponse {
-	return NewSuccess(http.StatusAccepted, data, message)
+// Created returns 201 Created.
+func Created(data map[string]any, meta map[string]any, message string) *SuccessResponse {
+	return NewSuccess(http.StatusCreated, data, meta, message)
 }
 
-
-// Created returns a 201 Created success response
-func Created(data any, message string) *SuccessResponse {
-	return NewSuccess(http.StatusCreated, data, message)
+// Accepted returns 202 Accepted.
+func Accepted(data map[string]any, meta map[string]any, message string) *SuccessResponse {
+	return NewSuccess(http.StatusAccepted, data, meta, message)
 }
 
-// NoContent returns a 204 No Content success response (with no data or message)
+// NoContent returns 204 with empty contract-compliant body.
 func NoContent() *SuccessResponse {
 	return &SuccessResponse{
 		StatusCode: http.StatusNoContent,
+		Data:       map[string]any{},
+		Meta:       map[string]any{},
 	}
 }
 
-// SendSuccess is a convenience function to send a success response
+// SendSuccess sends the response.
 func SendSuccess(w http.ResponseWriter, r *http.Request, res *SuccessResponse) {
 	render.Render(w, r, res)
 }

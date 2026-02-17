@@ -105,7 +105,7 @@ export default function (sessions) {
         "Idempotency-Key": uuidv4(),
       },
       cookies: {
-        jwt: session.jwt, // 🔑 Send JWT as HttpOnly cookie
+        jwt: session.jwt, // Send JWT as HttpOnly cookie
       },
       tags: { name: 'InternalTransfer' },
     },

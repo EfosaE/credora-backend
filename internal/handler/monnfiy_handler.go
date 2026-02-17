@@ -42,5 +42,9 @@ func (h *MonnifyHandler) DeleteCustomerHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Success
-	response.SendSuccess(w, r, response.OK(result, "Reserved account deleted successfully"))
+	response.SendSuccess(w, r, response.OK(
+		response.Obj("result", result),
+		nil,
+		"Reserved account deleted successfully",
+	))
 }

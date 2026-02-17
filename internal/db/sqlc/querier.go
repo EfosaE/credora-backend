@@ -14,21 +14,17 @@ import (
 type Querier interface {
 	CheckIdempotency(ctx context.Context, idemKey string) (bool, error)
 	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
+	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) (PasswordReset, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error)
 	DebitAccountBalance(ctx context.Context, arg DebitAccountBalanceParams) (DebitAccountBalanceRow, error)
 	DeleteIdempotencyKey(ctx context.Context, idemKey string) error
-	// -- name: UpdateUser :one
-	// This query is commented out because it updates manually but I have associated trigger
-	// that automatically updates the `updated_at` field on any update.
-	// UPDATE users
-	// SET name = $2, email = $3, updated_at = NOW()
-	// WHERE id = $1
-	// RETURNING *;
+	DeletePasswordReset(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
 	GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error)
+	GetActivePasswordReset(ctx context.Context, userID uuid.UUID) (PasswordReset, error)
 	GetIdempotencyKey(ctx context.Context, idemKey string) (IdempotencyKey, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
@@ -39,7 +35,9 @@ type Querier interface {
 	SaveIdempotencyFailure(ctx context.Context, idemKey string) error
 	SaveIdempotencySuccess(ctx context.Context, idemKey string) error
 	UpdateIdempotencyStatus(ctx context.Context, arg UpdateIdempotencyStatusParams) error
-	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdatePasswordResetUsedAt(ctx context.Context, arg UpdatePasswordResetUsedAtParams) error
+	UpdateUserFullNameAndEmail(ctx context.Context, arg UpdateUserFullNameAndEmailParams) (User, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	// -- name: UpsertIdempotencyKey :exec
 	// INSERT INTO idempotency_keys (idem_key, operation_type, payload, status)
 	// VALUES ($1, $2, $3, $4)
