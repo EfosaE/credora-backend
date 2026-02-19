@@ -121,7 +121,7 @@ export default function (sessions) {
   const amount = Math.floor(Math.random() * 500) + 50;
 
   const payload = JSON.stringify({
-    to_account: recipient.account_number,
+    toAccount: recipient.account_number,
     amount: amount.toString(),
     currency: "NGN",
     reference: `ref-${uuidv4()}`,
@@ -224,7 +224,7 @@ export function backpressureTest(sessions) {
   const amount = Math.floor(Math.random() * 500) + 50;
 
   const payload = JSON.stringify({
-    to_account: recipient.account_number,
+    toAccount: recipient.account_number,
     amount: amount.toString(),
     currency: "NGN",
     reference: `ref-${uuidv4()}`,

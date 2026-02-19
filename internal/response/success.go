@@ -10,10 +10,24 @@ func Obj(key string, value any) map[string]any {
 	return map[string]any{key: value}
 }
 
+type KV struct {
+	Key   string
+	Value any
+}
+
+func ObjKV(pairs ...KV) map[string]any {
+	m := make(map[string]any, len(pairs))
+	for _, p := range pairs {
+		m[p.Key] = p.Value
+	}
+	return m
+}
+
 // SuccessResponse represents the standard API success contract.
 type SuccessResponse struct {
 	StatusCode int            `json:"-"`
-	Data       map[string]any `json:"data"`
+	Success    bool           `json:"success"`
+	Data       map[string]any `json:"data,omitempty"`
 	Message    string         `json:"message,omitempty"`
 	Meta       map[string]any `json:"meta,omitempty"`
 }
@@ -43,6 +57,7 @@ func NewSuccess(
 
 	return &SuccessResponse{
 		StatusCode: statusCode,
+		Success:    true,
 		Data:       data,
 		Meta:       meta,
 		Message:    message,

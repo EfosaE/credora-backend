@@ -19,10 +19,11 @@ LIMIT 1;
 
 
 -- name: GetUserByAccountNumber :one
-SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number, a.balance, a.virtual_account_bank
+SELECT u.id, u.password, u.full_name, u.email, u.phone_number,u.is_verified, a.account_number, a.account_type, a.balance, a.currency, a.virtual_account_bank
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1;
+
 
 
 -- name: CreditAccountBalance :one

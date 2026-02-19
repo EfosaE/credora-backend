@@ -21,7 +21,7 @@ type SendEmailRequest struct {
 	Html     string `json:"html,omitempty"`     // raw HTML if already built
 	Template string `json:"template,omitempty"` // template name, if using embedded templates
 	Data     any    `json:"data,omitempty"`     // template data context
-	ReplyTo  string `json:"reply_to,omitempty"`
+	ReplyTo  string `json:"replyTo,omitempty"`
 }
 
 //go:embed templates/account_email.html

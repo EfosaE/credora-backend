@@ -7,9 +7,9 @@ import (
 )
 
 type IdempotencyData struct {
-	IdemKey       string                        `json:"idem_key"`
+	IdemKey       string                        `json:"idemKey"`
 	Status        transaction.TransactionStatus `json:"status"`
-	OperationType string                        `json:"operation_type"`
+	OperationType string                        `json:"operationType"`
 	Payload       json.RawMessage               `json:"payload"`
 }
 

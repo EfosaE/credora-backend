@@ -73,7 +73,7 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 	}
 
 	response.SendSuccess(w, r, response.Accepted(
-		map[string]any{"status": "pending", "transfer_id": req.IdempotencyKey},
+		response.ObjKV(response.KV{Key: "status", Value: "pending"}, response.KV{Key: "transferId", Value: req.IdempotencyKey}),
 		nil,
 		"Your request is being processed",
 	))
@@ -84,8 +84,8 @@ func (h *OperationHandler) GetTransferStatus(w http.ResponseWriter, r *http.Requ
 	trxID := chi.URLParam(r, "trxID")
 	if trxID == "" {
 		response.SendError(w, r, response.BadRequest(
-			errors.New("missing transaction ID"),
-			"Transaction ID is required",
+			errors.New("missing transfer ID"),
+			"Transfer ID is required",
 		))
 		return
 	}

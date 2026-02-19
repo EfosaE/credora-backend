@@ -1,14 +1,14 @@
 type: object
 required:
   - from_account
-  - to_account
+  - toAccount
   - amount
 properties:
   from_account:
     type: string
     description: Source account number (NUBAN, 10 digits)
     example: "0123456789"
-  to_account:
+  toAccount:
     type: string
     description: Destination account number (NUBAN, 10 digits)
     example: "0987654321"

@@ -11,6 +11,7 @@ WHERE phone_number = $1;
 SELECT * FROM users
 WHERE email = $1;
 
+
 -- name: ListUsers :many
 SELECT * FROM users
 ORDER BY created_at DESC

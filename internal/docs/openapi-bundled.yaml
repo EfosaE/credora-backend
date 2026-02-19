@@ -170,7 +170,7 @@ paths:
               basic:
                 value:
                   from_account: 0123456789
-                  to_account: 0987654321
+                  toAccount: 0987654321
                   amount: '1500.00'
       responses:
         '200':
@@ -369,7 +369,7 @@ components:
       properties:
         from_account:
           type: string
-        to_account:
+        toAccount:
           type: string
         amount:
           type: number
@@ -396,14 +396,14 @@ components:
       type: object
       required:
         - from_account
-        - to_account
+        - toAccount
         - amount
       properties:
         from_account:
           type: string
           description: 'Source account number (NUBAN, 10 digits)'
           example: 0123456789
-        to_account:
+        toAccount:
           type: string
           description: 'Destination account number (NUBAN, 10 digits)'
           example: 0987654321

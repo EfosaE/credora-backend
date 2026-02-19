@@ -74,12 +74,23 @@ func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.Cre
 	return toDomain(sqlcAcct), nil
 }
 
-func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct string) (*sqlc.GetUserByAccountNumberRow, error) {
+func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct string) (*account.GetUserDetailsWithAccountRow, error) {
 	row, err := r.queries(ctx).GetUserByAccountNumber(ctx, acct)
 	if err != nil {
 		return nil, err
 	}
-	return &row, nil
+	return &account.GetUserDetailsWithAccountRow{
+		UserId:        row.ID,
+		Password:      row.Password,
+		FullName:      row.FullName,
+		Email:         row.Email.String,
+		PhoneNumber:   row.PhoneNumber,
+		IsVerified:    row.IsVerified.Bool,
+		AccountNumber: row.AccountNumber,
+		AccountType:   row.AccountType,
+		Balance:       utils.MustPgNumericToDecimal(row.Balance).String(),
+		Currency:      row.Currency,
+	}, nil
 }
 
 func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, acct string) (*account.Account, error) {

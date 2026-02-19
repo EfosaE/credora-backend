@@ -1,6 +1,5 @@
 package logger
 
-
 import (
 	"encoding/json"
 	"fmt"
@@ -40,11 +39,11 @@ func (l LogLevel) String() string {
 
 // LogEntry represents a single log entry
 type LogEntry struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Level     string                 `json:"level"`
-	Message   string                 `json:"message"`
-	File      string                 `json:"file,omitempty"`
-	Line      int                    `json:"line,omitempty"`
+	Timestamp time.Time      `json:"timestamp"`
+	Level     string         `json:"level"`
+	Message   string         `json:"message"`
+	File      string         `json:"file,omitempty"`
+	Line      int            `json:"line,omitempty"`
 	Meta      map[string]any `json:"meta,omitempty"`
 }
 
@@ -55,17 +54,17 @@ type RemoteLogger interface {
 
 // Logger is the main logger struct
 type Logger struct {
-	mu             sync.RWMutex
-	logFile        *os.File
-	logLevel       LogLevel
-	enableConsole  bool
-	enableFile     bool
-	enableRemote   bool
-	remoteLogger   RemoteLogger
-	maxFileSize    int64
-	maxFiles       int
-	logFilePath    string
-	includeSource  bool
+	mu            sync.RWMutex
+	logFile       *os.File
+	logLevel      LogLevel
+	enableConsole bool
+	enableFile    bool
+	enableRemote  bool
+	remoteLogger  RemoteLogger
+	maxFileSize   int64
+	maxFiles      int
+	logFilePath   string
+	includeSource bool
 }
 
 // LoggerConfig holds configuration for the logger
@@ -79,7 +78,6 @@ type LoggerConfig struct {
 	IncludeSource bool
 	Env           string // Environment (e.g., "dev", "test", "prod")
 }
-
 
 func NewLogger(config LoggerConfig) (*Logger, error) {
 	// Determine default log file path if not provided
@@ -158,7 +156,7 @@ func (l *Logger) rotateLogFile() error {
 	for i := l.maxFiles - 1; i > 0; i-- {
 		oldFile := fmt.Sprintf("%s.%d", l.logFilePath, i)
 		newFile := fmt.Sprintf("%s.%d", l.logFilePath, i+1)
-		
+
 		if _, err := os.Stat(oldFile); err == nil {
 			os.Rename(oldFile, newFile)
 		}
@@ -202,7 +200,7 @@ func (l *Logger) log(level LogLevel, message string, meta map[string]any) {
 	defer l.mu.Unlock()
 
 	file, line := l.getSourceInfo()
-	
+
 	entry := LogEntry{
 		Timestamp: time.Now(),
 		Level:     level.String(),
@@ -264,7 +262,7 @@ func (l *Logger) writeToConsole(entry LogEntry) {
 		}
 	}
 
-	fmt.Printf("%s[%s] [%s]%s %s%s\033[0m\n", 
+	fmt.Printf("%s[%s] [%s]%s %s%s\033[0m\n",
 		color, timestamp, entry.Level, sourceInfo, entry.Message, metaStr)
 }
 
@@ -359,4 +357,3 @@ func (h *HTTPRemoteLogger) Send(entry LogEntry) error {
 	fmt.Printf("Sending to remote endpoint %s: %+v\n", h.endpoint, entry)
 	return nil
 }
-

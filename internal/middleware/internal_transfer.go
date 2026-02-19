@@ -47,7 +47,7 @@ func InternalTransferMiddleware(acctService accountsvc.AccountService,
 
 			// ---- 2️⃣ Extract user from JWT ----
 			_, claims, _ := jwtauth.FromContext(r.Context())
-			acctNum := claims["account_number"].(string)
+			acctNum := claims["accountNumber"].(string)
 
 			// Read the body once
 			bodyBytes, err := io.ReadAll(r.Body)

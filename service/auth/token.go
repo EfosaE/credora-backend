@@ -26,62 +26,16 @@ func NewJWTTokenService(secret string, expiry time.Duration) *JWTTokenService {
 }
 
 func (j *JWTTokenService) GenerateToken(ctx context.Context, payload auth.TokenPayload) (string, error) {
-	_, tokenString, err := j.tokenAuth.Encode(map[string]interface{}{
-		"user_id":        payload.UserID,
-		"name":           payload.Name,
-		"account_number": payload.AccountNumber,
-		"iat":            time.Now().Unix(),
-		"exp":            time.Now().Add(j.expiryDur).Unix(),
+	_, tokenString, err := j.tokenAuth.Encode(map[string]any{
+		"userId":        payload.UserID,
+		"name":          payload.Name,
+		"accountNumber": payload.AccountNumber,
+		"iat":           time.Now().Unix(),
+		"exp":           time.Now().Add(j.expiryDur).Unix(),
 	})
 
 	return tokenString, err
 }
-
-// // Complete the ParseToken method
-// func (j *JWTTokenService) ParseToken(ctx context.Context, tokenString string) (auth.TokenPayload, error) {
-// 	token, err := j.tokenAuth.Decode(tokenString)
-// 	if err != nil {
-// 		return auth.TokenPayload{}, err
-// 	}
-
-// 	claims, ok := token.Claims.(map[string]interface{})
-// 	if !ok || !token.Valid {
-// 		return auth.TokenPayload{}, fmt.Errorf("invalid token")
-// 	}
-
-// 	// Extract claims
-// 	userIDStr, ok := claims["user_id"].(string)
-// 	if !ok {
-// 		return auth.TokenPayload{}, fmt.Errorf("invalid user_id claim")
-// 	}
-
-// 	userID, err := uuid.Parse(userIDStr)
-// 	if err != nil {
-// 		return auth.TokenPayload{}, fmt.Errorf("invalid user_id format")
-// 	}
-
-// 	name, _ := claims["name"].(string)
-// 	accountNumber, _ := claims["account_number"].(string)
-
-// 	return auth.TokenPayload{
-// 		UserID:        userID,
-// 		Name:          name,
-// 		AccountNumber: accountNumber,
-// 	}, nil
-// }
-
-// func (j *JWTTokenService) GenerateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error) {
-// 	// Refresh tokens typically have longer expiry
-// 	refreshExpiry := time.Hour * 24 * 7 // 7 days
-
-// 	_, tokenString, err := j.tokenAuth.Encode(map[string]interface{}{
-// 		"user_id": userID,
-// 		"type":    "refresh",
-// 		"iat":     time.Now().Unix(),
-// 		"exp":     time.Now().Add(refreshExpiry).Unix(),
-// 	})
-// 	return tokenString, err
-// }
 
 // HTTP middleware methods
 func (j *JWTTokenService) Verifier() func(http.Handler) http.Handler {

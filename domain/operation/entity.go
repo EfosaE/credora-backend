@@ -18,14 +18,14 @@ const (
 )
 
 type InternalTransferReq struct {
-	FromAcctNum    string          `json:"from_acct_num"`
-	ToAcctNum      string          `json:"to_acct_num"`
+	FromAcctNum    string          `json:"fromAccountNumber"`
+	ToAcctNum      string          `json:"toAccountNumber"`
 	Amount         decimal.Decimal `json:"amount"`
-	IdempotencyKey string          `json:"idempotency_key"`
+	IdempotencyKey string          `json:"idempotencyKey"`
 }
 
 type InternalTransferDTO struct {
-	ToAccount string `json:"to_account" validate:"required"`
+	ToAccount string `json:"toAccount" validate:"required"`
 	Amount    string `json:"amount" validate:"required,decimal"`
 }
 

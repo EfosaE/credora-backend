@@ -10,6 +10,7 @@ import (
 // ErrorResponse represents a standard error response structure
 type ErrorResponse struct {
 	StatusCode int               `json:"-"`
+	Success    bool              `json:"success"`
 	Headers    map[string]string `json:"-"` // Custom headers to set
 	Error      any               `json:"error"`
 	Message    string            `json:"message,omitempty"`
@@ -18,12 +19,12 @@ type ErrorResponse struct {
 // Render sets the proper status code and headers before rendering
 func (e *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, e.StatusCode)
-	
+
 	// Set custom headers if any
 	for key, value := range e.Headers {
 		w.Header().Set(key, value)
 	}
-	
+
 	return nil
 }
 
@@ -31,6 +32,7 @@ func (e *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {
 func New(statusCode int, data any, message string) *ErrorResponse {
 	return &ErrorResponse{
 		StatusCode: statusCode,
+		Success:    false,
 		Error:      data,
 		Message:    message,
 		Headers:    make(map[string]string),
@@ -125,6 +127,7 @@ func NotFoundHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		errorResponse := &ErrorResponse{
 			StatusCode: http.StatusNotFound,
+			Success:    false,
 			Error:      "Not Found",
 			Message:    fmt.Sprintf("A %s request doesn't exist on URL: '%s' on this server", r.Method, r.URL.Path),
 			Headers:    make(map[string]string),
@@ -139,6 +142,7 @@ func MethodNotAllowedHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		errorResponse := &ErrorResponse{
 			StatusCode: http.StatusMethodNotAllowed,
+			Success:    false,
 			Error:      "Method Not Allowed",
 			Message:    fmt.Sprintf("A %s request is not allowed on URL: '%s' on this server", r.Method, r.URL.Path),
 			Headers:    make(map[string]string),

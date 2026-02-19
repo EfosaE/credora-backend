@@ -34,8 +34,8 @@ const (
 // Transaction - A single ledger entry (credit or debit)
 type Transaction struct {
 	ID             uuid.UUID         `json:"id"`
-	AccountID      uuid.UUID         `json:"account_id"`
-	CounterpartyID *uuid.UUID        `json:"counterparty_id,omitempty"` // Added for internal transfers
+	AccountID      uuid.UUID         `json:"accountId"`
+	CounterpartyID *uuid.UUID        `json:"counterpartyId,omitempty"` // Added for internal transfers
 	Amount         decimal.Decimal   `json:"amount"`
 	Direction      TransactionType   `json:"direction"` // Added: CREDIT or DEBIT
 	Status         TransactionStatus `json:"status"`
@@ -43,7 +43,7 @@ type Transaction struct {
 	Reference      string            `json:"reference"`
 	Channel        string            `json:"channel"`
 	Meta           json.RawMessage   `json:"meta,omitempty"` // Changed from []byte
-	CreatedAt      time.Time         `json:"created_at"`
+	CreatedAt      time.Time         `json:"createdAt"`
 }
 
 // ============================================================================

@@ -12,8 +12,9 @@ type User struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Nin       string    `json:"nin"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Balance   string    `json:"balance"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type CreateUserRequest struct {
@@ -21,11 +22,11 @@ type CreateUserRequest struct {
 	Email       string `json:"email" validate:"required,email,max=255"`
 	Nin         string `json:"nin" validate:"required,min=11,max=11"`
 	Password    string `json:"password" validate:"required,min=8,max=100"`
-	PhoneNumber string `json:"phone_number" validate:"required,min=11,max=15"`
+	PhoneNumber string `json:"phoneNumber" validate:"required,min=11,max=15"`
 }
 
 type LoginUserRequest struct {
-	AccountNumber string `json:"account_number" validate:"required,min=10,max=10"`
+	AccountNumber string `json:"accountNumber" validate:"required,min=10,max=10"`
 	Password      string `json:"password" validate:"required,min=8,max=100"`
 }
 
@@ -35,20 +36,20 @@ type ResetPasswordRequest struct {
 
 type ValidatePasswordRequest struct {
 	Email              string `json:"email" validate:"required,email,max=255"`
-	PasswordResetToken string `json:"password_reset_token" validate:"required"`
-	NewPassword        string `json:"new_password" validate:"required,min=8,max=100"`
+	PasswordResetToken string `json:"passwordResetToken" validate:"required"`
+	NewPassword        string `json:"newPassword" validate:"required,min=8,max=100"`
 }
 
 type CreateUserResponse struct {
 	ID                   uuid.UUID                 `json:"id"`
 	Name                 string                    `json:"name"`
 	Email                string                    `json:"email"`
-	AccountReference     string                    `json:"account_reference"`
-	AccountName          string                    `json:"account_name"`
+	AccountReference     string                    `json:"accountReference"`
+	AccountName          string                    `json:"accountName"`
 	Accounts             []monnify.ReservedAccount `json:"accounts"`
-	ReservationReference string                    `json:"reservation_reference"`
-	BankName             string                    `json:"bank_name,omitempty"`      // fallback if you just need one
-	AccountNumber        string                    `json:"account_number,omitempty"` // fallback if you just need one
-	Status               string                    `json:"status"`                   // Monnify reserved account status
-	CreatedAt            time.Time                 `json:"created_at"`
+	ReservationReference string                    `json:"reservationReference"`
+	BankName             string                    `json:"bankName,omitempty"`      // fallback if you just need one
+	AccountNumber        string                    `json:"accountNumber,omitempty"` // fallback if you just need one
+	Status               string                    `json:"status"`                  // Monnify reserved account status
+	CreatedAt            time.Time                 `json:"createdAt"`
 }

@@ -6,9 +6,9 @@ import (
 )
 
 type UserCreatedEvent struct {
-	UserID        uuid.UUID `json:"user_id"`
-	AccountNumber string    `json:"account_number"`
+	UserID        uuid.UUID `json:"userId"`
+	AccountNumber string    `json:"accountNumber"`
 	Name          string    `json:"name"`
 	Email         string    `json:"email"`
-	BankName      string    `json:"bank_name"`
+	BankName      string    `json:"bankName"`
 }

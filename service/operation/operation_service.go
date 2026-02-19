@@ -147,7 +147,7 @@ func NewOperationService(
 // 		// ---- 7️⃣ Log success ----
 // 		s.logger.Info("Internal transfer successful", map[string]any{
 // 			"from_account": from,
-// 			"to_account":   to,
+// 			"toAccount":   to,
 // 			"amount":       req.Amount,
 // 			"from_balance": fromAcct.Balance.Sub(req.Amount),
 // 		})
@@ -292,7 +292,7 @@ func (s *OperationService) InternalTransfer(
 	if err == nil {
 		s.logger.Info("Internal transfer successful", map[string]any{
 			"from_account": req.FromAcctNum,
-			"to_account":   req.ToAcctNum,
+			"toAccount":   req.ToAcctNum,
 			"amount":       req.Amount,
 		})
 	}

@@ -37,24 +37,26 @@ func NewAuthService(txManager infrastructure.TxManager, userRepo user.UserReposi
 	}
 }
 
-func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (string, error) {
-	user, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
-	// fmt.Println("Error fetching  by account:", err)
+func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (*account.GetUserDetailsWithAccountRow, string, error) {
+	u, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
 	if err != nil {
-		return "", domainerr.ErrUserNotFound
+		return &account.GetUserDetailsWithAccountRow{}, "", fmt.Errorf("login: %w", domainerr.ErrUserNotFound)
 	}
 
-	// 2. Verify password
-	if !CheckPasswordHash(password, user.Password) {
-		return "", domainerr.ErrInvalidCredentials
+	if !CheckPasswordHash(password, u.Password) {
+		return &account.GetUserDetailsWithAccountRow{}, "", domainerr.ErrInvalidCredentials
 	}
 
-	// 3. Generate tokens
-	return s.tokenService.GenerateToken(ctx, auth.TokenPayload{
-		UserID:        user.ID,
-		AccountNumber: user.AccountNumber,
-		Name:          user.FullName,
+	token, err := s.tokenService.GenerateToken(ctx, auth.TokenPayload{
+		UserID:        u.UserId,
+		AccountNumber: u.AccountNumber,
+		Name:          u.FullName,
 	})
+	if err != nil {
+		return &account.GetUserDetailsWithAccountRow{}, "", fmt.Errorf("login: %w", err)
+	}
+
+	return u, token, nil
 }
 
 func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {

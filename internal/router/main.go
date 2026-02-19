@@ -80,6 +80,8 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Use(params.Auth.Authenticator())
 
 			r.Get("/user/info", params.UserHandler.GetUserInfo)
+			r.Get("/user/balance", params.UserHandler.GetUserBalance)
+			r.Get("/recipient/internal/{acctNum}", params.UserHandler.GetRecipientName)
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {

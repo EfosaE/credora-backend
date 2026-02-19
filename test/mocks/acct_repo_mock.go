@@ -6,7 +6,6 @@ import (
 	"context"
 
 	"github.com/EfosaE/credora-backend/domain/account"
-	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 )
@@ -31,7 +30,7 @@ func (m *MockAcctRepo) CreateAcct(ctx context.Context, req *account.CreateAccoun
 	return m.CreateFunc(ctx, req)
 }
 
-func (m *MockAcctRepo) GetUserByAccountNumber(ctx context.Context, accountNumber string) (*sqlc.GetUserByAccountNumberRow, error) {
+func (m *MockAcctRepo) GetUserByAccountNumber(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error) {
 	return nil, nil // implement if needed later
 }
 

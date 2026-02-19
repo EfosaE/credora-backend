@@ -2,7 +2,7 @@ type: object
 properties:
   from_account:
     type: string
-  to_account:
+  toAccount:
     type: string
   amount:
     type: number

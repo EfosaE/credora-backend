@@ -42,9 +42,10 @@ func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) 
 		return nil, err
 	}
 	return &user.User{
-		ID:    acct.ID,
-		Email: acct.Email.String,
+		ID:    acct.UserId,
+		Email: acct.Email,
 		Name:  acct.FullName,
+		Balance: acct.Balance,
 	}, nil
 }
 

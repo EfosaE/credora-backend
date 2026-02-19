@@ -194,7 +194,7 @@ func (q *Queries) GetAccountsForUpdate(ctx context.Context, dollar_1 []string) (
 }
 
 const getUserByAccountNumber = `-- name: GetUserByAccountNumber :one
-SELECT u.id, u.password, u.full_name, u.email, u.phone_number, a.account_number, a.balance, a.virtual_account_bank
+SELECT u.id, u.password, u.full_name, u.email, u.phone_number,u.is_verified, a.account_number, a.account_type, a.balance, a.currency, a.virtual_account_bank
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1
@@ -206,8 +206,11 @@ type GetUserByAccountNumberRow struct {
 	FullName           string         `json:"full_name"`
 	Email              pgtype.Text    `json:"email"`
 	PhoneNumber        string         `json:"phone_number"`
+	IsVerified         pgtype.Bool    `json:"is_verified"`
 	AccountNumber      string         `json:"account_number"`
+	AccountType        string         `json:"account_type"`
 	Balance            pgtype.Numeric `json:"balance"`
+	Currency           string         `json:"currency"`
 	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
 }
 
@@ -220,8 +223,11 @@ func (q *Queries) GetUserByAccountNumber(ctx context.Context, accountNumber stri
 		&i.FullName,
 		&i.Email,
 		&i.PhoneNumber,
+		&i.IsVerified,
 		&i.AccountNumber,
+		&i.AccountType,
 		&i.Balance,
+		&i.Currency,
 		&i.VirtualAccountBank,
 	)
 	return i, err

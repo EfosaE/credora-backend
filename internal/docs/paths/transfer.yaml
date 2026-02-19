@@ -26,7 +26,7 @@ internal_post:
             basic:
               value:
                 from_account: "0123456789"
-                to_account: "0987654321"
+                toAccount: "0987654321"
                 amount: "1500.00"
     responses:
       '200':

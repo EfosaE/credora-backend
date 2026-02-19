@@ -440,7 +440,7 @@ func (b *AppBuilder) WithHandlers() *AppBuilder {
 	}
 
 	b.deps.AuthHandler = handler.NewAuthHandler(b.deps.UserSvc, b.deps.AuthSvc)
-	b.deps.UserHandler = handler.NewUserHandler(b.deps.UserSvc)
+	b.deps.UserHandler = handler.NewUserHandler(b.deps.UserSvc, b.deps.AcctSvc)
 	b.deps.WebhookHandler = handler.NewWebHookHandler(b.deps.AcctSvc, b.deps.TrxSvc, b.deps.MonnifySvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.OperationsHandler = handler.NewOperationHandler(b.deps.OperationSvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.MonnifyHandler = handler.NewMonnifyHandler(b.deps.MonnifySvc)

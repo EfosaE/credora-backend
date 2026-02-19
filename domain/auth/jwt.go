@@ -9,7 +9,7 @@ import (
 
 // AuthService handles authentication operations
 type AuthService interface {
-	Login(ctx context.Context, account_number, password string) error
+	Login(ctx context.Context, accountNumber, password string) error
 	// Register(ctx context.Context, req RegisterRequest) (*AuthResult, error)
 	// RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error)
 	// Logout(ctx context.Context, token string) error
@@ -23,7 +23,7 @@ type TokenService interface {
 }
 
 type TokenPayload struct {
-	AccountNumber string    `json:"account_number"`
+	AccountNumber string    `json:"accountNumber"`
 	Name          string    `json:"name"`
-	UserID        uuid.UUID `json:"user_id"`
+	UserID        uuid.UUID `json:"userId"`
 }

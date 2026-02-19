@@ -92,7 +92,7 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call service
-	token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
+	user, token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
 	if err != nil {
 		fmt.Println("Error during login:", err)
 		response.SendError(w, r, response.BadRequest(nil, err.Error()))
@@ -114,7 +114,8 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		w,
 		r,
 		response.OK(
-			response.Obj("accessToken", token),
+			// Return an object with multiple key-value pairs using ObjKV e.g {"name": "Alice", "age": 30} nside the data field of the response
+			response.ObjKV(response.KV{Key: "accessToken", Value: token}, response.KV{Key: "user", Value: user}),
 			nil,
 			"Login successful",
 		),
