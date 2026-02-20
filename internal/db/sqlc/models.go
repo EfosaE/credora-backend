@@ -43,17 +43,17 @@ type PasswordReset struct {
 }
 
 type Transaction struct {
-	ID                    uuid.UUID        `json:"id"`
-	AccountID             pgtype.UUID      `json:"account_id"`
-	Amount                pgtype.Numeric   `json:"amount"`
-	Status                string           `json:"status"`
-	Description           pgtype.Text      `json:"description"`
-	Reference             pgtype.Text      `json:"reference"`
-	Channel               pgtype.Text      `json:"channel"`
-	Meta                  []byte           `json:"meta"`
-	CreatedAt             pgtype.Timestamp `json:"created_at"`
-	Direction             pgtype.Text      `json:"direction"`
-	CounterpartyAccountID pgtype.UUID      `json:"counterparty_account_id"`
+	AccountID             pgtype.UUID        `json:"account_id"`
+	Amount                pgtype.Numeric     `json:"amount"`
+	Status                string             `json:"status"`
+	Description           pgtype.Text        `json:"description"`
+	Reference             pgtype.Text        `json:"reference"`
+	Channel               pgtype.Text        `json:"channel"`
+	Meta                  []byte             `json:"meta"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	Direction             pgtype.Text        `json:"direction"`
+	CounterpartyAccountID pgtype.UUID        `json:"counterparty_account_id"`
+	ID                    int64              `json:"id"`
 }
 
 type User struct {

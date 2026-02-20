@@ -83,6 +83,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/user/balance", params.UserHandler.GetUserBalance)
 			r.Get("/recipient/internal/{acctNum}", params.UserHandler.GetRecipientName)
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
+			r.Get("/transactions", params.UserHandler.GetTransactionHistoryHandler) // with cursor pagination
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
 				r.Use(httprate.LimitByIP(200, 1*time.Minute))

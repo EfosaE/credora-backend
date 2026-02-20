@@ -11,6 +11,79 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getUserTransactionHistory = `-- name: GetUserTransactionHistory :many
+SELECT
+  t.account_id,
+  t.amount,
+  t.status,
+  t.description,
+  t.reference,
+  t.channel,
+  t.meta,
+  t.created_at,
+  t.direction,
+  t.counterparty_account_id,
+  t.id
+FROM transactions t
+JOIN accounts a ON t.account_id = a.id
+WHERE a.user_id = $1
+  AND (
+    $2::timestamptz IS NULL
+    OR
+    (t.created_at, t.id) <
+    (
+      $2::timestamptz,
+      $3::bigint
+    )
+  )
+ORDER BY t.created_at DESC, t.id DESC
+LIMIT $4
+`
+
+type GetUserTransactionHistoryParams struct {
+	UserID          pgtype.UUID        `json:"user_id"`
+	CursorCreatedAt pgtype.Timestamptz `json:"cursor_created_at"`
+	CursorID        int64              `json:"cursor_id"`
+	PageLimit       int32              `json:"page_limit"`
+}
+
+func (q *Queries) GetUserTransactionHistory(ctx context.Context, arg GetUserTransactionHistoryParams) ([]Transaction, error) {
+	rows, err := q.db.Query(ctx, getUserTransactionHistory,
+		arg.UserID,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.Amount,
+			&i.Status,
+			&i.Description,
+			&i.Reference,
+			&i.Channel,
+			&i.Meta,
+			&i.CreatedAt,
+			&i.Direction,
+			&i.CounterpartyAccountID,
+			&i.ID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const recordNewTransaction = `-- name: RecordNewTransaction :one
 INSERT INTO transactions (
     account_id,
@@ -24,7 +97,7 @@ INSERT INTO transactions (
     meta
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, account_id, amount, status, description, reference, channel, meta, created_at, direction, counterparty_account_id
+RETURNING account_id, amount, status, description, reference, channel, meta, created_at, direction, counterparty_account_id, id
 `
 
 type RecordNewTransactionParams struct {
@@ -53,7 +126,6 @@ func (q *Queries) RecordNewTransaction(ctx context.Context, arg RecordNewTransac
 	)
 	var i Transaction
 	err := row.Scan(
-		&i.ID,
 		&i.AccountID,
 		&i.Amount,
 		&i.Status,
@@ -64,6 +136,7 @@ func (q *Queries) RecordNewTransaction(ctx context.Context, arg RecordNewTransac
 		&i.CreatedAt,
 		&i.Direction,
 		&i.CounterpartyAccountID,
+		&i.ID,
 	)
 	return i, err
 }

@@ -33,7 +33,7 @@ const (
 
 // Transaction - A single ledger entry (credit or debit)
 type Transaction struct {
-	ID             uuid.UUID         `json:"id"`
+	ID             int64             `json:"id"`
 	AccountID      uuid.UUID         `json:"accountId"`
 	CounterpartyID *uuid.UUID        `json:"counterpartyId,omitempty"` // Added for internal transfers
 	Amount         decimal.Decimal   `json:"amount"`
@@ -81,4 +81,10 @@ type InternalTransferInput struct {
 	Channel       string
 	Reference     string
 	Meta          json.RawMessage
+}
+
+
+type Cursor struct {
+	CreatedAt time.Time `json:"created_at"`
+	ID        int64     `json:"id"`
 }

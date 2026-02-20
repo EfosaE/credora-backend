@@ -1,15 +1,21 @@
 package handler
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/EfosaE/credora-backend/domain/auth"
+	"github.com/EfosaE/credora-backend/domain/transaction"
 
 	"github.com/EfosaE/credora-backend/internal/response"
 
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
+	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
@@ -20,10 +26,11 @@ import (
 type UserHandler struct {
 	userService *usersvc.UserService
 	acctService *accountsvc.AccountService
+	trxSvc      *transactionsvc.TransactionService
 }
 
-func NewUserHandler(userService *usersvc.UserService, acctService *accountsvc.AccountService) *UserHandler {
-	return &UserHandler{userService: userService, acctService: acctService}
+func NewUserHandler(userService *usersvc.UserService, acctService *accountsvc.AccountService, trxSvc *transactionsvc.TransactionService) *UserHandler {
+	return &UserHandler{userService: userService, acctService: acctService, trxSvc: trxSvc}
 }
 
 func (h *UserHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
@@ -113,4 +120,120 @@ func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
 		),
 	)
 
+}
+
+func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+
+	userIDStr, ok := claims["userId"].(string)
+	if !ok {
+		http.Error(w, "invalid userId in token", http.StatusUnauthorized)
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "invalid UUID format", http.StatusUnauthorized)
+		return
+	}
+
+	// Read cursor from query param
+	cursorStr := r.URL.Query().Get("cursor")
+	limitStr := r.URL.Query().Get("limit")
+
+	var cursor *transaction.Cursor
+
+	if cursorStr != "" {
+		createdAt, id, err := DecodeCursor(cursorStr)
+		if err != nil {
+			response.SendError(w, r, response.BadRequest(
+				errors.New("invalid cursor"),
+				"Cursor format is invalid",
+			))
+			return
+		}
+
+		cursor = &transaction.Cursor{
+			CreatedAt: createdAt,
+			ID:        id,
+		}
+	}
+
+	if limitStr == "" {
+		limitStr = "10" // default limit
+	}
+
+	limit, err := strconv.ParseInt(limitStr, 10, 32)
+	if err != nil {
+		response.SendError(w, r, response.BadRequest(
+			errors.New("invalid limit"),
+			"Limit must be a valid integer",
+		))
+		return
+	}
+
+	// Call service
+	txns, nextCursorStruct, err := h.trxSvc.GetUserTransactions(
+		r.Context(),
+		userID,
+		cursor,
+		int32(limit),
+	)
+	if err != nil {
+		fmt.Println("Error retrieving transaction history:", err)
+		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		return
+	}
+
+	// Encode next cursor before sending
+	var nextCursor string
+	if nextCursorStruct != nil {
+		nextCursor = EncodeCursor(
+			nextCursorStruct.CreatedAt,
+			nextCursorStruct.ID,
+		)
+	}
+
+	response.SendSuccess(
+		w,
+		r,
+		response.OK(
+			response.ObjKV(
+				response.KV{Key: "transactions", Value: txns},
+				response.KV{Key: "nextCursor", Value: nextCursor},
+			),
+			nil,
+			"Transaction history retrieved successfully",
+		),
+	)
+}
+
+// HELPERS
+func EncodeCursor(createdAt time.Time, id int64) string {
+	raw := fmt.Sprintf("%d|%d", createdAt.UnixNano(), id)
+	return base64.StdEncoding.EncodeToString([]byte(raw))
+}
+
+func DecodeCursor(cursor string) (time.Time, int64, error) {
+	bytes, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return time.Time{}, 0, err
+	}
+
+	parts := strings.Split(string(bytes), "|")
+	if len(parts) != 2 {
+		return time.Time{}, 0, errors.New("invalid cursor format")
+	}
+
+	unixNano, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return time.Time{}, 0, err
+	}
+
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return time.Time{}, 0, err
+	}
+
+	return time.Unix(0, unixNano), id, nil
 }

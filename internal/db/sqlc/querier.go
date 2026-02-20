@@ -29,6 +29,7 @@ type Querier interface {
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
+	GetUserTransactionHistory(ctx context.Context, arg GetUserTransactionHistoryParams) ([]Transaction, error)
 	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	// "fmt"
 	"log"
 
 	app "github.com/EfosaE/credora-backend/di"
@@ -21,6 +22,21 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if deps.EmailSvc == nil {
+		log.Fatal("FATAL: EmailSvc is nil — check BuildForWorker()")
+	}
+	if deps.OperationSvc == nil {
+		log.Fatal("FATAL: OperationSvc is nil — check BuildForWorker()")
+	}
+	if deps.AcctSvc == nil {
+		log.Fatal("FATAL: AcctSvc is nil — check BuildForWorker()")
+	}
+	if deps.TrxSvc == nil {
+		log.Fatal("FATAL: TrxSvc is nil — check BuildForWorker()")
+	}
+	if deps.Logger == nil {
+		log.Fatal("FATAL: Logger is nil — check BuildForWorker()")
+	}
 	// -----------------------------
 	// 2. Asynq Redis client for queue
 	// -----------------------------

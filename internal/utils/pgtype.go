@@ -119,6 +119,14 @@ func TimeToPgTimestamp(t time.Time) pgtype.Timestamp {
 	}
 }
 
+// TimeToPgTimestampz converts time.Time to pgtype.Timestamptz (NOT NULL)
+func TimeToPgTimestampz(t time.Time) pgtype.Timestamptz {
+	return pgtype.Timestamptz{
+		Time:  t,
+		Valid: true,
+	}
+}
+
 // NullTimeToPgTimestamp converts *time.Time to pgtype.Timestamp (nullable)
 func NullTimeToPgTimestamp(t *time.Time) pgtype.Timestamp {
 	if t == nil {

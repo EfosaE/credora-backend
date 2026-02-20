@@ -12,6 +12,7 @@ import (
 	// "github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
+	"github.com/EfosaE/credora-backend/internal/utils"
 
 	"github.com/EfosaE/credora-backend/service"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
@@ -56,7 +57,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 
 	handler := NewAuthHandler(userSvc, authSvc)
 
-	body := `{"name": "Efosa", "email": "efosa@example.com", "password": "password123", "nin":"35487696846", "phone_number":"09067353727"}`
+	body := `{"name": "Efosa", "email": "efosa@example.com", "password": "password123", "nin":"35487696846", "phoneNumber":"09067353727"}`
 	req := httptest.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -71,6 +72,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 
 	var resp map[string]any
 	json.NewDecoder(res.Body).Decode(&resp)
+	utils.PrintJSON(resp)
 
 	assert.Equal(t, "User created successfully", resp["message"])
 	assert.NotNil(t, resp["data"])

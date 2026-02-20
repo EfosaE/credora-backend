@@ -14,7 +14,7 @@ func main() {
 	config.Load()
 
 	seedFlag := flag.Bool("seed", false, "Seed database")
-	usersFlag := flag.Int("users", 1000, "Number of users to create")
+	usersFlag := flag.Int("users", 100, "Number of users to create")
 	hotFlag := flag.Bool("hot", true, "Create hot/system accounts")
 	dbURLFlag := flag.String("db", config.App.DbUrl, "Database URL override")
 

@@ -7,6 +7,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/google/uuid"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -56,6 +57,47 @@ func (r *SqlcTransactionRepository) RecordTransaction(
 	}
 
 	return toDomainTransaction(sqlcTransaction), nil
+}
+
+func (t *SqlcTransactionRepository) GetUserTransactions(
+	ctx context.Context,
+	userID uuid.UUID,
+	cursor *transaction.Cursor,
+	limit int32,
+) (*[]transaction.Transaction, *transaction.Cursor, error) {
+
+	params := sqlc.GetUserTransactionHistoryParams{
+		UserID:    utils.ToPgUUID(userID),
+		PageLimit: limit,
+	}
+
+	if cursor != nil {
+		params.CursorCreatedAt = utils.TimeToPgTimestampz(cursor.CreatedAt)
+		params.CursorID = cursor.ID
+	}
+
+	sqlcTxns, err := t.queries(ctx).GetUserTransactionHistory(ctx, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Convert sqlc slice to domain slice
+	domainTxns := make([]transaction.Transaction, len(sqlcTxns))
+	for i, t := range sqlcTxns {
+		domainTxns[i] = *toDomainTransaction(t)
+	}
+
+	// Build next cursor
+	var nextCursor *transaction.Cursor
+	if len(domainTxns) > 0 {
+		last := domainTxns[len(domainTxns)-1]
+		nextCursor = &transaction.Cursor{
+			CreatedAt: last.CreatedAt,
+			ID:        last.ID,
+		}
+	}
+
+	return &domainTxns, nextCursor, nil
 }
 
 // ------------------------------------

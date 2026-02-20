@@ -80,3 +80,7 @@ END {
     }
 }
 '
+
+
+CHECK WITH THIS LOCK OCCURS
+[2026-02-19 20:42:59] [WARN] [operation_service.go:264] Internal transfer failed, marking idempotency as FAILED {"error":"failed to lock accounts: ERROR: could not obtain lock on row in relation \"accounts\" (SQLSTATE 55P03)","key":"69085be0-11b6-42b0-9078-c61daa92aa13"}

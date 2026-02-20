@@ -17,6 +17,7 @@ LICENSE
 
 # Folders
 .vscode/
+logs/
 .idea/
 .git/
 .github/

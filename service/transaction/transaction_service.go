@@ -5,6 +5,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/transaction"
+	"github.com/google/uuid"
 )
 
 type TransactionService struct {
@@ -26,4 +27,12 @@ func (t *TransactionService) RecordTransaction(ctx context.Context, req *transac
 		return nil, err
 	}
 	return trx, nil
+}
+
+func (t *TransactionService) GetUserTransactions(ctx context.Context, userID uuid.UUID, cursor *transaction.Cursor, limit int32) (*[]transaction.Transaction, *transaction.Cursor, error) {
+	trx, nextCursor, err := t.trxRepo.GetUserTransactions(ctx, userID, cursor, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+	return trx, nextCursor, nil
 }
