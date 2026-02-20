@@ -23,13 +23,14 @@ import (
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type AppDependencies struct {
 	// Infrastructure
-	Logger      *logger.Logger
+	Logger      zerolog.Logger
 	DB          *db.DB
 	Redis       *redis.Client
 	EventBus    *infrastructure.StreamEventBus
@@ -98,19 +99,33 @@ func (b *AppBuilder) WithLogger() *AppBuilder {
 		return b
 	}
 
-	loggerCfg := logger.LoggerConfig{
-		LogFilePath:   "logs/app.log",
-		LogLevel:      logger.INFO,
-		EnableConsole: true,
-		EnableFile:    true,
-		MaxFileSize:   1024 * 1024,
-		MaxFiles:      3,
-		IncludeSource: true,
-	}
+	l := logger.Get()
+	srvLog := l.With().
+		Str("component", "server").
+		Logger()
 
-	b.deps.Logger, b.err = logger.NewLogger(loggerCfg)
+	b.deps.Logger = srvLog
 	return b
 }
+
+// func (b *AppBuilder) WithLogger() *AppBuilder {
+// 	if b.err != nil {
+// 		return b
+// 	}
+
+// 	loggerCfg := logger.LoggerConfig{
+// 		LogFilePath:   "logs/app.log",
+// 		LogLevel:      logger.INFO,
+// 		EnableConsole: true,
+// 		EnableFile:    true,
+// 		MaxFileSize:   1024 * 1024,
+// 		MaxFiles:      3,
+// 		IncludeSource: true,
+// 	}
+
+// 	b.deps.Logger, b.err = logger.NewLogger(loggerCfg)
+// 	return b
+// }
 
 func (b *AppBuilder) WithDB() *AppBuilder {
 	if b.err != nil {
@@ -196,11 +211,11 @@ func (b *AppBuilder) WithMonnifyService() *AppBuilder {
 		return b
 	}
 
-	if b.deps.Logger == nil {
-		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before Monnify service")
-		b.err = fmt.Errorf("logger must be initialized before Monnify service")
-		return b
-	}
+	// if b.deps.Logger == nil {
+	// 	log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before Monnify service")
+	// 	b.err = fmt.Errorf("logger must be initialized before Monnify service")
+	// 	return b
+	// }
 	mcfg := &monnify.MonnifyConfig{
 		ApiKey:       b.cfg.MonnifyApiKey,
 		SecretKey:    b.cfg.MonnifySecretKey,
@@ -242,11 +257,7 @@ func (b *AppBuilder) WithAccountService() *AppBuilder {
 		b.err = fmt.Errorf("account repository must be initialized before account service")
 		return b
 	}
-	if b.deps.Logger == nil {
-		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before account service")
-		b.err = fmt.Errorf("logger must be initialized before account service")
-		return b
-	}
+
 	b.deps.AcctSvc = accountsvc.NewAccountService(b.deps.AcctRepo, b.deps.Logger, b.deps.EventBus)
 	return b
 }
@@ -274,11 +285,7 @@ func (b *AppBuilder) WithTransactionService() *AppBuilder {
 		b.err = fmt.Errorf("transaction repository must be initialized before transaction service")
 		return b
 	}
-	if b.deps.Logger == nil {
-		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before transaction service")
-		b.err = fmt.Errorf("logger must be initialized before transaction service")
-		return b
-	}
+
 	b.deps.TrxSvc = transactionsvc.NewTransactionService(b.deps.TrxRepo, b.deps.Logger)
 	return b
 }
@@ -301,11 +308,7 @@ func (b *AppBuilder) WithUserService() *AppBuilder {
 		b.err = fmt.Errorf("user repository must be initialized before user service")
 		return b
 	}
-	if b.deps.Logger == nil {
-		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before user service")
-		b.err = fmt.Errorf("logger must be initialized before user service")
-		return b
-	}
+
 	if b.deps.EventBus == nil {
 		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before user service")
 		b.err = fmt.Errorf("event bus must be initialized before user service")
@@ -384,11 +387,6 @@ func (b *AppBuilder) WithOperationService() *AppBuilder {
 	if b.deps.IdempotencyRepo == nil {
 		log.Println("[ERROR] IdempotencyRepo dependency is missing: Idempotency repo must be initialized before operation service")
 		b.err = fmt.Errorf("idempotency repo must be initialized before operation service")
-		return b
-	}
-	if b.deps.Logger == nil {
-		log.Println("[ERROR] Logger dependency is missing: Logger must be initialized before operation service")
-		b.err = fmt.Errorf("logger must be initialized before operation service")
 		return b
 	}
 
@@ -483,7 +481,6 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 
 func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 	return b.
-		WithLogger().
 		WithDB().
 		WithRedis().
 		WithEventBus().

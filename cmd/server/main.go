@@ -21,10 +21,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to initialize dependencies:", err)
 	}
-	defer deps.Logger.Close()
 	defer deps.DB.Pool.Close()
 	log.Println("✅ Dependencies initialized")
 
+	logger := deps.Logger
 	// Router
 	r := router.SetupRouter(router.RouterSetupParams{
 		AuthHandler:            deps.AuthHandler,
@@ -48,6 +48,6 @@ func main() {
 
 	srv := server.New(r, nil)
 	if err := srv.Start(); err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Msg("Failed to start server")
 	}
 }

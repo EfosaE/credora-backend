@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"github.com/EfosaE/credora-backend/domain/event"
-	"github.com/EfosaE/credora-backend/domain/logger"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	"github.com/rs/zerolog"
 
 	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 
@@ -20,7 +20,7 @@ import (
 
 type UserService struct {
 	userRepo   user.UserRepository
-	logger     *logger.Logger
+	logger     zerolog.Logger
 	eventBus   eventbus.EventBus
 	monnifySvc *service.MonnifyService
 	queue      queues.Queue // It should depend on the Queue interface for unit testing
@@ -28,7 +28,7 @@ type UserService struct {
 
 func NewUserService(
 	userRepo user.UserRepository,
-	logger *logger.Logger,
+	logger zerolog.Logger,
 	eventBus eventbus.EventBus,
 	monnifySvc *service.MonnifyService,
 	queue queues.Queue,
@@ -43,7 +43,10 @@ func NewUserService(
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserRequest) (*user.CreateUserResponse, error) {
-	s.logger.Info("User creation initiated", map[string]any{"userName": req.Name, "email": req.Email})
+	s.logger.Info().
+		Str("userName", req.Name).
+		Str("email", req.Email).
+		Msg("User creation initiated")
 
 	utils.PrintJSON(req) // Print the user request for debugging
 	hashedPassword, _ := authsvc.HashPassword(req.Password)
@@ -52,7 +55,9 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 
 	result, err := s.userRepo.Create(ctx, req)
 	if err != nil {
-		s.logger.Error("failed to create user", map[string]any{"error": err.Error()})
+		s.logger.Error().
+			Str("error", err.Error()).
+			Msg("failed to create user")
 		return nil, err
 	}
 
@@ -60,13 +65,17 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	monnifyCustResp, err := s.CreateVirtualAccount(ctx, req, result.ID.String())
 
 	if err != nil {
-		s.logger.Error("failed to create monnify customer", map[string]any{"error": err.Error()})
+		s.logger.Error().
+			Str("error", err.Error()).
+			Msg("failed to create monnify customer")
 		return nil, err
 	}
 
 	// Enqueue account number email
 	if err := s.SendAccountNumberEmailAsync(result.Email, monnifyCustResp.ResponseBody.Accounts[0].BankName, monnifyCustResp.ResponseBody.Accounts[0].AccountNumber); err != nil {
-		s.logger.Error("Failed to enqueue account number email:", map[string]any{"error": err.Error()})
+		s.logger.Error().
+			Str("error", err.Error()).
+			Msg("Failed to enqueue account number email")
 	}
 	event := event.UserCreatedEvent{
 		UserID:        result.ID,
@@ -81,7 +90,10 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		"data": string(data),
 	})
 
-	s.logger.Info("User successfully created", map[string]any{"userID": result.ID, "user_account_ref": monnifyCustResp.ResponseBody.AccountReference})
+	s.logger.Info().
+		Str("userID", result.ID.String()).
+		Str("user_account_ref", monnifyCustResp.ResponseBody.AccountReference).
+		Msg("User successfully created")
 
 	userResp := &user.CreateUserResponse{
 
@@ -101,12 +113,15 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 }
 
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
-	s.logger.Info("Fetching user by email", map[string]any{"email": email})
+	s.logger.Info().
+		Str("email", email).
+		Msg("Fetching user by email")
 	usr, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		s.logger.Error("failed to fetch user by email", map[string]any{"error": err.Error()})
+		s.logger.Error().
+			Str("error", err.Error()).
+			Msg("failed to fetch user by email")
 		return nil, err
 	}
 	return usr, nil
 }
-

@@ -2,19 +2,18 @@ package transactionsvc
 
 import (
 	"context"
-
-	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type TransactionService struct {
 	trxRepo transaction.TransactionRepository
-	logger  *logger.Logger
+	logger  zerolog.Logger
 	// eventBus eventbus.EventBus
 }
 
-func NewTransactionService(trxRepo transaction.TransactionRepository, logger *logger.Logger) *TransactionService {
+func NewTransactionService(trxRepo transaction.TransactionRepository, logger zerolog.Logger) *TransactionService {
 	return &TransactionService{
 		trxRepo: trxRepo,
 		logger:  logger,

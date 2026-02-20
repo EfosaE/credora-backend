@@ -3,7 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"time"
+	// "time"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/handler"
@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/httprate"
+	// "github.com/go-chi/httprate"
 	// "github.com/go-chi/jwtauth/v5"
 )
 
@@ -86,7 +86,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/transactions", params.UserHandler.GetTransactionHistoryHandler) // with cursor pagination
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
-				r.Use(httprate.LimitByIP(200, 1*time.Minute))
+				// r.Use(httprate.LimitByIP(200, 1*time.Minute))
 				r.Use(custmiddleware.InternalTransferMiddleware(*params.AcctSvc, *params.IdempSvc))
 				r.Use(params.BackPressureMiddleware.Handler)
 				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)

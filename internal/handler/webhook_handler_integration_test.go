@@ -34,7 +34,7 @@ func TestMonnifyWebhook_IdempotencyRecorded(t *testing.T) {
 	mockQueue := &mocks.MockQueueClient{}
 	mockEvtBus := &mocks.MockEventBus{}
 	testLogger := test.SetupTestLogger()
-	defer test.SetupTestLogger().Close()
+
 
 	// ----- Setup dependencies -----
 	idemRepo := infrastructure.NewSqlcIdempotencyRepository(pool)

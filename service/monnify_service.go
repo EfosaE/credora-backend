@@ -1,16 +1,16 @@
 package service
 
 import (
-	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/monnify"
+	"github.com/rs/zerolog"
 )
 
 type MonnifyService struct {
 	MonnifyRepo monnify.MonnifyRepository
-	logger      *logger.Logger
+	logger      zerolog.Logger
 }
 
-func NewMonnifyService(monnifyRepo monnify.MonnifyRepository, logger *logger.Logger) *MonnifyService {
+func NewMonnifyService(monnifyRepo monnify.MonnifyRepository, logger zerolog.Logger) *MonnifyService {
 	return &MonnifyService{
 		MonnifyRepo: monnifyRepo,
 		logger:      logger,

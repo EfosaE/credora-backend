@@ -8,19 +8,19 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
-	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/eventbus"
+	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
 
 type AccountService struct {
 	AcctRepo account.AccountRepository
-	logger   *logger.Logger
+	logger   zerolog.Logger
 	eventBus eventbus.EventBus
 }
 
-func NewAccountService(acctRepo account.AccountRepository, logger *logger.Logger, eventBus eventbus.EventBus) *AccountService {
+func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger, eventBus eventbus.EventBus) *AccountService {
 	return &AccountService{
 		AcctRepo: acctRepo,
 		logger:   logger,
@@ -42,9 +42,9 @@ func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) 
 		return nil, err
 	}
 	return &user.User{
-		ID:    acct.UserId,
-		Email: acct.Email,
-		Name:  acct.FullName,
+		ID:      acct.UserId,
+		Email:   acct.Email,
+		Name:    acct.FullName,
 		Balance: acct.Balance,
 	}, nil
 }

@@ -32,6 +32,7 @@ type Config struct {
 	WebhookURL string
 
 	FrontendURL string
+	LogLevel   string
 }
 
 var App Config
@@ -67,6 +68,8 @@ func Load() {
 
 		WebhookURL: mustGetEnv("WEBHOOK_URL"),
 		FrontendURL: mustGetEnv("FRONTEND_URL"),
+
+		LogLevel: getEnv("LOG_LEVEL", "1"), // default to INFO
 	}
 }
 

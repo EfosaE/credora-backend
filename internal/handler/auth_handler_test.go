@@ -46,7 +46,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	}
 
 	log := test.SetupTestLogger()
-	defer test.SetupTestLogger().Close()
+	
 
 	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
 	mockEventBus := &mocks.MockEventBus{}

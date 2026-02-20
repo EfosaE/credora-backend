@@ -203,7 +203,7 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 				response.KV{Key: "nextCursor", Value: nextCursor},
 			),
 			nil,
-			"Transaction history retrieved successfully",
+			fmt.Sprintf("%d records retrieved successfully", len(*txns)),
 		),
 	)
 }

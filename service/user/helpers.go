@@ -21,10 +21,14 @@ func (s *UserService) CreateVirtualAccount(ctx context.Context, req *user.Create
 		GetAllAvailableBanks: true,
 	})
 	if err != nil {
-		s.logger.Error("failed to create monnify customer", map[string]any{"error": err.Error()})
+		s.logger.Error().
+			Str("error", err.Error()).
+			Msg("failed to create monnify customer")
 		return nil, err
 	}
-	s.logger.Info("Monnify virtual account created", map[string]any{"accountRef": acctRef})
+	s.logger.Info().
+		Str("accountRef", acctRef).
+		Msg("Monnify virtual account created")
 	return monnifyCustResp, nil
 }
 
@@ -37,7 +41,7 @@ func (s *UserService) SendWelcomeEmailAsync(user user.User) error {
 func (s *UserService) SendAccountNumberEmailAsync(to, bank, accountNumber string) error {
 	payload := queues.AccountNumberEmailPayload{
 		To:            to,
-		Bank:          bank, // You might want to set the bank name here
+		Bank:          bank,          // You might want to set the bank name here
 		AccountNumber: accountNumber, // You might want to set the account number here
 	}
 	return s.queue.EnqueueAccountNumberEmail(payload)
