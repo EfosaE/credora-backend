@@ -111,6 +111,7 @@ func toDomainTransaction(sqlcTrx sqlc.Transaction) *transaction.Transaction {
 		ID:             sqlcTrx.ID,
 		AccountID:      utils.FromPgUUID(sqlcTrx.AccountID),
 		CounterpartyID: &counterpartyID,
+		Direction:      transaction.TransactionType(sqlcTrx.Direction.String),
 		Amount:         utils.MustPgNumericToDecimal(sqlcTrx.Amount),
 		Status:         transaction.TransactionStatus(sqlcTrx.Status),
 		Description:    sqlcTrx.Description.String,

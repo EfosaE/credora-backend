@@ -22,34 +22,25 @@ var fieldDisplayNames = map[string]string{
 // extractColumnFromConstraint attempts to extract the column name from a constraint name
 // Common patterns: "table_column_key", "table_column_idx", "table_column_unique", "table_pkey"
 func extractColumnFromConstraint(constraintName, detail string) string {
-	// For primary keys (table_pkey), try to extract from detail message first
 	// Detail format: "Key (column_name)=(value) already exists."
-	if strings.HasSuffix(constraintName, "_pkey") && detail != "" {
+	// Use this for ALL constraints, not just pkey
+	if detail != "" {
 		if start := strings.Index(detail, "("); start != -1 {
 			if end := strings.Index(detail[start:], ")"); end != -1 {
 				columnName := detail[start+1 : start+end]
-				// Handle composite keys by taking the first column
 				if commaIdx := strings.Index(columnName, ","); commaIdx != -1 {
 					columnName = strings.TrimSpace(columnName[:commaIdx])
 				}
-				return columnName
+				return columnName // returns "phone_number" ✅
 			}
 		}
 	}
-	
-	// Remove common suffixes
-	name := strings.TrimSuffix(constraintName, "_key")
-	name = strings.TrimSuffix(name, "_idx")
-	name = strings.TrimSuffix(name, "_unique")
-	name = strings.TrimSuffix(name, "_pkey")
-	
-	// Split by underscore and take the last part (usually the column name)
-	parts := strings.Split(name, "_")
-	if len(parts) >= 2 {
-		// Return the last part, which is typically the column name
-		return parts[len(parts)-1]
+
+	// fallback: strip known suffixes and try constraint name
+	name := constraintName
+	for _, suffix := range []string{"_key", "_idx", "_unique", "_pkey"} {
+		name = strings.TrimSuffix(name, suffix)
 	}
-	
 	return name
 }
 
@@ -103,7 +94,7 @@ func HandlePGError(w http.ResponseWriter, r *http.Request, err error) bool {
 	case "23505":
 		columnName := extractColumnFromConstraint(pgErr.ConstraintName, pgErr.Detail)
 		displayName := getDisplayName(columnName)
-		
+
 		msg := fmt.Sprintf("%s already exists", displayName)
 		response.SendError(w, r, response.BadRequest(
 			map[string]string{"field": columnName},

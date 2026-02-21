@@ -19,6 +19,7 @@ import (
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
+	notificationsvc "github.com/EfosaE/credora-backend/service/notification"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
@@ -35,6 +36,7 @@ type AppDependencies struct {
 	Redis       *redis.Client
 	EventBus    *infrastructure.StreamEventBus
 	QueueClient *queues.QueueClient
+	FCMAdapter  *infrastructure.FCMAdapter
 
 	//Transaction Manager
 	TxManager infrastructure.TxManager
@@ -48,16 +50,17 @@ type AppDependencies struct {
 	IdempotencyCache  *infrastructure.IdempotencyCache
 
 	// Services
-	MonnifySvc     *service.MonnifyService
-	EmailSvc       *service.EmailServiceImpl
-	AcctSvc        *accountsvc.AccountService
-	TrxSvc         *transactionsvc.TransactionService
-	UserSvc        *usersvc.UserService
-	TokenSvc       *authsvc.JWTTokenService
-	AuthSvc        *authsvc.AuthService
-	OperationSvc   *operationsvc.OperationService
-	SimulatorSvc   *service.SimulatorService
-	IdempotencySvc *idempotencysvc.IdempotencyService
+	MonnifySvc      *service.MonnifyService
+	EmailSvc        *service.EmailServiceImpl
+	AcctSvc         *accountsvc.AccountService
+	TrxSvc          *transactionsvc.TransactionService
+	UserSvc         *usersvc.UserService
+	TokenSvc        *authsvc.JWTTokenService
+	AuthSvc         *authsvc.AuthService
+	OperationSvc    *operationsvc.OperationService
+	SimulatorSvc    *service.SimulatorService
+	IdempotencySvc  *idempotencysvc.IdempotencyService
+	NotificationSvc *notificationsvc.NotificationService
 
 	// Middleware
 	BackPressureMiddleware *custmiddleware.BackpressureMiddleware
@@ -108,25 +111,6 @@ func (b *AppBuilder) WithLogger() *AppBuilder {
 	return b
 }
 
-// func (b *AppBuilder) WithLogger() *AppBuilder {
-// 	if b.err != nil {
-// 		return b
-// 	}
-
-// 	loggerCfg := logger.LoggerConfig{
-// 		LogFilePath:   "logs/app.log",
-// 		LogLevel:      logger.INFO,
-// 		EnableConsole: true,
-// 		EnableFile:    true,
-// 		MaxFileSize:   1024 * 1024,
-// 		MaxFiles:      3,
-// 		IncludeSource: true,
-// 	}
-
-// 	b.deps.Logger, b.err = logger.NewLogger(loggerCfg)
-// 	return b
-// }
-
 func (b *AppBuilder) WithDB() *AppBuilder {
 	if b.err != nil {
 		return b
@@ -167,6 +151,23 @@ func (b *AppBuilder) WithQueueClient() *AppBuilder {
 		return b
 	}
 	b.deps.QueueClient = queues.NewQueueClient(b.cfg.RedisAddr)
+	return b
+}
+
+// The handlers are emitted events rather than api requests hence up here above the other services
+func (b *AppBuilder) WithNotificationService() *AppBuilder {
+	if b.err != nil {
+		return b
+	}
+	fcmAdapter := infrastructure.NewFCMAdapter()
+
+	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before notification service")
+		b.err = fmt.Errorf("Event bus must be initialized before notification service")
+		return b
+	}
+
+	b.deps.NotificationSvc = notificationsvc.NewNotificationService(b.deps.EventBus, fcmAdapter)
 	return b
 }
 
@@ -389,6 +390,11 @@ func (b *AppBuilder) WithOperationService() *AppBuilder {
 		b.err = fmt.Errorf("idempotency repo must be initialized before operation service")
 		return b
 	}
+	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: Event Bus must be initialized before operation service")
+		b.err = fmt.Errorf("Event Bus must be initialized before operation service")
+		return b
+	}
 
 	b.deps.OperationSvc = operationsvc.NewOperationService(
 		b.deps.TxManager,
@@ -396,23 +402,33 @@ func (b *AppBuilder) WithOperationService() *AppBuilder {
 		b.deps.TrxRepo,
 		b.deps.IdempotencyRepo,
 		b.deps.Logger,
+		b.deps.EventBus,
 	)
 	return b
 }
 
-//
 // ─── EVENT SUBSCRIPTIONS ─────────────────────────────────────────
-//
-
+// Call WithNotificationService before this else you risk a nil pointer ref
 func (b *AppBuilder) WithEventSubscriptions() *AppBuilder {
 	if b.err != nil {
 		return b
 	}
 
+	b.deps.UserSvc = usersvc.NewUserService(
+		b.deps.UserRepo,
+		b.deps.Logger,
+		b.deps.EventBus,
+		b.deps.MonnifySvc,
+		b.deps.QueueClient,
+	)
+
 	if err := b.deps.EmailSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
 		b.err = err
 	}
 	if err := b.deps.AcctSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
+		b.err = err
+	}
+	if err := b.deps.NotificationSvc.SubscribeToInternalTransferCompletedEvents(b.deps.Ctx); err != nil {
 		b.err = err
 	}
 
@@ -464,6 +480,7 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 		WithRedis().
 		WithEventBus().
 		WithQueueClient().
+		WithNotificationService().
 		WithRepositories().
 		WithMonnifyService().
 		WithEmailService().
@@ -484,6 +501,7 @@ func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 		WithDB().
 		WithRedis().
 		WithEventBus().
+		WithNotificationService().
 		WithRepositories().
 		WithEmailService().
 		WithOperationService().

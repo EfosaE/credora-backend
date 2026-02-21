@@ -160,7 +160,7 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 	}
 
 	if limitStr == "" {
-		limitStr = "10" // default limit
+		limitStr = "50" // default limit
 	}
 
 	limit, err := strconv.ParseInt(limitStr, 10, 32)
@@ -186,14 +186,23 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Encode next cursor before sending
-	var nextCursor string
+	// var nextCursor string
+	// if nextCursorStruct != nil {
+	// 	nextCursor = EncodeCursor(
+	// 		nextCursorStruct.CreatedAt,
+	// 		nextCursorStruct.ID,
+	// 	)
+	// }
+
+	var nextCursor *string
+
 	if nextCursorStruct != nil {
-		nextCursor = EncodeCursor(
+		encoded := EncodeCursor(
 			nextCursorStruct.CreatedAt,
 			nextCursorStruct.ID,
 		)
+		nextCursor = &encoded
 	}
-
 	response.SendSuccess(
 		w,
 		r,

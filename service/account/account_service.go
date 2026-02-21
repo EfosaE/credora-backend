@@ -3,13 +3,12 @@ package accountsvc
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/user"
-	"github.com/EfosaE/credora-backend/internal/eventbus"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
@@ -17,10 +16,10 @@ import (
 type AccountService struct {
 	AcctRepo account.AccountRepository
 	logger   zerolog.Logger
-	eventBus eventbus.EventBus
+	eventBus event.EventBus
 }
 
-func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger, eventBus eventbus.EventBus) *AccountService {
+func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger, eventBus event.EventBus) *AccountService {
 	return &AccountService{
 		AcctRepo: acctRepo,
 		logger:   logger,
@@ -66,27 +65,41 @@ func (a *AccountService) CreditUserBalance(ctx context.Context, amount decimal.D
 }
 
 func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error {
-	return a.eventBus.Subscribe(ctx, "user.created", "account-service-group", "account-service-instance", func(values map[string]any) error {
-		raw, ok := values["data"].(string)
-		if !ok {
-			fmt.Println("❌ invalid event payload: no 'data'")
-			return errors.New("❌ invalid event payload: no 'data'")
-		}
 
-		var evt event.UserCreatedEvent
-		if err := json.Unmarshal([]byte(raw), &evt); err != nil {
-			fmt.Println("❌ failed to decode event:", err)
-			return fmt.Errorf("❌ failed to decode event:%s", err)
-		}
+	consumer := utils.WorkerID("account")
 
-		// Store user ID in accounts table
-		_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
-			UserId:         evt.UserID,
-			AccountNumber:  evt.AccountNumber,
-			AccountType:    "RESERVED ACCOUNT",
-			BankName:       evt.BankName,
-			MonnifyCustRef: evt.UserID.String(),
-		})
-		return err
-	})
+	return a.eventBus.Subscribe(
+		ctx,
+		event.StreamUserEvents,
+		"account-service-group",
+		consumer,
+		func(ctx context.Context, msg event.EventMessage) error {
+
+			if msg.EventType != event.EventUserCreated {
+				return nil
+			}
+
+			var evt event.UserCreatedEvent
+			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
+				return fmt.Errorf("failed to decode %s event: %w",
+					event.EventUserCreated,
+					err,
+				)
+			}
+
+			_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
+				UserId:         evt.UserID,
+				AccountNumber:  evt.AccountNumber,
+				AccountType:    "RESERVED ACCOUNT",
+				BankName:       evt.BankName,
+				MonnifyCustRef: evt.UserID.String(),
+			})
+
+			if err != nil {
+				return fmt.Errorf("account creation failed: %w", err)
+			}
+
+			return nil
+		},
+	)
 }

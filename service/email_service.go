@@ -3,13 +3,11 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/user"
-	"github.com/EfosaE/credora-backend/internal/eventbus"
 	"github.com/EfosaE/credora-backend/internal/utils"
 )
 
@@ -21,10 +19,10 @@ type EmailService interface {
 
 type EmailServiceImpl struct {
 	sender   email.EmailSender
-	eventBus eventbus.EventBus
+	eventBus event.EventBus
 }
 
-func NewEmailService(sender email.EmailSender, eventBus eventbus.EventBus) *EmailServiceImpl {
+func NewEmailService(sender email.EmailSender, eventBus event.EventBus) *EmailServiceImpl {
 	return &EmailServiceImpl{sender: sender, eventBus: eventBus}
 }
 
@@ -85,26 +83,35 @@ func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, to, reset
 }
 
 func (s *EmailServiceImpl) SubscribeToUserCreatedEvents(ctx context.Context) error {
-	return s.eventBus.Subscribe(ctx, "user.created", "email-service-group", "email-service-instance", func(values map[string]any) error {
-		raw, ok := values["data"].(string)
-		if !ok {
-			fmt.Println("❌ invalid event payload: no 'data'")
-			return errors.New("❌ invalid event payload: no 'data'")
-		}
+	consumer := utils.WorkerID("email")
+	return s.eventBus.Subscribe(
+		ctx,
+		event.StreamUserEvents,
+		"email-service-group",
+		consumer,
+		func(ctx context.Context, msg event.EventMessage) error {
 
-		var evt event.UserCreatedEvent
-		if err := json.Unmarshal([]byte(raw), &evt); err != nil {
-			fmt.Println("❌ failed to decode event:", err)
-			return fmt.Errorf("❌ failed to decode event: %s", err)
-		}
+			// Ignore other event types if stream is shared
+			if msg.EventType != event.EventUserCreated {
+				return nil
+			}
 
-		utils.PrintJSON(evt)
+			var evt event.UserCreatedEvent
+			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
+				return fmt.Errorf("failed to decode user.created event: %w", err)
+			}
 
-		// Send Email
-		if err := s.SendAccountNumberEmail(ctx, evt.Email, evt.BankName, evt.AccountNumber); err != nil {
-			return err
-		}
+			// Send email REMEMBER TO ENQUEUE THIS
+			if err := s.SendAccountNumberEmail(
+				ctx,
+				evt.Email,
+				evt.BankName,
+				evt.AccountNumber,
+			); err != nil {
+				return fmt.Errorf("failed to send account email: %w", err)
+			}
 
-		return nil
-	})
+			return nil
+		},
+	)
 }

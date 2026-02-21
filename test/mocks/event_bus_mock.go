@@ -3,6 +3,8 @@ package mocks
 import (
 	"context"
 	"sync"
+
+	"github.com/EfosaE/credora-backend/domain/event"
 )
 
 type MockEventBus struct {
@@ -23,7 +25,7 @@ type Subscription struct {
 	Consumer string
 }
 
-func (m *MockEventBus) Publish(ctx context.Context, topic string, payload map[string]any) error {
+func (m *MockEventBus) Publish(ctx context.Context, topic string, eventType string, payload map[string]any) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -35,7 +37,7 @@ func (m *MockEventBus) Publish(ctx context.Context, topic string, payload map[st
 	return nil
 }
 
-func (m *MockEventBus) Subscribe(ctx context.Context, topic, group, consumer string, handler func(values map[string]any) error) error {
+func (m *MockEventBus) Subscribe(ctx context.Context, topic, group, consumer string, handler func(ctx context.Context, msg event.EventMessage) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

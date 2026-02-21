@@ -14,6 +14,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/operation"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	"github.com/EfosaE/credora-backend/test"
+	"github.com/EfosaE/credora-backend/test/mocks"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
@@ -82,6 +83,7 @@ func TestInternalTransfer_Success(t *testing.T) {
 	acctRepo := infrastructure.NewSqlcAccountRepository(pool)
 	txRepo := infrastructure.NewSqlcTransactionRepository(pool)
 	idempRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
+	eventBus := &mocks.MockEventBus{}
 	// idemp := mocks.NewMockIdempotencyRepo()
 
 	// transaction manager used by service for running operations inside a db tx
@@ -93,6 +95,7 @@ func TestInternalTransfer_Success(t *testing.T) {
 		txRepo,
 		idempRepo,
 		test.SetupTestLogger(),
+		eventBus,
 	)
 
 	req := &operation.InternalTransferReq{
@@ -185,7 +188,7 @@ func TestInternalTransfer_RollbackOnFailure(t *testing.T) {
 	acctRepo := infrastructure.NewSqlcAccountRepository(pool)
 	txRepo := infrastructure.NewSqlcTransactionRepository(pool)
 	idempRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
-	// create tx manager too
+	eventBus := &mocks.MockEventBus{}
 	txManager := infrastructure.NewTxManager(pool)
 
 	svc := operationsvc.NewOperationService(
@@ -194,6 +197,7 @@ func TestInternalTransfer_RollbackOnFailure(t *testing.T) {
 		txRepo,
 		idempRepo,
 		test.SetupTestLogger(),
+		eventBus,
 	)
 
 	// Attempt a transfer that should fail (insufficient funds)

@@ -2,9 +2,11 @@ package infrastructure
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -17,12 +19,33 @@ func NewStreamEventBus(client *redis.Client) *StreamEventBus {
 }
 
 // Publish an event to a stream using XADD
-func (s *StreamEventBus) Publish(ctx context.Context, stream string, payload map[string]any) error {
-	_, err := s.client.XAdd(ctx, &redis.XAddArgs{
+func (s *StreamEventBus) Publish(
+	ctx context.Context,
+	stream string,
+	eventType string,
+	payload map[string]any,
+) error {
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to serialize event payload: %w", err)
+	}
+
+	event := map[string]any{
+		"event": eventType,
+		"data":  string(data),
+	}
+
+	_, err = s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: stream,
-		Values: payload,
+		Values: event,
 	}).Result()
-	return err
+
+	if err != nil {
+		return fmt.Errorf("failed to publish event to stream %s: %w", stream, err)
+	}
+
+	return nil
 }
 
 // Subscribe to a stream using Consumer Groups
@@ -31,9 +54,10 @@ func (s *StreamEventBus) Subscribe(
 	stream string,
 	group string,
 	consumer string,
-	handler func(values map[string]any) error,
+	handler func(ctx context.Context, msg event.EventMessage) error,
 ) error {
-	// Create the consumer group if it doesn't exist
+
+	// Create consumer group if not exists
 	err := s.client.XGroupCreateMkStream(ctx, stream, group, "0").Err()
 	if err != nil && !isBusyGroupErr(err) {
 		return fmt.Errorf("failed to create consumer group: %w", err)
@@ -41,7 +65,6 @@ func (s *StreamEventBus) Subscribe(
 
 	go func() {
 		for {
-			// Read messages from the group
 			res, err := s.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    group,
 				Consumer: consumer,
@@ -51,16 +74,33 @@ func (s *StreamEventBus) Subscribe(
 			}).Result()
 
 			if err != nil && err != redis.Nil {
-				fmt.Println("❌ Stream read error:", err)
 				continue
 			}
 
-			for _, stream := range res {
-				for _, msg := range stream.Messages {
-					handler(msg.Values)
+			for _, strm := range res {
+				for _, msg := range strm.Messages {
 
-					// Acknowledge message
-					_ = s.client.XAck(ctx, stream.Stream, group, msg.ID).Err()
+					// Convert Redis payload → EventMessage
+					eventMsg := event.EventMessage{
+						EventType: "",
+						Data:      "",
+					}
+
+					if v, ok := msg.Values["event"].(string); ok {
+						eventMsg.EventType = v
+					}
+
+					if v, ok := msg.Values["data"].(string); ok {
+						eventMsg.Data = v
+					}
+
+					// Execute handler
+					err := handler(ctx, eventMsg)
+
+					// ACK ONLY if handler succeeds
+					if err == nil {
+						_ = s.client.XAck(ctx, strm.Stream, group, msg.ID).Err()
+					}
 				}
 			}
 		}

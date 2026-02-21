@@ -2,7 +2,7 @@ package usersvc
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/event"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
@@ -11,8 +11,6 @@ import (
 	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 
 	"github.com/EfosaE/credora-backend/domain/user"
-
-	"github.com/EfosaE/credora-backend/internal/eventbus"
 	"github.com/EfosaE/credora-backend/internal/queues"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
@@ -21,7 +19,7 @@ import (
 type UserService struct {
 	userRepo   user.UserRepository
 	logger     zerolog.Logger
-	eventBus   eventbus.EventBus
+	eventBus   event.EventBus
 	monnifySvc *service.MonnifyService
 	queue      queues.Queue // It should depend on the Queue interface for unit testing
 }
@@ -29,7 +27,7 @@ type UserService struct {
 func NewUserService(
 	userRepo user.UserRepository,
 	logger zerolog.Logger,
-	eventBus eventbus.EventBus,
+	eventBus event.EventBus,
 	monnifySvc *service.MonnifyService,
 	queue queues.Queue,
 ) *UserService {
@@ -77,7 +75,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 			Str("error", err.Error()).
 			Msg("Failed to enqueue account number email")
 	}
-	event := event.UserCreatedEvent{
+	evt := event.UserCreatedEvent{
 		UserID:        result.ID,
 		AccountNumber: monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
 		Name:          result.Name,
@@ -85,10 +83,11 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		Email:         result.Email,
 	}
 
-	data, _ := json.Marshal(event)
-	s.eventBus.Publish(ctx, "user.created", map[string]any{
-		"data": string(data),
-	})
+	payload, err := utils.StructToMap(evt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert typed struct to map: %w", err)
+	}
+	s.eventBus.Publish(ctx, event.StreamUserEvents, event.EventUserCreated, payload)
 
 	s.logger.Info().
 		Str("userID", result.ID.String()).

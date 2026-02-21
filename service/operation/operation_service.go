@@ -3,8 +3,10 @@ package operationsvc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/EfosaE/credora-backend/domain/account"
+	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/idempotency"
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/transaction"
@@ -19,6 +21,7 @@ type OperationService struct {
 	transactionRepo transaction.TransactionRepository
 	idempRepo       idempotency.IdempotencyRepo
 	logger          zerolog.Logger
+	eventBus        event.EventBus
 }
 
 func NewOperationService(
@@ -27,6 +30,7 @@ func NewOperationService(
 	transactionRepo transaction.TransactionRepository,
 	idempRepo idempotency.IdempotencyRepo,
 	logger zerolog.Logger,
+	event event.EventBus,
 ) *OperationService {
 	return &OperationService{
 		txManager:       txManager,
@@ -34,6 +38,7 @@ func NewOperationService(
 		transactionRepo: transactionRepo,
 		idempRepo:       idempRepo,
 		logger:          logger,
+		eventBus:        event,
 	}
 }
 
@@ -173,6 +178,19 @@ func (s *OperationService) InternalTransfer(
 	}
 
 	if err == nil {
+		evt := event.MoneyTransferredEvent{
+			Amount:      req.Amount,
+			TransferID:  req.IdempotencyKey,
+			FromAcctNum: req.FromAcctNum,
+			ToAcctNum:   req.ToAcctNum,
+			OccurredAt:  time.Now().UTC(),
+		}
+
+		payload, err := utils.StructToMap(evt)
+		if err != nil {
+			return fmt.Errorf("failed to convert typed struct to map: %w", err)
+		}
+		s.eventBus.Publish(ctx, event.StreamTransferEvents, event.EventInternalTransferSuccess, payload)
 		s.logger.Info().
 			Str("msg", "Internal transfer successful").
 			Str("from_account", req.FromAcctNum).
