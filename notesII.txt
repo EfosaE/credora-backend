@@ -89,3 +89,14 @@ awk '{
         print "No data found"
     }
 }'
+
+ask chatgpt how you can implement the fanout logic fir your notification services to send the oayload to the appropriate handler
+The FCM backend, which (among other functions) accepts message requests, performs fanout of messages via topics, and generates message metadata such as the message ID.
+
+
+ASK HOW TO IMPLEMENT IT (YOU ALREADY HAVE WORKERS)
+Your app server environment must meet the following criteria:
+
+Able to send properly formatted message requests to the FCM backend.
+Able to handle requests and resend them using exponential back-off.
+Able to securely store server authorization credentials and client registration tokens.

@@ -89,6 +89,7 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 
 			_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
 				UserId:         evt.UserID,
+				Username:       evt.Name,
 				AccountNumber:  evt.AccountNumber,
 				AccountType:    "RESERVED ACCOUNT",
 				BankName:       evt.BankName,
@@ -96,9 +97,17 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 			})
 
 			if err != nil {
+				a.logger.Error().
+					Err(err).
+					Str("userName", evt.Name).
+					Str("accountNumber", evt.Email).
+					Msg("account recording failed")
 				return fmt.Errorf("account creation failed: %w", err)
 			}
-
+			a.logger.Info().
+				Str("userName", evt.Name).
+				Str("accountNumber", evt.Email).
+				Msg("account recorded successfully")
 			return nil
 		},
 	)

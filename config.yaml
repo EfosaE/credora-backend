@@ -1,0 +1,4 @@
+email:
+  provider: mailtrap
+  rate: 2
+  burst: 1

@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -63,7 +64,7 @@ func (h *AuthHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 		response.Created(
 			response.Obj("user", user),
 			nil,
-			"User created successfully",
+			"The account details have been sent to your email, Login with it to verify your email",
 		),
 	)
 
@@ -95,7 +96,7 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	user, token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
 	if err != nil {
 		fmt.Println("Error during login:", err)
-		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		response.SendError(w, r, response.BadRequest(errors.New("Login Failed"), "Invalid credentials"))
 		return
 	}
 

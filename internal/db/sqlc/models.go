@@ -22,6 +22,7 @@ type Account struct {
 	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
 	VirtualAccountBank pgtype.Text      `json:"virtual_account_bank"`
 	MonnifyCustomerRef pgtype.Text      `json:"monnify_customer_ref"`
+	Username           string           `json:"username"`
 }
 
 type IdempotencyKey struct {

@@ -17,6 +17,7 @@ type TxResult struct {
 type Account struct {
 	ID             uuid.UUID       `json:"id"`
 	UserId         string          `json:"userId"`
+	UserName       string          `json:"userName"`
 	AccountNumber  string          `json:"accountNumber"`
 	AccountType    string          `json:"accountType"`
 	MonnifyCustRef string          `json:"monnifyCustRef"`
@@ -28,6 +29,7 @@ type Account struct {
 
 type CreateAccountRequest struct {
 	UserId         uuid.UUID `json:"userId" validate:"required,uuid4"`
+	Username       string    `json:"userName" validate:"required"`
 	AccountNumber  string    `json:"accountNumber" validate:"required,len=10,numeric"`
 	AccountType    string    `json:"accountType" validate:"required,oneof=savings current"`
 	BankName       string    `json:"bankName" validate:"required,min=2,max=100"`

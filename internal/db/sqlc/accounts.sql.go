@@ -15,17 +15,19 @@ import (
 const createAccountWithMonnify = `-- name: CreateAccountWithMonnify :one
 INSERT INTO accounts (
     user_id,
+    username,
     account_number,
     account_type,
     monnify_customer_ref,
     virtual_account_bank
 )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username
 `
 
 type CreateAccountWithMonnifyParams struct {
 	UserID             pgtype.UUID `json:"user_id"`
+	Username           string      `json:"username"`
 	AccountNumber      string      `json:"account_number"`
 	AccountType        string      `json:"account_type"`
 	MonnifyCustomerRef pgtype.Text `json:"monnify_customer_ref"`
@@ -35,6 +37,7 @@ type CreateAccountWithMonnifyParams struct {
 func (q *Queries) CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error) {
 	row := q.db.QueryRow(ctx, createAccountWithMonnify,
 		arg.UserID,
+		arg.Username,
 		arg.AccountNumber,
 		arg.AccountType,
 		arg.MonnifyCustomerRef,
@@ -52,6 +55,7 @@ func (q *Queries) CreateAccountWithMonnify(ctx context.Context, arg CreateAccoun
 		&i.UpdatedAt,
 		&i.VirtualAccountBank,
 		&i.MonnifyCustomerRef,
+		&i.Username,
 	)
 	return i, err
 }
@@ -131,7 +135,7 @@ func (q *Queries) GetAccountByAccountNumber(ctx context.Context, accountNumber s
 }
 
 const getAccountForUpdate = `-- name: GetAccountForUpdate :one
-SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref FROM accounts 
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username FROM accounts 
 WHERE account_number = $1
 FOR UPDATE NOWAIT
 `
@@ -150,12 +154,13 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string)
 		&i.UpdatedAt,
 		&i.VirtualAccountBank,
 		&i.MonnifyCustomerRef,
+		&i.Username,
 	)
 	return i, err
 }
 
 const getAccountsForUpdate = `-- name: GetAccountsForUpdate :many
-SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username
 FROM accounts
 WHERE account_number = ANY($1::text[])
 ORDER BY account_number ASC
@@ -182,6 +187,7 @@ func (q *Queries) GetAccountsForUpdate(ctx context.Context, dollar_1 []string) (
 			&i.UpdatedAt,
 			&i.VirtualAccountBank,
 			&i.MonnifyCustomerRef,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}

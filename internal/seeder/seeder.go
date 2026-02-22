@@ -42,6 +42,7 @@ func (s *Seeder) SeedUsersAndAccounts(count int) error {
 		now := time.Now()
 		userID := uuid.New()
 		userEmail := gofakeit.Email()
+		userName := gofakeit.Name()
 
 		// --- USER ---
 		_, err := tx.Exec(s.Ctx, `
@@ -51,7 +52,7 @@ func (s *Seeder) SeedUsersAndAccounts(count int) error {
 			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		`,
 			userID,
-			gofakeit.Name(),
+			userName,
 			toText(userEmail),
 			gofakeit.Phone(),
 			gofakeit.Password(true, true, true, true, false, 12),
@@ -69,13 +70,14 @@ func (s *Seeder) SeedUsersAndAccounts(count int) error {
 		// --- ACCOUNT (STRICTLY 1:1) ---
 		_, err = tx.Exec(s.Ctx, `
 			INSERT INTO accounts (
-				id, user_id, account_number, account_type,
+				id, user_id,username, account_number, account_type,
 				balance, currency, created_at, updated_at,
 				virtual_account_bank, monnify_customer_ref
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, $11)
 		`,
 			uuid.New(),
 			toUUID(userID),
+			userName,
 			gofakeit.Numerify("3#########"),
 			randomAccountType(),
 			toNumeric(randomTieredBalance()),
@@ -199,11 +201,12 @@ func (s *Seeder) SeedHotAccounts() error {
 	for _, acc := range hotAccounts {
 		_, err := tx.Exec(s.Ctx, `
 			INSERT INTO accounts (
-				id, account_number, account_type,
+				id,username, account_number, account_type,
 				balance, currency, created_at, updated_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7)
+			) VALUES ($1,$2,$3,$4,$5,$6,$7, $8)
 		`,
 			uuid.New(),
+			gofakeit.Name(),
 			gofakeit.Numerify("9#########"),
 			acc.accountType,
 			toNumeric(acc.balance),

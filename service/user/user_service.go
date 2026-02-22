@@ -46,7 +46,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		Str("email", req.Email).
 		Msg("User creation initiated")
 
-	utils.PrintJSON(req) // Print the user request for debugging
+	// utils.PrintJSON(req) // Print the user request for debugging
 	hashedPassword, _ := authsvc.HashPassword(req.Password)
 
 	req.Password = hashedPassword
@@ -91,22 +91,22 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 
 	s.logger.Info().
 		Str("userID", result.ID.String()).
+		Str("userName", result.Name).
 		Str("user_account_ref", monnifyCustResp.ResponseBody.AccountReference).
 		Msg("User successfully created")
 
 	userResp := &user.CreateUserResponse{
-
-		ID:                   result.ID,
-		Name:                 req.Name,
-		Email:                req.Email,
-		AccountReference:     monnifyCustResp.ResponseBody.AccountReference,
-		AccountName:          monnifyCustResp.ResponseBody.AccountName,
-		Accounts:             monnifyCustResp.ResponseBody.Accounts,
+		ID:               result.ID,
+		Name:             req.Name,
+		Email:            req.Email,
+		AccountReference: monnifyCustResp.ResponseBody.AccountReference,
+		// AccountName:          monnifyCustResp.ResponseBody.AccountName,
+		// Accounts:             monnifyCustResp.ResponseBody.Accounts,
 		ReservationReference: monnifyCustResp.ResponseBody.ReservationReference,
-		BankName:             monnifyCustResp.ResponseBody.Accounts[0].BankName,
-		AccountNumber:        monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
-		Status:               monnifyCustResp.ResponseBody.Status,
-		CreatedAt:            result.CreatedAt,
+		// BankName:             monnifyCustResp.ResponseBody.Accounts[0].BankName,
+		// AccountNumber:        monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
+		Status:    monnifyCustResp.ResponseBody.Status,
+		CreatedAt: result.CreatedAt,
 	}
 	return userResp, nil
 }
@@ -118,7 +118,7 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.U
 	usr, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		s.logger.Error().
-			Str("error", err.Error()).
+			Err(err).
 			Msg("failed to fetch user by email")
 		return nil, err
 	}

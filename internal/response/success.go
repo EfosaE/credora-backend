@@ -58,9 +58,9 @@ func NewSuccess(
 	return &SuccessResponse{
 		StatusCode: statusCode,
 		Success:    true,
+		Message:    message,
 		Data:       data,
 		Meta:       meta,
-		Message:    message,
 	}
 }
 

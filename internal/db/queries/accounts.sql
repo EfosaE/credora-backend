@@ -1,12 +1,13 @@
 -- name: CreateAccountWithMonnify :one
 INSERT INTO accounts (
     user_id,
+    username,
     account_number,
     account_type,
     monnify_customer_ref,
     virtual_account_bank
 )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 

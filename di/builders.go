@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/infrastructure"
@@ -25,6 +26,7 @@ import (
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog"
+	"google.golang.org/api/option"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -159,7 +161,17 @@ func (b *AppBuilder) WithNotificationService() *AppBuilder {
 	if b.err != nil {
 		return b
 	}
-	fcmAdapter := infrastructure.NewFCMAdapter()
+
+	//Initialize the Firebase here:
+	fmt.Println("FIREBASE CREDS")
+	fmt.Println(b.cfg.GoogleApplicationCredentials)
+	opt := option.WithCredentialsFile(b.cfg.GoogleApplicationCredentials)
+	app, err := firebase.NewApp(context.Background(), nil, opt)
+	if err != nil {
+		b.err = fmt.Errorf("error initializing FireBase App: %v", err)
+		return b
+	}
+	fcmAdapter := infrastructure.NewFCMAdapter(app)
 
 	if b.deps.EventBus == nil {
 		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before notification service")

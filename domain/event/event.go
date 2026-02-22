@@ -24,20 +24,15 @@ type UserCreatedEvent struct {
 	BankName      string    `json:"bankName"`
 }
 
-// type MoneyTransferredEvent struct {
-// 	TransferID string //Should be the transaction reference
-// 	FromUserID uuid.UUID
-// 	ToUserID   uuid.UUID
-// 	Amount     decimal.Decimal
-// 	OccurredAt time.Time
-// }
-
-type MoneyTransferredEvent struct {
-	TransferID  string //Should be the transaction reference
-	FromAcctNum string
-	ToAcctNum   string
-	Amount      decimal.Decimal
-	OccurredAt  time.Time
+type InternalTransferEvent struct {
+	TransferID    string //Should be the transaction reference
+	FromAcctNum   string
+	RecipientName string
+	SenderName    string
+	ToAcctNum     string
+	ToAcctUserId  uuid.UUID
+	Amount        decimal.Decimal
+	OccurredAt    time.Time
 }
 
 type EventMessage struct {

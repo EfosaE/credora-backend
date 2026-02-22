@@ -3,7 +3,6 @@ package user
 import (
 	"time"
 
-	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/google/uuid"
 )
 
@@ -41,15 +40,15 @@ type ValidatePasswordRequest struct {
 }
 
 type CreateUserResponse struct {
-	ID                   uuid.UUID                 `json:"id"`
-	Name                 string                    `json:"name"`
-	Email                string                    `json:"email"`
-	AccountReference     string                    `json:"accountReference"`
-	AccountName          string                    `json:"accountName"`
-	Accounts             []monnify.ReservedAccount `json:"accounts"`
-	ReservationReference string                    `json:"reservationReference"`
-	BankName             string                    `json:"bankName,omitempty"`      // fallback if you just need one
-	AccountNumber        string                    `json:"accountNumber,omitempty"` // fallback if you just need one
-	Status               string                    `json:"status"`                  // Monnify reserved account status
-	CreatedAt            time.Time                 `json:"createdAt"`
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	Email            string    `json:"email"`
+	AccountReference string    `json:"accountReference"`
+	// AccountName          string                    `json:"accountName"`
+	// Accounts             []monnify.ReservedAccount `json:"accounts"`
+	ReservationReference string `json:"reservationReference"`
+	// BankName             string                    `json:"bankName,omitempty"`
+	// AccountNumber        string                    `json:"accountNumber,omitempty"`
+	Status    string    `json:"status"` // Monnify reserved account status
+	CreatedAt time.Time `json:"createdAt"`
 }

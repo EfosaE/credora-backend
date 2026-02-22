@@ -31,30 +31,6 @@ func (r *SqlcAccountRepository) queries(ctx context.Context) *sqlc.Queries {
 	return sqlc.New(r.db)
 }
 
-// func (r *SqlcAccountRepository) Tx() pgx.Tx {
-// 	return r.tx
-// }
-
-// ------------------------------------
-// Transaction wrapper
-// ------------------------------------
-// func (r *SqlcAccountRepository) WithTx(ctx context.Context, fn func(tx account.AccountTx) error) error {
-// 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// bind repo to transaction
-// 	txRepo := r.withTx(tx)
-
-// 	if err := fn(txRepo); err != nil {
-// 		_ = tx.Rollback(ctx)
-// 		return err
-// 	}
-
-// 	return tx.Commit(ctx)
-// }
-
 // ------------------------------------
 // Normal methods
 // ------------------------------------
@@ -62,6 +38,7 @@ func (r *SqlcAccountRepository) queries(ctx context.Context) *sqlc.Queries {
 func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
 	sqlcAcct, err := r.queries(ctx).CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
 		UserID:             utils.ToPgUUID(req.UserId),
+		Username:           req.Username,
 		AccountNumber:      req.AccountNumber,
 		AccountType:        req.AccountType,
 		MonnifyCustomerRef: utils.ToPgText(req.MonnifyCustRef),
@@ -124,6 +101,7 @@ func (r *SqlcAccountRepository) GetAccountsForUpdate(
 	for _, row := range rows {
 		accounts = append(accounts, &account.Account{
 			ID:            row.ID,
+			UserName:      row.Username,
 			UserId:        row.UserID.String(),
 			AccountNumber: row.AccountNumber,
 			Balance:       utils.MustPgNumericToDecimal(row.Balance),

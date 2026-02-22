@@ -9,6 +9,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/wneessen/go-mail"
+	"golang.org/x/time/rate"
 )
 
 type client struct {
@@ -19,6 +20,7 @@ type client struct {
 }
 type EmailAdapter struct {
 	client
+	limiter *rate.Limiter
 }
 
 func NewEmailAdapter() *EmailAdapter {
@@ -33,6 +35,10 @@ func NewEmailAdapter() *EmailAdapter {
 			Username: config.App.MailtrapUser,
 			Password: config.App.MailtrapPass,
 		},
+		limiter: rate.NewLimiter(
+			rate.Limit(config.App.Email.Rate), // refill email token per second
+			config.App.Email.Burst,            // max burst : store this amount at a time.
+		),
 	}
 }
 
@@ -54,6 +60,9 @@ func NewEmailAdapter() *EmailAdapter {
 // }
 
 func (s *EmailAdapter) SendEmail(ctx context.Context, req email.SendEmailRequest) error {
+	if err := s.limiter.Wait(ctx); err != nil {
+		return err
+	}
 	msg := mail.NewMsg()
 	if err := msg.From(req.From); err != nil {
 		return fmt.Errorf("failed to set from address: %w", err)

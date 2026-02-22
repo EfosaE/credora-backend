@@ -47,6 +47,10 @@ func (s *OperationService) InternalTransfer(
 	req *operation.InternalTransferReq,
 ) error {
 
+	var tRef string
+	var recipientName string
+	var senderName string
+
 	// ---- Insert PROCESSING state OUTSIDE transaction ----
 	if err := s.idempRepo.Upsert(
 		ctx,
@@ -60,10 +64,9 @@ func (s *OperationService) InternalTransfer(
 		transaction.StatusProcessing,
 	); err != nil {
 		s.logger.Error().
-			Str("msg", "Failed to upsert idempotency key PROCESSING").
+			Err(err).
 			Str("key", req.IdempotencyKey).
-			Str("error", err.Error()).
-			Msg("")
+			Msg("Failed to upsert idempotency key PROCESSING")
 		return fmt.Errorf("internal error: %w", err)
 	}
 
@@ -88,15 +91,20 @@ func (s *OperationService) InternalTransfer(
 			accountMap[acc.AccountNumber] = acc
 		}
 
+		fmt.Println("From Operation service")
+		utils.PrintJSON(accountMap)
+
 		fromAcct, ok := accountMap[from]
 		if !ok {
 			return fmt.Errorf("from account %s not found", from)
 		}
+		senderName = fromAcct.UserName
 
 		toAcct, ok := accountMap[to]
 		if !ok {
 			return fmt.Errorf("to account %s not found", to)
 		}
+		recipientName = toAcct.UserName
 
 		// ---- Validate balance ----
 		if fromAcct.Balance.LessThan(req.Amount) {
@@ -113,7 +121,7 @@ func (s *OperationService) InternalTransfer(
 		}
 
 		// ---- Record ledger transactions ----
-		ref := utils.GenerateTransactionReference(fromAcct.ID)
+		tRef = utils.GenerateTransactionReference(fromAcct.ID)
 
 		if _, err := s.transactionRepo.RecordTransaction(txCtx, &transaction.NewTransactionInput{
 			AccountID:      fromAcct.ID,
@@ -121,7 +129,7 @@ func (s *OperationService) InternalTransfer(
 			Amount:         req.Amount,
 			Direction:      transaction.TransactionTypeDebit,
 			Description:    fmt.Sprintf("Internal transfer to %s", to),
-			Reference:      ref,
+			Reference:      tRef,
 			Channel:        "INTERNAL_TRANSFER",
 			Status:         transaction.StatusSuccess,
 		}); err != nil {
@@ -134,7 +142,7 @@ func (s *OperationService) InternalTransfer(
 			Amount:         req.Amount,
 			Direction:      transaction.TransactionTypeCredit,
 			Description:    fmt.Sprintf("Internal transfer from %s", from),
-			Reference:      ref,
+			Reference:      tRef,
 			Channel:        "INTERNAL_TRANSFER",
 			Status:         transaction.StatusSuccess,
 		}); err != nil {
@@ -148,10 +156,9 @@ func (s *OperationService) InternalTransfer(
 	status := transaction.StatusSuccess
 	if err != nil {
 		s.logger.Warn().
-			Str("msg", "Internal transfer failed, marking idempotency as FAILED").
+			Err(err).
 			Str("key", req.IdempotencyKey).
-			Str("error", err.Error()).
-			Msg("")
+			Msg("Internal transfer failed, marking idempotency as FAILED")
 		status = transaction.StatusFailed
 	}
 
@@ -167,10 +174,9 @@ func (s *OperationService) InternalTransfer(
 		status,
 	); upsertErr != nil {
 		s.logger.Error().
-			Str("msg", "Failed to persist final idempotency state").
+			Err(upsertErr).
 			Str("key", req.IdempotencyKey).
-			Str("error", upsertErr.Error()).
-			Msg("")
+			Msg("Failed to persist final idempotency state")
 		// don't overwrite original error
 		if err == nil {
 			err = fmt.Errorf("failed to persist idempotency: %w", upsertErr)
@@ -178,12 +184,14 @@ func (s *OperationService) InternalTransfer(
 	}
 
 	if err == nil {
-		evt := event.MoneyTransferredEvent{
-			Amount:      req.Amount,
-			TransferID:  req.IdempotencyKey,
-			FromAcctNum: req.FromAcctNum,
-			ToAcctNum:   req.ToAcctNum,
-			OccurredAt:  time.Now().UTC(),
+		evt := event.InternalTransferEvent{
+			Amount:        req.Amount,
+			RecipientName: recipientName,
+			SenderName:    senderName,
+			TransferID:    req.IdempotencyKey,
+			FromAcctNum:   req.FromAcctNum,
+			ToAcctNum:     req.ToAcctNum,
+			OccurredAt:    time.Now().UTC(),
 		}
 
 		payload, err := utils.StructToMap(evt)
@@ -192,11 +200,11 @@ func (s *OperationService) InternalTransfer(
 		}
 		s.eventBus.Publish(ctx, event.StreamTransferEvents, event.EventInternalTransferSuccess, payload)
 		s.logger.Info().
-			Str("msg", "Internal transfer successful").
 			Str("from_account", req.FromAcctNum).
 			Str("toAccount", req.ToAcctNum).
 			Str("amount", req.Amount.String()).
-			Msg("")
+			Str("transactionRef", tRef).
+			Msg("Internal transfer successful")
 	}
 
 	return err

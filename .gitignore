@@ -52,3 +52,4 @@ docker-compose.override.yml
 *.env
 .env.local
 .env.development.local
+credora-backend-firebase-adminsdk.json

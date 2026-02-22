@@ -34,7 +34,13 @@ func main() {
 
 	s := seeder.NewSeeder(conn, ctx)
 
-	log.Printf("Seeding %d users...", *usersFlag)
+	// if *usersFlag > 60 {
+	// 	log.Printf("Seeding %d users...", *usersFlag)
+	// 	if err := s.SeedUsersAndAccounts(*usersFlag); err != nil {
+	// 		log.Fatalf("User seeding failed: %v", err)
+	// 	}
+	// }
+
 	if err := s.SeedUsersAndAccounts(*usersFlag); err != nil {
 		log.Fatalf("User seeding failed: %v", err)
 	}

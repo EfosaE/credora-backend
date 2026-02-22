@@ -27,12 +27,14 @@ func NewEmailService(sender email.EmailSender, eventBus event.EventBus) *EmailSe
 }
 
 func (s *EmailServiceImpl) SendAccountNumberEmail(ctx context.Context, to, bank, accountNumber string) error {
+
 	html, err := email.RenderTemplate("account_email", map[string]string{
 		"Bank":          bank,
 		"AccountNumber": accountNumber,
 	})
 
 	if err != nil {
+		fmt.Println("Email Error", err)
 		return err
 	}
 
