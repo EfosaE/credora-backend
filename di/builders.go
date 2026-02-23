@@ -454,7 +454,8 @@ func (b *AppBuilder) WithMiddlewares() *AppBuilder {
 	inspector := asynq.NewInspector(asynq.RedisClientOpt{
 		Addr: b.cfg.RedisAddr,
 	})
-	b.deps.BackPressureMiddleware = custmiddleware.NewBackpressure(inspector, 250, "critical")
+	sustainablePerSec := config.App.Job.HWCeilingPerSec * config.App.Job.SafetyFactor
+	b.deps.BackPressureMiddleware = custmiddleware.NewBackpressure(inspector, config.App.Job.QueueMaxSize, config.App.Job.QueueName, sustainablePerSec)
 
 	return b
 }

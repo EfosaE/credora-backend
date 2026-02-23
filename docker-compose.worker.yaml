@@ -10,8 +10,10 @@ services:
     networks:
       - app-network
     command: ./worker
+    volumes:
+      - ./config.yaml:/app/config.yaml
     deploy:
-      replicas: 3
+      replicas: 2
 
   redis:
     container_name: redis
@@ -26,6 +28,7 @@ services:
 
 volumes:
   redis-data:
+
 
 networks:
   app-network:

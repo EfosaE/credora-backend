@@ -2,3 +2,15 @@ email:
   provider: mailtrap
   rate: 2
   burst: 1
+job:
+  processing_rate_per_job: 3.3975
+  safety_factor: 0.85
+  backlog_window_seconds: 20 # time sitting in Redis before a worker picks the job up. (Queue Wait Time)
+  queue_name: critical
+worker:
+  concurrency_limit: 4
+  strict_priority: true
+  replicas: 2
+machine:
+  cpu_cores: 4 # physical cores, set explicitly (don't blindly trust runtime.NumCPU on shared infra)
+  job_bound: "io" # "cpu" or "io"

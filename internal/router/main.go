@@ -3,9 +3,10 @@ package router
 import (
 	"fmt"
 	"net/http"
-	// "time"
+	"time"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
+	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/handler"
 	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/response"
@@ -15,7 +16,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	// "github.com/go-chi/httprate"
+	"github.com/go-chi/httprate"
 	// "github.com/go-chi/jwtauth/v5"
 )
 
@@ -86,7 +87,8 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
-				// r.Use(httprate.LimitByIP(200, 1*time.Minute))
+				r.Use(httprate.LimitByIP(config.App.Job.RateLimitPerMinute,
+					time.Minute))
 				r.Use(custmiddleware.InternalTransferMiddleware(*params.AcctSvc, *params.IdempSvc))
 				r.Use(params.BackPressureMiddleware.Handler)
 				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)

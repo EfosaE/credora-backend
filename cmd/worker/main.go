@@ -46,13 +46,13 @@ func main() {
 	srv := asynq.NewServer(
 		asynqRedis,
 		asynq.Config{
-			Concurrency: 12,
+			Concurrency: config.App.Worker.ConcurrencyLimit,
 			Queues: map[string]int{
 				"critical": 6,
 				"default":  3,
 				"low":      1,
 			},
-			StrictPriority: true,
+			StrictPriority: config.App.Worker.StrictPriority,
 		},
 	)
 
@@ -71,9 +71,10 @@ func main() {
 	mux.HandleFunc(queues.TypeWebhookInboundTransfer, handlers.HandleInboundTransferWebhook)
 
 	workerLogger.Info().
-		Int("concurrency", 12).
+		Int("concurrency", config.App.Worker.ConcurrencyLimit).
 		Str("redis_addr", config.App.RedisAddr).
-		Msg("Asynq worker starting")
+		Bool("strict_priority", config.App.Worker.StrictPriority).
+		Msg("Asynq worker started")
 
 	if err := srv.Run(mux); err != nil {
 		workerLogger.Fatal().

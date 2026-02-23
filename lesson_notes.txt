@@ -1,0 +1,41 @@
+Ask chatgpt how you can implement the fanout logic fir your notification services to send the oayload to the appropriate handler
+The FCM backend, which (among other functions) accepts message requests, performs fanout of messages via topics, and generates message metadata such as the message ID.
+
+
+ASK HOW TO IMPLEMENT IT (YOU ALREADY HAVE WORKERS)
+Your app server environment must meet the following criteria:
+
+Able to send properly formatted message requests to the FCM backend.
+Able to handle requests and resend them using exponential back-off.
+Able to securely store server authorization credentials and client registration tokens.
+
+
+
+CHECK WITH THIS LOCK OCCURS
+[2026-02-19 20:42:59] [WARN] [operation_service.go:264] Internal transfer failed, marking idempotency as FAILED {"error":"failed to lock accounts: ERROR: could not obtain lock on row in relation \"accounts\" (SQLSTATE 55P03)","key":"69085be0-11b6-42b0-9078-c61daa92aa13"}
+
+
+GOROUTINES WAIT (iDLE WHILE DB OR API CALLS), SERVICE (ACTUAL CPU WORK)
+
+wait / service is the ratio of time a goroutine spends blocked to time it spends on CPU.
+Breaking it down:
+
+service = T_s = your p95 job time = 3.3975s — the total time a goroutine is "alive" processing one job
+wait = the portion of that 3.3975s where the goroutine is blocked — sitting idle waiting on a DB query, Redis call, HTTP response from Monnify, etc.
+
+So if your job looks like this internally:
+|-- DB query (0.8s) --|-- Monnify API call (2.1s) --|-- DB write (0.5s) --|-- CPU work (0.5775s) --|
+        blocked                  blocked                    blocked               actually on CPU
+Then:
+wait    = 0.8 + 2.1 + 0.5  = 3.4s   (blocked on IO)
+service = 0.5775s                    (actual CPU time)
+wait/service = 3.4 / 0.5775 ≈ 5.88
+
+recommendedConcurrency = cores * (1 + 5.88) = 4 * 6.88 ≈ 27
+The intuition is: while one goroutine is blocked, the CPU is free — so you need enough goroutines queued up to keep all cores busy during those idle periods.
+
+Why you're using cores * 3 instead
+You don't have measured wait and service breakdowns yet, so cores * 3 implicitly assumes roughly a 2:1 wait-to-CPU ratio, which is a reasonable conservative guess for a payment/transfer service that hits a DB and an external API per job.
+If you ever instrument your jobs with tracing (OpenTelemetry, etc.), you can replace the * 3 with the real formula:
+gorecommendedConcurrency = int(float64(cfg.Machine.CPUCores) * (1 + waitTime/cpuTime))
+and make it exact.

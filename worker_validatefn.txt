@@ -1,0 +1,144 @@
+THIS IS THE GREP FUNCTION TO VALIDATE YOUR WORKER CONFIGURATIONS GIVING YOU THE P95, MIN, MAX VAKUES FROM YOUR LOGS TO CHECK AGAINST YOUR CALCULATIONS
+E.G: MAXWAIT(TOTAL TIME) was 30s, From the func === Total Time (ms) ===
+  avg: 16527.7
+  min: 1518
+  max: 125342
+  p95: 52388
+
+
+grep '"message":"internal transfer timing"' app.log | \
+
+sort -n | \
+
+awk '
+
+{
+
+    # Extract processing_ms
+
+    if (match($0, /"processing_ms":([0-9]+)/, arr)) {
+
+        p = arr[1] + 0
+
+        p_sum += p
+
+        p_vals[++p_count] = p
+
+        if (p > p_max) p_max = p
+
+        if (!p_min || p < p_min) p_min = p
+
+    }
+
+    # Extract queue_wait_ms
+
+    if (match($0, /"queue_wait_ms":([0-9]+)/, arr)) {
+
+        q = arr[1] + 0
+
+        q_sum += q
+
+        q_vals[++q_count] = q
+
+        if (q > q_max) q_max = q
+
+        if (!q_min || q < q_min) q_min = q
+
+    }
+
+    # Extract total_time_ms
+
+    if (match($0, /"total_time_ms":([0-9]+)/, arr)) {
+
+        t = arr[1] + 0
+
+        t_sum += t
+
+        t_vals[++t_count] = t
+
+        if (t > t_max) t_max = t
+
+        if (!t_min || t < t_min) t_min = t
+
+    }
+
+}
+
+END {
+
+    if (p_count == 0) { print "No data found"; exit }
+
+    # Sort all three arrays via shell
+
+    for (i = 1; i <= p_count; i++) printf "%s\n", p_vals[i] | "sort -n > /tmp/_p.txt"
+
+    close("sort -n > /tmp/_p.txt")
+
+    for (i = 1; i <= q_count; i++) printf "%s\n", q_vals[i] | "sort -n > /tmp/_q.txt"
+
+    close("sort -n > /tmp/_q.txt")
+
+    for (i = 1; i <= t_count; i++) printf "%s\n", t_vals[i] | "sort -n > /tmp/_t.txt"
+
+    close("sort -n > /tmp/_t.txt")
+
+    p95_p = int(p_count * 0.95 + 0.5)
+
+    p95_q = int(q_count * 0.95 + 0.5)
+
+    p95_t = int(t_count * 0.95 + 0.5)
+
+    i = 0
+
+    while ((getline line < "/tmp/_p.txt") > 0) if (++i == p95_p) p95_pval = line
+
+    close("/tmp/_p.txt")
+
+    i = 0
+
+    while ((getline line < "/tmp/_q.txt") > 0) if (++i == p95_q) p95_qval = line
+
+    close("/tmp/_q.txt")
+
+    i = 0
+
+    while ((getline line < "/tmp/_t.txt") > 0) if (++i == p95_t) p95_tval = line
+
+    close("/tmp/_t.txt")
+
+    print "=== Processing Time (ms) ==="
+
+    printf "  avg: %.1f\n",  p_sum / p_count
+
+    print "  min: " p_min
+
+    print "  max: " p_max
+
+    print "  p95: " p95_pval
+
+    print ""
+
+    print "=== Queue Wait (ms) ==="
+
+    printf "  avg: %.1f\n", q_sum / q_count
+
+    print "  min: " q_min
+
+    print "  max: " q_max
+
+    print "  p95: " p95_qval
+
+    print ""
+
+    print "=== Total Time (ms) ==="
+
+    printf "  avg: %.1f\n", t_sum / t_count
+
+    print "  min: " t_min
+
+    print "  max: " t_max
+
+    print "  p95: " p95_tval
+
+}
+'
