@@ -25,6 +25,7 @@ import (
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/hibiken/asynq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 	"google.golang.org/api/option"
 
@@ -122,6 +123,18 @@ func (b *AppBuilder) WithDB() *AppBuilder {
 	return b
 }
 
+func (b *AppBuilder) WithDBFromPool(pool *pgxpool.Pool) *AppBuilder {
+	if b.err != nil {
+		return b
+	}
+
+	b.deps.DB = &db.DB{
+		Pool: pool,
+	}
+
+	return b
+}
+
 func (b *AppBuilder) WithRedis() *AppBuilder {
 	if b.err != nil {
 		return b
@@ -136,6 +149,15 @@ func (b *AppBuilder) WithRedis() *AppBuilder {
 	})
 
 	b.err = b.deps.Redis.Ping(b.deps.Ctx).Err()
+	return b
+}
+
+func (b *AppBuilder) WithRedisFromClient(client *redis.Client) *AppBuilder {
+	if b.err != nil {
+		return b
+	}
+
+	b.deps.Redis = client
 	return b
 }
 

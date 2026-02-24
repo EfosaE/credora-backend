@@ -24,28 +24,20 @@ type EmailConfig struct {
 }
 
 type JobConfig struct {
-	// YAML-backed inputs.
-	// NOTE: processing_rate_per_sec holds the p95 service time in seconds
-	// (T_s) — i.e. how long one job takes end-to-end. The YAML key name is
-	// kept for backwards compatibility; internally it is always treated as T_s.
 	ServiceTimeSec       float64 `mapstructure:"processing_rate_per_job" validate:"gt=0"`
 	SafetyFactor         float64 `mapstructure:"safety_factor"           validate:"gt=0,lte=1"`
 	BacklogWindowSeconds int     `mapstructure:"backlog_window_seconds"  validate:"gt=0"`
 	QueueName            string  `mapstructure:"queue_name"              validate:"required"`
 
-	// Derived — computed by computeJobCapacity, never read from YAML/ENV.
-	HWCeilingPerSec    float64 `mapstructure:"-" validate:"gt=0"` // μ_max  = cores / T_s
-	RateLimitPerMinute int     `mapstructure:"-" validate:"gt=0"` // floor(sustainable/sec * 60)
-	QueueMaxSize       int     `mapstructure:"-" validate:"gt=0"` // floor(μ_max * backlog_window)
+	HWCeilingPerSec    float64 `mapstructure:"-" validate:"gt=0"`
+	RateLimitPerMinute int     `mapstructure:"-" validate:"gt=0"`
+	QueueMaxSize       int     `mapstructure:"-" validate:"gt=0"`
 }
 
 type WorkerConfig struct {
-	ConcurrencyLimit int `mapstructure:"concurrency_limit" validate:"gt=0"`
-	Replicas         int `mapstructure:"replicas"          validate:"gt=0"`
-	// NOTE: do not use validate:"required" on bool — validator treats false
-	// as "not set" and will fail. Use *bool if you need to distinguish
-	// "unset" from false.
-	StrictPriority bool `mapstructure:"strict_priority"`
+	ConcurrencyLimit int  `mapstructure:"concurrency_limit" validate:"gt=0"`
+	Replicas         int  `mapstructure:"replicas"          validate:"gt=0"`
+	StrictPriority   bool `mapstructure:"strict_priority"`
 }
 
 type MachineConfig struct {
@@ -99,7 +91,7 @@ type Config struct {
 
 /*
 |--------------------------------------------------------------------------
-| Global app config
+| Global app config — still accessible as config.App from other packages
 |--------------------------------------------------------------------------
 */
 
@@ -111,7 +103,14 @@ var App Config
 |--------------------------------------------------------------------------
 */
 
-func Load() {
+// Load reads all configuration sources, assigns the result to the global
+// App variable, and returns a pointer to it.
+//
+// Usage:
+//
+//	cfg := config.Load()   // bind locally in main
+//	config.App.Port        // global access in any other package
+func Load() Config {
 	// 1. Load .env (optional in prod)
 	_ = godotenv.Load()
 
@@ -183,6 +182,8 @@ func Load() {
 	validateConfig(App)
 
 	log.Println("✅ configuration loaded successfully")
+
+	return App
 }
 
 /*
@@ -192,60 +193,27 @@ func Load() {
 */
 
 func computeJobCapacity(cfg *Config) {
-	// T_s: p95 service time per job in seconds.
-	ts := cfg.Job.ServiceTimeSec // e.g. 3.3975 s/job
+	ts := cfg.Job.ServiceTimeSec
+	cores := float64(cfg.Machine.CPUCores)
 
-	cores := float64(cfg.Machine.CPUCores) // e.g. 4
-
-	// μ_max = C / T_s — the physical throughput ceiling of this machine.
-	// No amount of goroutines or replicas can exceed this for CPU-bound work.
-	// e.g. 4 / 3.3975 = 1.1775 jobs/sec
 	hwCeilingPerSec := cores / ts
 	cfg.Job.HWCeilingPerSec = hwCeilingPerSec
 
-	// Effective sustainable rate depends on job bound type:
-	//
-	// cpu-bound: goroutines beyond (cores/replicas) add context-switch
-	//            overhead with zero throughput gain. Hard-cap at μ_max.
-	//
-	// io-bound:  goroutines block on network/DB/Redis while the CPU is free,
-	//            so concurrency above cores IS beneficial. The real ceiling is
-	//            downstream saturation (DB connections, Redis bandwidth), not
-	//            CPU. We use μ_max as a conservative anchor and do not clamp
-	//            below it.
-	//
-	// In both cases the anchor is hwCeilingPerSec — for cpu the cap is hard,
-	// for io it is a floor-safe reference point.
 	var effectiveRatePerSec float64
 	if cfg.Machine.JobBound == "cpu" {
-		effectiveRatePerSec = math.Min(hwCeilingPerSec, hwCeilingPerSec) // hard cap at ceiling
+		effectiveRatePerSec = math.Min(hwCeilingPerSec, hwCeilingPerSec)
 	} else {
-		effectiveRatePerSec = hwCeilingPerSec // io-bound: ceiling is the anchor, not a hard cap
+		effectiveRatePerSec = hwCeilingPerSec
 	}
 
-	// Apply safety factor to leave headroom for GC pauses, retry spikes,
-	// and p99 tail latency exceeding p95.
-	// e.g. 1.1775 * 0.85 = 1.0009 jobs/sec
 	sustainablePerSec := effectiveRatePerSec * cfg.Job.SafetyFactor
-
-	// RateLimitPerMinute: what we advertise to the HTTP rate limiter.
-	// e.g. floor(1.0009 * 60) = 60 req/min
 	cfg.Job.RateLimitPerMinute = int(sustainablePerSec * 60)
-
-	// QueueMaxSize: maximum backlog depth before new jobs are rejected.
-	// = μ_max * W_q_max  (how many jobs fit inside the acceptable wait budget)
-	// e.g. floor(1.1775 * 20) = 23 jobs
 	cfg.Job.QueueMaxSize = int(hwCeilingPerSec * float64(cfg.Job.BacklogWindowSeconds))
 
-	// Concurrency sanity check — auto-correct and warn if over- or under-provisioned.
 	var recommendedConcurrency int
 	if cfg.Machine.JobBound == "cpu" {
-		// Ideal: one goroutine per core per replica. Beyond this you pay
-		// context-switch cost with no throughput gain.
 		recommendedConcurrency = max(cfg.Machine.CPUCores/cfg.Worker.Replicas, 1)
 	} else {
-		// IO-bound rule of thumb: concurrency ≈ cores * (1 + wait/service). Go to the lesson notes.txt to undertsnd what this is line 18
-		// Without measuring wait time, cores*3 is a practical starting point.
 		recommendedConcurrency = cfg.Machine.CPUCores * 3
 	}
 
@@ -299,8 +267,6 @@ func validateConfig(cfg Config) {
 	if err := validate.Struct(cfg); err != nil {
 		panic(fmt.Errorf("config validation failed: %w", err))
 	}
-	// All constraints (including derived fields) are expressed via struct tags.
-	// No manual checks needed.
 }
 
 /*
@@ -316,8 +282,6 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// mustEnv panics instead of log.Fatalf so the compiler correctly treats
-// every call site as a termination point — no dead return needed.
 func mustEnv(key string) string {
 	value := viper.GetString(key)
 	if value == "" {

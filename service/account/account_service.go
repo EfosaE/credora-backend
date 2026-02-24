@@ -16,14 +16,14 @@ import (
 type AccountService struct {
 	AcctRepo account.AccountRepository
 	logger   zerolog.Logger
-	eventBus event.EventBus
+	EventBus event.EventBus
 }
 
 func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger, eventBus event.EventBus) *AccountService {
 	return &AccountService{
 		AcctRepo: acctRepo,
 		logger:   logger,
-		eventBus: eventBus,
+		EventBus: eventBus,
 	}
 }
 
@@ -68,7 +68,7 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 
 	consumer := utils.WorkerID("account")
 
-	return a.eventBus.Subscribe(
+	return a.EventBus.Subscribe(
 		ctx,
 		event.StreamUserEvents,
 		"account-service-group",

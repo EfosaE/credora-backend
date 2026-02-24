@@ -14,6 +14,7 @@ type User struct {
 	Balance   string    `json:"balance"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	Password  string    `json:"-"`
 }
 
 type CreateUserRequest struct {

@@ -13,10 +13,10 @@ import (
 )
 
 func main() {
-	config.Load()
+	cfg := config.Load()
 
 	// Build dependencies using DI
-	builder := app.NewAppBuilder(config.App)
+	builder := app.NewAppBuilder(cfg)
 	deps, err := builder.BuildForServer()
 	if err != nil {
 		log.Fatal("Failed to initialize dependencies:", err)

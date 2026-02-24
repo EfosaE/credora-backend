@@ -14,7 +14,6 @@ import (
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
-	// "github.com/EfosaE/credora-backend/domain/user"
 )
 
 type AuthService struct {
@@ -40,11 +39,11 @@ func NewAuthService(txManager infrastructure.TxManager, userRepo user.UserReposi
 func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (*account.GetUserDetailsWithAccountRow, string, error) {
 	u, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
 	if err != nil {
-		return &account.GetUserDetailsWithAccountRow{}, "", fmt.Errorf("login: %w", domainerr.ErrUserNotFound)
+		return nil, "", fmt.Errorf("login: %w", domainerr.ErrUserNotFound)
 	}
 
 	if !CheckPasswordHash(password, u.Password) {
-		return &account.GetUserDetailsWithAccountRow{}, "", domainerr.ErrInvalidCredentials
+		return nil, "", domainerr.ErrInvalidCredentials
 	}
 
 	token, err := s.tokenService.GenerateToken(ctx, auth.TokenPayload{
@@ -53,7 +52,7 @@ func (s *AuthService) Login(ctx context.Context, accountNumber, password string)
 		Name:          u.FullName,
 	})
 	if err != nil {
-		return &account.GetUserDetailsWithAccountRow{}, "", fmt.Errorf("login: %w", err)
+		return nil, "", fmt.Errorf("login: %w", err)
 	}
 
 	return u, token, nil

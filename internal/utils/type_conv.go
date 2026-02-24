@@ -111,6 +111,11 @@ func NewPgNumericFromString(s string) pgtype.Numeric {
 	return n
 }
 
+func MustStringToDecimal(value string) decimal.Decimal {
+	d, _ := decimal.NewFromString(value)
+	return d
+}
+
 // TimeToPgTimestamp converts time.Time to pgtype.Timestamp (NOT NULL)
 func TimeToPgTimestamp(t time.Time) pgtype.Timestamp {
 	return pgtype.Timestamp{

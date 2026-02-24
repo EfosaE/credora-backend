@@ -1,56 +1,164 @@
-// File: mocks/mock_account_repo.go
-
 package mocks
 
 import (
 	"context"
+	"errors"
 
 	"github.com/EfosaE/credora-backend/domain/account"
-	"github.com/jackc/pgx/v5"
+	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	"github.com/google/uuid"
+
+	// "github.com/EfosaE/credora-backend/domain/user"
+	// "github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
+
+
 type MockAcctRepo struct {
-	CreateFunc               func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
-	CreditFunc               func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
-	DebitFunc                func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
-	GetAccountForUpdateFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)      // NEW
-	GetAccountsForUpdateFunc func(ctx context.Context, accountNumbers []string) ([]*account.Account, error) // NEW
-	GetAccountByAcctNumFunc  func(ctx context.Context, accountNumber string) (*account.Account, error)
-	Accounts                 map[int]*account.Account
-	Txm                      func() pgx.Tx
+	// Optional overrides
+	CreateAcctFunc                func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
+	GetUserByAccountNumberFunc    func(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error)
+	GetAccountByAccountNumberFunc func(ctx context.Context, accountNumber string) (*account.Account, error)
+	CreditFunc                    func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+	DebitFunc                     func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
+
+	// In-memory storage (default behavior)
+	Accounts map[string]*account.Account
+	// Users    map[uuid.UUID]*user.User
 }
 
-// Tx implements account.AccountTx.
-func (m *MockAcctRepo) Tx() pgx.Tx {
-	return m.Txm()
+func (m *MockAcctRepo) CreateAcct(
+	ctx context.Context,
+	req *account.CreateAccountRequest,
+) (*account.Account, error) {
+
+	if m.CreateAcctFunc != nil {
+		return m.CreateAcctFunc(ctx, req)
+	}
+
+	if m.Accounts == nil {
+		m.Accounts = make(map[string]*account.Account)
+	}
+
+	acct := &account.Account{
+		UserId:        req.UserId.String(),
+		AccountNumber: req.AccountNumber,
+		UserName:      req.Username,
+		AccountType:   req.AccountType,
+		BankName:      req.BankName,
+	}
+
+	m.Accounts[req.AccountNumber] = acct
+	// m.Users[req.UserId] = &user.User{
+	// 	ID:       req.UserId,
+	// 	Password: "test",
+	// }
+
+	return acct, nil
 }
 
-func (m *MockAcctRepo) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
-	return m.CreateFunc(ctx, req)
+func (m *MockAcctRepo) GetAccountByAccountNumber(
+	ctx context.Context,
+	accountNumber string,
+) (*account.Account, error) {
+
+	if m.GetAccountByAccountNumberFunc != nil {
+		return m.GetAccountByAccountNumberFunc(ctx, accountNumber)
+	}
+
+	if m.Accounts == nil {
+		return nil, errors.New("no accounts in mock")
+	}
+
+	acct, ok := m.Accounts[accountNumber]
+	if !ok {
+		return nil, errors.New("account not found")
+	}
+
+	return acct, nil
 }
 
-func (m *MockAcctRepo) GetUserByAccountNumber(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error) {
-	return nil, nil // implement if needed later
+func (m *MockAcctRepo) GetUserByAccountNumber(
+	ctx context.Context,
+	accountNumber string,
+) (*account.GetUserDetailsWithAccountRow, error) {
+
+	if m.GetUserByAccountNumberFunc != nil {
+		return m.GetUserByAccountNumberFunc(ctx, accountNumber)
+	}
+
+	if m.Accounts == nil {
+		return nil, errors.New("no accounts in mock")
+	}
+
+	acct, ok := m.Accounts[accountNumber]
+	if !ok {
+		return nil, errors.New("account not found")
+	}
+
+	hash, _ := authsvc.HashPassword(CorrectPassword)
+	return &account.GetUserDetailsWithAccountRow{
+		UserId:        uuid.MustParse(acct.UserId),
+		AccountNumber: acct.AccountNumber,
+		FullName:      acct.UserName,
+		Password:      hash,
+	}, nil
 }
 
-func (m *MockAcctRepo) CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
-	return m.CreditFunc(ctx, amount, accountNumber)
+func (m *MockAcctRepo) CreditAccount(
+	ctx context.Context,
+	amount decimal.Decimal,
+	accountNumber string,
+) (*account.CreditAcctResp, error) {
+
+	if m.CreditFunc != nil {
+		return m.CreditFunc(ctx, amount, accountNumber)
+	}
+
+	acct, ok := m.Accounts[accountNumber]
+	if !ok {
+		return nil, errors.New("account not found")
+	}
+
+	newBalance := acct.Balance.Add(amount)
+	acct.Balance = newBalance
+
+	return &account.CreditAcctResp{
+		AcctId:  acct.ID,
+		Balance: newBalance,
+	}, nil
 }
 
-func (m *MockAcctRepo) DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
-	return m.DebitFunc(ctx, amount, accountNumber)
-}
+func (m *MockAcctRepo) DebitAccount(
+	ctx context.Context,
+	amount decimal.Decimal,
+	accountNumber string,
+) (*account.CreditAcctResp, error) {
 
-func (m *MockAcctRepo) GetAccountByAccountNumber(ctx context.Context, accountNumber string) (*account.Account, error) {
-	return m.GetAccountByAcctNumFunc(ctx, accountNumber)
+	if m.DebitFunc != nil {
+		return m.DebitFunc(ctx, amount, accountNumber)
+	}
+
+	acct, ok := m.Accounts[accountNumber]
+	if !ok {
+		return nil, errors.New("account not found")
+	}
+
+	newBalance := acct.Balance.Sub(amount)
+	acct.Balance = newBalance
+
+	return &account.CreditAcctResp{
+		AcctId:  acct.ID,
+		Balance: newBalance,
+	}, nil
 }
 
 // GetAccountForUpdate mocks row locking inside a transaction
 func (m *MockAcctRepo) GetAccountForUpdate(ctx context.Context, accountNumber string) (*account.Account, error) {
-	if m.GetAccountForUpdateFunc != nil {
-		return m.GetAccountForUpdateFunc(ctx, accountNumber)
-	}
+	// if m.GetAccountForUpdateFunc != nil {
+	// 	return m.GetAccountForUpdateFunc(ctx, accountNumber)
+	// }
 	// Default behavior: return a dummy account or look up from the map
 	for _, acct := range m.Accounts {
 		if acct.AccountNumber == accountNumber {
@@ -61,8 +169,8 @@ func (m *MockAcctRepo) GetAccountForUpdate(ctx context.Context, accountNumber st
 }
 
 func (m *MockAcctRepo) GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*account.Account, error) {
-	if m.GetAccountsForUpdateFunc != nil {
-		return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
-	}
+	// if m.GetAccountsForUpdateFunc != nil {
+	// 	return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
+	// }
 	return nil, nil
 }

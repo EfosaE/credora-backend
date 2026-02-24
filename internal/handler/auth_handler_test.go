@@ -74,6 +74,6 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	json.NewDecoder(res.Body).Decode(&resp)
 	utils.PrintJSON(resp)
 
-	assert.Equal(t, "User created successfully", resp["message"])
+	assert.Equal(t, "The account details have been sent to your email, Login with it to verify your email", resp["message"])
 	assert.NotNil(t, resp["data"])
 }

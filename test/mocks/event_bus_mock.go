@@ -8,15 +8,25 @@ import (
 )
 
 type MockEventBus struct {
-	mu             sync.Mutex
-	Published      []PublishedEvent
-	Subscribed     []Subscription
-	HandlerInvoked bool
+	mu sync.Mutex
+
+	// Optional function overrides (for table-driven tests)
+	PublishFunc   func(ctx context.Context, topic string, eventType string, payload map[string]any) error
+	SubscribeFunc func(ctx context.Context, topic, group, consumer string,
+		handler func(ctx context.Context, msg event.EventMessage) error) error
+
+	// Tracking
+	Published  []PublishedEvent
+	Subscribed []Subscription
+
+	// Captured handlers by topic
+	Handlers map[string]func(ctx context.Context, msg event.EventMessage) error
 }
 
 type PublishedEvent struct {
-	Topic   string
-	Payload map[string]any
+	Topic     string
+	EventType string
+	Payload   map[string]any
 }
 
 type Subscription struct {
@@ -25,21 +35,45 @@ type Subscription struct {
 	Consumer string
 }
 
-func (m *MockEventBus) Publish(ctx context.Context, topic string, eventType string, payload map[string]any) error {
+func (m *MockEventBus) Publish(
+	ctx context.Context,
+	topic string,
+	eventType string,
+	payload map[string]any,
+) error {
+	if m.PublishFunc != nil {
+		return m.PublishFunc(ctx, topic, eventType, payload)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.Published = append(m.Published, PublishedEvent{
-		Topic:   topic,
-		Payload: payload,
+		Topic:     topic,
+		EventType: eventType,
+		Payload:   payload,
 	})
 
 	return nil
 }
 
-func (m *MockEventBus) Subscribe(ctx context.Context, topic, group, consumer string, handler func(ctx context.Context, msg event.EventMessage) error) error {
+func (m *MockEventBus) Subscribe(
+	ctx context.Context,
+	topic, group, consumer string,
+	handler func(ctx context.Context, msg event.EventMessage) error,
+) error {
+
+	// If override provided, use it
+	if m.SubscribeFunc != nil {
+		return m.SubscribeFunc(ctx, topic, group, consumer, handler)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if m.Handlers == nil {
+		m.Handlers = make(map[string]func(context.Context, event.EventMessage) error)
+	}
 
 	m.Subscribed = append(m.Subscribed, Subscription{
 		Topic:    topic,
@@ -47,8 +81,7 @@ func (m *MockEventBus) Subscribe(ctx context.Context, topic, group, consumer str
 		Consumer: consumer,
 	})
 
-	// You can simulate handler invocation in tests if needed
-	m.HandlerInvoked = true
+	m.Handlers[topic] = handler
 
 	return nil
 }

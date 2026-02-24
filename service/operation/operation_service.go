@@ -91,9 +91,6 @@ func (s *OperationService) InternalTransfer(
 			accountMap[acc.AccountNumber] = acc
 		}
 
-		fmt.Println("From Operation service")
-		utils.PrintJSON(accountMap)
-
 		fromAcct, ok := accountMap[from]
 		if !ok {
 			return fmt.Errorf("from account %s not found", from)

@@ -142,3 +142,23 @@ END {
 
 }
 '
+
+
+Latest
+=== Processing Time (ms) ===
+  avg: 2968.5
+  min: 1211
+  max: 66717
+  p95: 7111
+
+=== Queue Wait (ms) ===
+  avg: 1367.7
+  min: 190
+  max: 91174
+  p95: 1233
+
+=== Total Time (ms) ===
+  avg: 4610.6
+  min: 1566
+  max: 171990
+  p95: 9325
