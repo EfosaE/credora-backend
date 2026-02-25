@@ -3,11 +3,11 @@ package infrastructure
 //FIREBASE CLOUD MESSGING FOR SENDING NOTIFICATIONS TO MOBILE APPS
 import (
 	"context"
-	"fmt"
+	// "fmt"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
-	"github.com/EfosaE/credora-backend/internal/utils"
+	// "github.com/EfosaE/credora-backend/internal/utils"
 )
 
 type FCMAdapter struct {
@@ -29,8 +29,8 @@ func (f *FCMAdapter) SendPushNotification(
 	payload map[string]string,
 ) error {
 
-	fmt.Println("SENDING TO MOBILE....")
-	utils.PrintJSON(payload)
+	// fmt.Println("SENDING TO MOBILE....")
+	// utils.PrintJSON(payload)
 
 	// client, err := f.app.Messaging(ctx)
 	// if err != nil {

@@ -32,12 +32,12 @@ func InitDB(ctx context.Context) (*DB, error) {
 	}
 
 	// Explicit pool configuration (IMPORTANT)
-	cfg.MinConns = 2
-	cfg.MaxConns = 8
+	cfg.MinConns = 10
+	cfg.MaxConns = 25
 	cfg.MaxConnLifetime = time.Hour
 	cfg.MaxConnIdleTime = 30 * time.Minute
 
-	fmt.Println("🛢️  Initializing PostgreSQL connection pool...")
+	fmt.Println("...Initializing PostgreSQL connection pool...")
 	fmt.Printf("   ➜ MinConns: %d\n", cfg.MinConns)
 	fmt.Printf("   ➜ MaxConns: %d\n", cfg.MaxConns)
 	fmt.Printf("   ➜ MaxConnLifetime: %s\n", cfg.MaxConnLifetime)

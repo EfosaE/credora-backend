@@ -1,42 +1,80 @@
 package handler
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
+	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/hibiken/asynq"
 )
 
 type HealthHandler struct {
-	redis *redis.Client
+	inspector     *asynq.Inspector
+	queueName     string
+	queueCapacity int
+	startTime     time.Time
 }
 
-func NewHealthHandler(redis *redis.Client) *HealthHandler {
-	return &HealthHandler{redis: redis}
+func NewHealthHandler(inspector *asynq.Inspector, queueName string, queueCapacity int) *HealthHandler {
+	return &HealthHandler{
+		inspector:     inspector,
+		queueName:     queueName,
+		queueCapacity: queueCapacity,
+		startTime:     time.Now(),
+	}
+}
+
+type healthData struct {
+	Status        string `json:"status"`
+	PendingJobs   int    `json:"pending_jobs"`
+	ActiveJobs    int    `json:"active_jobs"`
+	QueueCapacity int    `json:"queue_capacity"`
+	UptimeSeconds int64  `json:"uptime_seconds"`
 }
 
 // Liveness — app is running
 func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "ok",
-	})
+	response.SendSuccess(w, r, response.OK(
+		response.Obj("status", "ok"),
+		nil,
+		"Service is alive",
+	))
 }
 
-// Readiness — app + Redis are ready
+// Readiness — app + queue state for load testing visibility
 func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-
-	resp := make(map[string]string)
-
-	// Check Redis
-	if _, err := h.redis.Ping(ctx).Result(); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		resp["redis"] = "down"
-		json.NewEncoder(w).Encode(resp)
+	info, err := h.inspector.GetQueueInfo(h.queueName)
+	if err != nil {
+		data, err := utils.StructToMap(healthData{
+			Status:        "degraded",
+			QueueCapacity: h.queueCapacity,
+			UptimeSeconds: int64(time.Since(h.startTime).Seconds()),
+		})
+		if err != nil {
+			response.SendError(w, r, response.InternalServerError(err, err.Error()))
+			return
+		}
+		response.SendSuccess(w, r, response.OK(data, nil, "Queue unavailable"))
 		return
 	}
 
-	resp["redis"] = "ok"
-	json.NewEncoder(w).Encode(resp)
+	status := "ok"
+	if (info.Pending + info.Active) >= h.queueCapacity {
+		status = "degraded"
+	}
+
+	data, err := utils.StructToMap(healthData{
+		Status:        status,
+		PendingJobs:   info.Pending,
+		ActiveJobs:    info.Active,
+		QueueCapacity: h.queueCapacity,
+		UptimeSeconds: int64(time.Since(h.startTime).Seconds()),
+	})
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(data, nil, "Service is ready"))
 }

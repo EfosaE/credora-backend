@@ -105,9 +105,7 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 
 	startedAt := time.Now()
 	queuedAt := time.Unix(0, payload.QueuedAt)
-
 	queueWait := startedAt.Sub(queuedAt)
-
 	p := payload.Req
 
 	h.logger.Info().
@@ -119,21 +117,25 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 		Msg("processing internal transfer")
 
 	err := h.OperationSvc.InternalTransfer(ctx, p)
-	finishedAt := time.Now()
-	processingTime := finishedAt.Sub(startedAt)
-	totalTime := finishedAt.Sub(queuedAt)
-	h.logger.Info().
-		Str("task", "HandleInternalTransfer").
-		Str("from", p.FromAcctNum).
-		Str("to", p.ToAcctNum).
-		Int64("queue_wait_ms", queueWait.Milliseconds()).
-		Int64("processing_ms", processingTime.Milliseconds()).
-		Int64("total_time_ms", totalTime.Milliseconds()).
-		Msg("internal transfer timing")
+	logTiming := func(failed bool) {
+		processing := time.Since(startedAt)
+		total := time.Since(queuedAt)
+
+		h.logger.Info().
+			Str("task", "HandleInternalTransfer").
+			Str("from", p.FromAcctNum).
+			Str("to", p.ToAcctNum).
+			Int64("queue_wait_ms", queueWait.Milliseconds()).
+			Int64("processing_ms", processing.Milliseconds()).
+			Int64("total_time_ms", total.Milliseconds()).
+			Bool("failed", failed).
+			Msg("internal transfer timing")
+	}
 
 	if err != nil {
 		switch {
 		case errors.Is(err, operation.ErrInsufficientFunds):
+			logTiming(true)
 			h.logger.Info().
 				Str("task", "HandleInternalTransfer").
 				Str("from", p.FromAcctNum).
@@ -141,14 +143,16 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 			return nil
 
 		case errors.Is(err, operation.ErrAccountNotFound):
+			logTiming(true)
 			h.logger.Info().
 				Str("task", "HandleInternalTransfer").
 				Str("from", p.FromAcctNum).
 				Str("to", p.ToAcctNum).
 				Msg("transfer failed - account not found")
 			return nil
-		// like lock errors
+
 		default:
+			logTiming(true)
 			h.logger.Error().
 				Err(err).
 				Str("task", "HandleInternalTransfer").
@@ -159,12 +163,7 @@ func (h *Handlers) HandleInternalTransfer(ctx context.Context, t *asynq.Task) er
 		}
 	}
 
-	// h.logInfo("internal transfer completed successfully", map[string]any{
-	// 	"from":   p.FromAcctNum,
-	// 	"to":     p.ToAcctNum,
-	// 	"amount": p.Amount.String(),
-	// })
-
+	logTiming(false)
 	return nil
 }
 

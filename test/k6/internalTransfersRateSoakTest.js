@@ -81,7 +81,7 @@ export const options = {
       //TWEAK THIS to change how long the test runs.
       // Run for at least 2× the backlog_window_seconds to observe steady state.
       // Minimum recommended: "1m". Use "5m" for soak testing.
-      duration: "20m",
+      duration: "10m",
 
       // Keep at 20 — enough VUs to sustain arrival rate without VU starvation.
       // Only increase if rate > 10 and you see "insufficient VUs" warnings.

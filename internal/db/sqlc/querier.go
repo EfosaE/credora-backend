@@ -35,6 +35,7 @@ type Querier interface {
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
 	SaveIdempotencyFailure(ctx context.Context, idemKey string) error
 	SaveIdempotencySuccess(ctx context.Context, idemKey string) error
+	TransferMoneyInternal(ctx context.Context, arg TransferMoneyInternalParams) (TransferMoneyInternalRow, error)
 	UpdateIdempotencyStatus(ctx context.Context, arg UpdateIdempotencyStatusParams) error
 	UpdatePasswordResetUsedAt(ctx context.Context, arg UpdatePasswordResetUsedAtParams) error
 	UpdateUserFullNameAndEmail(ctx context.Context, arg UpdateUserFullNameAndEmailParams) (User, error)

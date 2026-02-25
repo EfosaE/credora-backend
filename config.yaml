@@ -10,7 +10,7 @@ job:
 worker:
   concurrency_limit: 4
   strict_priority: true
-  replicas: 2
+  replicas: 1
 machine:
   cpu_cores: 4 # physical cores, set explicitly (don't blindly trust runtime.NumCPU on shared infra)
   job_bound: "io" # "cpu" or "io"

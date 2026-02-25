@@ -1,8 +1,11 @@
 package main
 
 import (
+	"math/rand"
+	"strings"
+	"time"
+
 	app "github.com/EfosaE/credora-backend/di"
-	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/queues"
 
@@ -20,11 +23,7 @@ func main() {
 		panic(err)
 	}
 
-	l := logger.Get()
-
-	workerLogger := l.With().
-		Str("component", "worker").
-		Logger()
+	workerLogger := deps.Logger
 
 	if deps.EmailSvc == nil {
 		workerLogger.Fatal().Msg("EmailSvc is nil — check BuildForWorker()")
@@ -51,6 +50,16 @@ func main() {
 				"critical": 6,
 				"default":  3,
 				"low":      1,
+			},
+			RetryDelayFunc: func(n int, err error, t *asynq.Task) time.Duration {
+				if strings.Contains(err.Error(), "could not obtain lock") {
+					// Give the competing transaction time to commit
+					// n=1 → 400-700ms, n=2 → 800-1200ms, n=3 → default
+					base := time.Duration(300+n*200) * time.Millisecond
+					jitter := time.Duration(rand.Intn(300)) * time.Millisecond
+					return base + jitter
+				}
+				return asynq.DefaultRetryDelayFunc(n, err, t)
 			},
 			StrictPriority: config.App.Worker.StrictPriority,
 		},

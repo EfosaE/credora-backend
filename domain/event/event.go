@@ -25,14 +25,16 @@ type UserCreatedEvent struct {
 }
 
 type InternalTransferEvent struct {
-	TransferID    string //Should be the transaction reference
-	FromAcctNum   string
-	RecipientName string
-	SenderName    string
-	ToAcctNum     string
-	ToAcctUserId  uuid.UUID
-	Amount        decimal.Decimal
-	OccurredAt    time.Time
+	FromAcctId     uuid.UUID
+	ToAcctId       uuid.UUID
+	FromAcctNum    string
+	RecipientName  string
+	SenderName     string
+	ToAcctNum      string
+	ToAcctUserId   uuid.UUID
+	Amount         decimal.Decimal
+	OccurredAt     time.Time
+	TransactionRef string
 }
 
 type EventMessage struct {

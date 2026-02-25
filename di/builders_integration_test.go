@@ -28,7 +28,7 @@ func TestAppBuilder_BuildVariants(t *testing.T) {
 			name: "BuildForServer",
 			buildFn: func(b *app.AppBuilder) (*app.AppDependencies, error) {
 				return b.
-					WithLogger().
+					WithLogger("server").
 					WithDBFromPool(dbPool).
 					WithRedisFromClient(redisClient).
 					WithEventBus().

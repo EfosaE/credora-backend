@@ -13,7 +13,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
     deploy:
-      replicas: 2
+      replicas: 3
 
   redis:
     container_name: redis

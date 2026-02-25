@@ -35,7 +35,6 @@ func TestMonnifyWebhook_IdempotencyRecorded(t *testing.T) {
 	mockEvtBus := &mocks.MockEventBus{}
 	testLogger := test.SetupTestLogger()
 
-
 	// ----- Setup dependencies -----
 	idemRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
 	acctRepo := infrastructure.NewSqlcAccountRepository(pool)
@@ -44,7 +43,7 @@ func TestMonnifyWebhook_IdempotencyRecorded(t *testing.T) {
 
 	idemSvc := idempotencysvc.NewIdempotencyService(idemRepo)
 	acctSvc := accountsvc.NewAccountService(acctRepo, testLogger, mockEvtBus)
-	trxSvc := transactionsvc.NewTransactionService(trxRepo, testLogger)
+	trxSvc := transactionsvc.NewTransactionService(trxRepo, testLogger, mockEvtBus)
 	mockMonnifyRepo := &mocks.MockMonnifyRepo{}
 	monnifySvc := &service.MonnifyService{
 		MonnifyRepo: mockMonnifyRepo,

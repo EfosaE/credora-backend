@@ -39,7 +39,7 @@ const SYSTEM = {
   // p95 service time — how long one job takes end-to-end.
   // Used to set realistic http_req_duration thresholds.
   // Unit: seconds
-  SERVICE_TIME_P95_SEC: 3.3975,
+  SERVICE_TIME_P95_SEC: 3.3975, // NOTE this has been improved now at 1.4s
 
   // Maximum jobs that can queue before the system starts rejecting (503).
   // Mirrors job.queue_max_size from config.go.
@@ -73,19 +73,19 @@ export const options = {
       // 1  = baseline (sustainable, no queue buildup expected)
       // 2  = stress   (at ceiling, some 503s expected)
       // 4+ = spike    (above ceiling, backpressure kicks in, 503s guaranteed)
-      rate: 1,
+      rate: 2,
 
       timeUnit: "1s",
 
       // ✏️  TWEAK THIS to change how long the test runs.
       // Run for at least 2× the backlog_window_seconds to observe steady state.
       // Minimum recommended: "1m". Use "5m" for soak testing.
-      duration: "2m",
+      duration: "3m",
 
       // Keep at 20 — enough VUs to sustain arrival rate without VU starvation.
       // Only increase if rate > 10 and you see "insufficient VUs" warnings.
-      preAllocatedVUs: 20,
-      maxVUs: 100,
+      preAllocatedVUs: 100,
+      maxVUs: 400,
     },
   },
 
@@ -122,7 +122,7 @@ export const options = {
 const users = new SharedArray("users", () => {
   const allUsers = JSON.parse(open("./k6_users_accounts.json"));
   //  Increase this cap if you have more seeded users and want more variety.
-  return allUsers.slice(0, 100);
+  return allUsers.slice(0, 500);
 });
 
 /*
@@ -186,17 +186,20 @@ export function setup() {
 
 export default function (sessions) {
   // Pick a random sender
-  const session = sessions[Math.floor(Math.random() * sessions.length)];
+  const senderIndex = Math.floor(Math.random() * sessions.length);
+  const sender = sessions[senderIndex];
 
-  // Pick a recipient that is not the sender
-  let recipient;
-  do {
-    recipient = sessions[Math.floor(Math.random() * sessions.length)];
-  } while (recipient.account_number === session.account_number);
+  // Pick a recipient efficiently (avoid the sender)
+  // Trick: pick a random index in 0..n-2, then map it to the real array
+  const n = sessions.length;
+  const recipientIndex = Math.floor(Math.random() * (n - 1));
+  const recipient =
+    recipientIndex >= senderIndex
+      ? sessions[recipientIndex + 1]
+      : sessions[recipientIndex];
 
-  // ✏️  Adjust amount range to match your test account balances.
-  // Current range: 50–550 NGN.
-  const amount = Math.floor(Math.random() * 500) + 50;
+  // Random amount (100–549 NGN)
+  const amount = Math.floor(Math.random() * 450) + 100;
 
   const payload = JSON.stringify({
     toAccount: recipient.account_number,
@@ -212,38 +215,31 @@ export default function (sessions) {
     {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
-        // Unique per request — mirrors production idempotency behaviour.
+        Authorization: `Bearer ${sender.accessToken}`,
         "Idempotency-Key": uuidv4(),
       },
-      // Timeout slightly above worst-case: backlog_window + T_s + buffer
       timeout: `${(SYSTEM.RETRY_AFTER_SEC + SYSTEM.SERVICE_TIME_P95_SEC + 5) * 1000}ms`,
     },
   );
 
   const accepted = check(res, {
-    // 202 = job enqueued successfully
     "transfer accepted (202)": (r) => r.status === 202,
   });
 
   if (!accepted) {
     if (res.status === 503) {
-      // Backpressure fired — log the headers so you can verify the middleware
-      // is returning correct Retry-After and X-RateLimit-Reset values.
       const retryAfter = res.headers["Retry-After"];
       const resetAt = res.headers["X-RateLimit-Reset"];
       console.warn(
-        `[BACKPRESSURE] 503 received — Retry-After: ${retryAfter}s, X-RateLimit-Reset: ${resetAt} | sender: ${session.account_number}`,
+        `[BACKPRESSURE] 503 — Retry-After: ${retryAfter}s, X-RateLimit-Reset: ${resetAt} | sender: ${sender.account_number}`,
       );
     } else if (res.status === 429) {
-      // HTTP rate limiter fired (separate from backpressure).
-      // Means arrival rate exceeded rate_limit_per_minute from config.
       console.warn(
-        `[RATE LIMITED] 429 received — arrival rate exceeds ${SYSTEM.SUSTAINABLE_RPS} rps | sender: ${session.account_number}`,
+        `[RATE LIMITED] 429 — arrival rate exceeds ${SYSTEM.SUSTAINABLE_RPS} rps | sender: ${sender.account_number}`,
       );
     } else {
       console.error(
-        `[FAILED] status: ${res.status} | body: ${res.body} | sender: ${session.account_number}`,
+        `[FAILED] status: ${res.status} | body: ${res.body} | sender: ${sender.account_number}`,
       );
     }
   }

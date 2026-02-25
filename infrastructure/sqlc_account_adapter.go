@@ -2,12 +2,15 @@ package infrastructure
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
+	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 )
@@ -165,6 +168,39 @@ func (r *SqlcAccountRepository) DebitAccount(ctx context.Context, amount decimal
 	return &account.CreditAcctResp{
 		AcctId:  row.ID,
 		Balance: bal,
+	}, nil
+}
+
+func (r *SqlcAccountRepository) InternalMoneyTransfer(
+	ctx context.Context,
+	amount decimal.Decimal,
+	fromAcctNum, toAcctNum string,
+) (*account.InternalTransferResp, error) {
+
+	pgAmount, _ := utils.DecimalToPgNumeric(amount)
+
+	result, err := r.queries(ctx).TransferMoneyInternal(ctx,
+		sqlc.TransferMoneyInternalParams{
+			Amount:      pgAmount,
+			FromAccount: fromAcctNum,
+			ToAccount:   toAcctNum,
+		},
+	)
+
+	if err != nil {
+		// --- DB → Domain mapping ---
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, operation.ErrAccountNotFound    // Basically, no account found that satisfies the defined query contraints, insufficient balnce or the accoutn number doesnt exist
+		}
+
+		return nil, err
+	}
+
+	return &account.InternalTransferResp{
+		FromAccountId: result.FromID,
+		ToAccountId:   result.ToID,
+		FromBalance:   utils.MustPgNumericToDecimal(result.FromBalance),
+		ToBalance:     utils.MustPgNumericToDecimal(result.ToBalance),
 	}, nil
 }
 

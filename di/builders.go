@@ -34,12 +34,13 @@ import (
 
 type AppDependencies struct {
 	// Infrastructure
-	Logger      zerolog.Logger
-	DB          *db.DB
-	Redis       *redis.Client
-	EventBus    *infrastructure.StreamEventBus
-	QueueClient *queues.QueueClient
-	FCMAdapter  *infrastructure.FCMAdapter
+	Logger         zerolog.Logger
+	DB             *db.DB
+	Redis          *redis.Client
+	EventBus       *infrastructure.StreamEventBus
+	QueueClient    *queues.QueueClient
+	FCMAdapter     *infrastructure.FCMAdapter
+	AsynqInspector *asynq.Inspector
 
 	//Transaction Manager
 	TxManager infrastructure.TxManager
@@ -100,17 +101,17 @@ func NewAppBuilder(cfg config.Config) *AppBuilder {
 // ─── INFRASTRUCTURE BUILDERS ─────────────────────────────────────────
 //
 
-func (b *AppBuilder) WithLogger() *AppBuilder {
+func (b *AppBuilder) WithLogger(component string) *AppBuilder {
 	if b.err != nil {
 		return b
 	}
 
 	l := logger.Get()
-	srvLog := l.With().
-		Str("component", "server").
+	log := l.With().
+		Str("component", component).
 		Logger()
 
-	b.deps.Logger = srvLog
+	b.deps.Logger = log
 	return b
 }
 
@@ -152,6 +153,7 @@ func (b *AppBuilder) WithRedis() *AppBuilder {
 	return b
 }
 
+// For test containers
 func (b *AppBuilder) WithRedisFromClient(client *redis.Client) *AppBuilder {
 	if b.err != nil {
 		return b
@@ -320,8 +322,13 @@ func (b *AppBuilder) WithTransactionService() *AppBuilder {
 		b.err = fmt.Errorf("transaction repository must be initialized before transaction service")
 		return b
 	}
+	if b.deps.EventBus == nil {
+		log.Println("[ERROR] EventBus dependency is missing: EventBus must be initialized before transaction service")
+		b.err = fmt.Errorf("event bus must be initialized before transaction service")
+		return b
+	}
 
-	b.deps.TrxSvc = transactionsvc.NewTransactionService(b.deps.TrxRepo, b.deps.Logger)
+	b.deps.TrxSvc = transactionsvc.NewTransactionService(b.deps.TrxRepo, b.deps.Logger, b.deps.EventBus)
 	return b
 }
 func (b *AppBuilder) WithSimulatorService() *AppBuilder {
@@ -448,13 +455,7 @@ func (b *AppBuilder) WithEventSubscriptions() *AppBuilder {
 		return b
 	}
 
-	b.deps.UserSvc = usersvc.NewUserService(
-		b.deps.UserRepo,
-		b.deps.Logger,
-		b.deps.EventBus,
-		b.deps.MonnifySvc,
-		b.deps.QueueClient,
-	)
+	// fmt.Println("trx service", b.deps.TrxSvc)
 
 	if err := b.deps.EmailSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
 		b.err = err
@@ -465,7 +466,9 @@ func (b *AppBuilder) WithEventSubscriptions() *AppBuilder {
 	if err := b.deps.NotificationSvc.SubscribeToInternalTransferCompletedEvents(b.deps.Ctx); err != nil {
 		b.err = err
 	}
-
+	if err := b.deps.TrxSvc.SubscribeToInternalTransferCompletedEvents(b.deps.Ctx); err != nil {
+		b.err = err
+	}
 	return b
 }
 
@@ -476,6 +479,7 @@ func (b *AppBuilder) WithMiddlewares() *AppBuilder {
 	inspector := asynq.NewInspector(asynq.RedisClientOpt{
 		Addr: b.cfg.RedisAddr,
 	})
+	b.deps.AsynqInspector = inspector
 	sustainablePerSec := config.App.Job.HWCeilingPerSec * config.App.Job.SafetyFactor
 	b.deps.BackPressureMiddleware = custmiddleware.NewBackpressure(inspector, config.App.Job.QueueMaxSize, config.App.Job.QueueName, sustainablePerSec)
 
@@ -494,7 +498,7 @@ func (b *AppBuilder) WithHandlers() *AppBuilder {
 	b.deps.OperationsHandler = handler.NewOperationHandler(b.deps.OperationSvc, b.deps.IdempotencySvc, b.deps.QueueClient)
 	b.deps.MonnifyHandler = handler.NewMonnifyHandler(b.deps.MonnifySvc)
 	b.deps.SimHandler = handler.NewSimulatorHandler(b.deps.SimulatorSvc)
-	b.deps.HealthHandler = handler.NewHealthHandler(b.deps.Redis)
+	b.deps.HealthHandler = handler.NewHealthHandler(b.deps.AsynqInspector, b.cfg.Job.QueueName, b.cfg.Job.QueueMaxSize)
 	b.deps.IdempotencyHandler = handler.NewIdempotencyHandler(b.deps.IdempotencySvc)
 
 	return b
@@ -510,7 +514,7 @@ func (b *AppBuilder) Build() (*AppDependencies, error) {
 
 func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 	return b.
-		WithLogger().
+		WithLogger("server").
 		WithDB().
 		WithRedis().
 		WithEventBus().
@@ -533,6 +537,7 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 
 func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 	return b.
+		WithLogger("worker").
 		WithDB().
 		WithRedis().
 		WithEventBus().
@@ -547,7 +552,7 @@ func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 
 func (b *AppBuilder) BuildForTests() (*AppDependencies, error) {
 	return b.
-		WithLogger().
+		WithLogger("test").
 		WithDB().
 		WithRepositories().
 		Build()

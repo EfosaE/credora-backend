@@ -17,6 +17,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	"github.com/go-chi/jwtauth/v5"
 	// "github.com/go-chi/jwtauth/v5"
 )
 
@@ -82,13 +83,27 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 
 			r.Get("/user/info", params.UserHandler.GetUserInfo)
 			r.Get("/user/balance", params.UserHandler.GetUserBalance)
+			r.Get("/users/{email}", params.UserHandler.GetUserByEmailHandler)
 			r.Get("/user/transactions", params.UserHandler.GetTransactionHistoryHandler) // with cursor pagination
 			r.Get("/recipient/internal/{acctNum}", params.UserHandler.GetRecipientName)
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
-				r.Use(httprate.LimitByIP(config.App.Job.RateLimitPerMinute,
-					time.Minute))
+				// r.Use(httprate.LimitByIP(config.App.Job.RateLimitPerMinute,
+				// 	time.Minute))
+				r.Use(httprate.Limit(
+					config.App.Job.RateLimitPerMinute,
+					time.Minute,
+					httprate.WithKeyFuncs(func(r *http.Request) (string, error) {
+						_, claims, _ := jwtauth.FromContext(r.Context())
+
+						userAcctNum, ok := claims["accountNumber"].(string)
+						if !ok {
+							return httprate.KeyByRealIP(r)
+						}
+						return userAcctNum, nil
+					}),
+				))
 				r.Use(custmiddleware.InternalTransferMiddleware(*params.AcctSvc, *params.IdempSvc))
 				r.Use(params.BackPressureMiddleware.Handler)
 				r.Post("/transfers/internal", params.OperationsHandler.InternalTransfer)

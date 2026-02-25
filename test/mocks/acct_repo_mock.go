@@ -13,8 +13,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-
-
 type MockAcctRepo struct {
 	// Optional overrides
 	CreateAcctFunc                func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
@@ -172,5 +170,9 @@ func (m *MockAcctRepo) GetAccountsForUpdate(ctx context.Context, accountNumbers 
 	// if m.GetAccountsForUpdateFunc != nil {
 	// 	return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
 	// }
+	return nil, nil
+}
+func (m *MockAcctRepo) InternalMoneyTransfer(ctx context.Context, amount decimal.Decimal, fromAcctNum, toAcctNum string) (*account.InternalTransferResp, error) {
+	//for now, just return nil
 	return nil, nil
 }

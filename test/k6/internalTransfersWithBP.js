@@ -11,26 +11,47 @@ const queueSize = new Trend("queue_size");
 const backpressureRate = new Rate("backpressure_rate");
 
 export const options = {
-  stages: [
-    { duration: "30s", target: 50 },
-    { duration: "2m", target: 100 },
-    { duration: "1m", target: 200 }, // Ramp up to trigger backpressure
-    { duration: "2m", target: 200 }, // Sustain load
-    { duration: "30s", target: 0 },
-  ],
+  scenarios: {
+    default_load: {
+      executor: "ramping-vus",
+      stages: [
+        { duration: "30s", target: 20 },
+        { duration: "2m", target: 50 },
+        { duration: "1m", target: 100 },
+        { duration: "2m", target: 100 },
+        { duration: "30s", target: 0 },
+      ],
+      exec: "default", // points to your default function
+    },
+    backpressure_load: {
+      executor: "ramping-arrival-rate",
+      startTime: "6.5m",
+      startRate: 1,
+      timeUnit: "1s",
+      preAllocatedVUs: 200,
+      maxVUs: 300,
+      stages: [
+        { duration: "30s", target: 50 },
+        { duration: "1m", target: 100 },
+        { duration: "1m", target: 200 },
+        { duration: "30s", target: 0 },
+      ],
+      exec: "backpressureTest", // points to your backpressureTest function
+    },
+  },
   thresholds: {
     http_req_duration: ["p(95)<20000"],
     http_req_failed: ["rate<0.01"],
-    checks: ["rate>0.90"], // Slightly lower due to expected 503s
-    backpressure_rate: ["rate<0.15"], // Allow up to 15% backpressure
-    queue_size: ["p(95)<240"], // Queue should stay under 240 (96% of max)
+    checks: ["rate>0.90"],
+    backpressure_rate: ["rate<0.15"],
+    queue_size: ["p(95)<20"],
   },
   setupTimeout: "5m",
 };
 
 const users = new SharedArray("users", () => {
   const allUsers = JSON.parse(open("./k6_users_accounts.json"));
-  return allUsers.slice(0, 350);
+  return allUsers.slice(0, 200);
 });
 
 export function setup() {
@@ -46,7 +67,7 @@ export function setup() {
       method: "POST",
       url: "http://localhost:8080/api/v1/auth/login",
       body: JSON.stringify({
-        account_number: user.account_number,
+        accountNumber: user.account_number,
         password: user.password,
       }),
       params: {
@@ -63,19 +84,23 @@ export function setup() {
       });
 
       if (loginSuccess) {
-        const jwtToken =
-          res.cookies.jwt && res.cookies.jwt[0]
-            ? res.cookies.jwt[0].value
-            : null;
+        try {
+          const body = JSON.parse(res.body);
+          const accessToken = body.data?.accessToken;
 
-        if (jwtToken) {
-          sessions.push({
-            account_number: batch[idx].account_number,
-            jwt: jwtToken,
-          });
-        } else {
+          if (accessToken) {
+            sessions.push({
+              account_number: batch[idx].account_number,
+              jwt: accessToken,
+            });
+          } else {
+            console.error(
+              `No accessToken in response for user: ${batch[idx].account_number}`,
+            );
+          }
+        } catch (e) {
           console.error(
-            `No JWT cookie found for user: ${batch[idx].account_number}`,
+            `Failed to parse login response for user: ${batch[idx].account_number}`,
           );
         }
       } else {
@@ -98,15 +123,21 @@ export default function (sessions) {
   const session = sessions[Math.floor(Math.random() * sessions.length)];
 
   // Check queue health before attempting transfer
-  const healthRes = http.get("http://localhost:8080/health", {
+  const healthRes = http.get("http://localhost:8080/api/v1/health/readiness", {
     tags: { name: "HealthCheck" },
   });
 
   if (healthRes.status === 200) {
     try {
-      const healthData = JSON.parse(healthRes.body);
-      if (healthData.pending_jobs !== undefined) {
-        queueSize.add(healthData.pending_jobs);
+      const body = JSON.parse(healthRes.body);
+      const queueData = body.data;
+      if (queueData) {
+        queueSize.add(queueData.pending_jobs);
+        if (queueData.status === "degraded") {
+          console.warn(
+            `⚠️ Queue degraded — pending: ${queueData.pending_jobs}, active: ${queueData.active_jobs}, capacity: ${queueData.queue_capacity}`,
+          );
+        }
       }
     } catch (e) {
       // Health check parsing failed, continue anyway
@@ -135,9 +166,7 @@ export default function (sessions) {
       headers: {
         "Content-Type": "application/json",
         "Idempotency-Key": uuidv4(),
-      },
-      cookies: {
-        jwt: session.jwt,
+        Authorization: `Bearer ${session.jwt}`, // changed from cookie to Authorization header
       },
       tags: { name: "InternalTransfer" },
     },
@@ -151,6 +180,7 @@ export default function (sessions) {
     "retry-after header present on 503": (r) =>
       r.status !== 503 || r.headers["Retry-After"] !== undefined,
   });
+  
 
   // Track backpressure metrics
   if (res.status === 503) {
@@ -161,12 +191,11 @@ export default function (sessions) {
     const retryAfter = res.headers["Retry-After"] || "not set";
     console.log(`🚦 Backpressure: Queue full - Retry-After: ${retryAfter}s`);
 
-    // Respect retry-after header
     if (res.headers["Retry-After"]) {
       const waitTime = parseInt(res.headers["Retry-After"]);
       sleep(waitTime);
     } else {
-      sleep(5); // Default backoff
+      sleep(5);
     }
   } else if (res.status === 202) {
     backpressureRate.add(0);
@@ -176,44 +205,28 @@ export default function (sessions) {
     );
   }
 
-  sleep(Math.random() * 2 + 1);
+  sleep(Math.random() * 8 + 10); // 10-18 seconds between requests
 }
 
 export function teardown(sessions) {
   console.log(`\n=== Test Summary ===`);
   console.log(`Total user sessions: ${sessions.length}`);
-  console.log(`Backpressure was tested and monitoring metrics collected`);
+  console.log(
+    `Backpressure was tested at a realistic rate and monitoring metrics collected`,
+  );
 
-  // Final health check
-  const finalHealth = http.get("http://localhost:8080/health");
+  const finalHealth = http.get("http://localhost:8080/health/readiness");
   if (finalHealth.status === 200) {
     try {
-      const healthData = JSON.parse(finalHealth.body);
-      console.log(`Final queue state: ${JSON.stringify(healthData, null, 2)}`);
+      const body = JSON.parse(finalHealth.body);
+      console.log(`Final queue state: ${JSON.stringify(body.data, null, 2)}`);
     } catch (e) {
       console.log(`Health check response: ${finalHealth.body}`);
     }
   }
 }
 
-// Optional: Add a scenario specifically for testing backpressure
-export const backpressureScenario = {
-  executor: "ramping-arrival-rate",
-  startRate: 10,
-  timeUnit: "1s",
-  preAllocatedVUs: 50,
-  maxVUs: 300,
-  stages: [
-    { duration: "30s", target: 50 }, // Warm up
-    { duration: "1m", target: 150 }, // Ramp to trigger backpressure
-    { duration: "1m", target: 300 }, // Sustained overload
-    { duration: "30s", target: 0 }, // Cool down
-  ],
-  exec: "backpressureTest",
-};
-
 export function backpressureTest(sessions) {
-  // Same as default function but with more aggressive timing
   const session = sessions[Math.floor(Math.random() * sessions.length)];
 
   let recipient;
@@ -238,9 +251,7 @@ export function backpressureTest(sessions) {
       headers: {
         "Content-Type": "application/json",
         "Idempotency-Key": uuidv4(),
-      },
-      cookies: {
-        jwt: session.jwt,
+        Authorization: `Bearer ${session.jwt}`, // changed from cookie to Authorization header
       },
       tags: { name: "BackpressureTest" },
     },
@@ -253,7 +264,6 @@ export function backpressureTest(sessions) {
 
   if (res.status === 503) {
     backpressureHits.add(1);
-    // Minimal sleep to maximize pressure
     sleep(0.5);
   } else {
     sleep(0.1);

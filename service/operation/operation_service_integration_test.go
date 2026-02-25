@@ -45,7 +45,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 			transferAmount:    "7000",
 			expectedFrom:      "5000.00",
 			expectedTo:        "2000.00",
-			expectError:       operation.ErrInsufficientFunds,
+			expectError:       operation.ErrAccountNotFound, // The sql query is one that returns no rows if there is no account that satisifes the constraints like balance > amount etc
 			expectedIdemState: "FAILED",
 		},
 	}

@@ -44,6 +44,7 @@ func Get() zerolog.Logger {
 			consoleWriter := zerolog.ConsoleWriter{
 				Out:        os.Stderr,
 				TimeFormat: time.RFC3339,
+				NoColor:    false,
 			}
 			output = zerolog.MultiLevelWriter(consoleWriter, fileLogger)
 		} else {

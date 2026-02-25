@@ -6,7 +6,7 @@ E.G: MAXWAIT(TOTAL TIME) was 30s, From the func === Total Time (ms) ===
   p95: 52388
 
 
-grep '"message":"internal transfer timing"' app.log | \
+grep '"message":"internal transfer timing"' app_1.log | \
 
 sort -n | \
 
@@ -146,19 +146,20 @@ END {
 
 Latest
 === Processing Time (ms) ===
-  avg: 2968.5
-  min: 1211
-  max: 66717
-  p95: 7111
+  avg: 2529.5
+  min: 981
+  max: 9086
+  p95: 4300
 
 === Queue Wait (ms) ===
-  avg: 1367.7
+  avg: 7972.2
   min: 190
-  max: 91174
-  p95: 1233
+  max: 227744
+  p95: 43113
 
 === Total Time (ms) ===
-  avg: 4610.6
-  min: 1566
-  max: 171990
-  p95: 9325
+  avg: 10609.0
+  min: 1396
+  max: 230441
+  p95: 46522
+

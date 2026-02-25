@@ -238,3 +238,47 @@ func (q *Queries) GetUserByAccountNumber(ctx context.Context, accountNumber stri
 	)
 	return i, err
 }
+
+const transferMoneyInternal = `-- name: TransferMoneyInternal :one
+WITH debit AS (
+    UPDATE accounts
+    SET balance = accounts.balance - $1
+    WHERE accounts.account_number = $2
+      AND accounts.balance >= $1
+    RETURNING id AS from_id, balance AS from_balance
+),
+credit AS (
+    UPDATE accounts
+    SET balance = accounts.balance + $1
+    WHERE accounts.account_number = $3
+      AND EXISTS (SELECT 1 FROM debit)
+    RETURNING id AS to_id, balance AS to_balance
+)
+SELECT from_id, from_balance, to_id, to_balance
+FROM debit, credit
+`
+
+type TransferMoneyInternalParams struct {
+	Amount      pgtype.Numeric `json:"amount"`
+	FromAccount string         `json:"from_account"`
+	ToAccount   string         `json:"to_account"`
+}
+
+type TransferMoneyInternalRow struct {
+	FromID      uuid.UUID      `json:"from_id"`
+	FromBalance pgtype.Numeric `json:"from_balance"`
+	ToID        uuid.UUID      `json:"to_id"`
+	ToBalance   pgtype.Numeric `json:"to_balance"`
+}
+
+func (q *Queries) TransferMoneyInternal(ctx context.Context, arg TransferMoneyInternalParams) (TransferMoneyInternalRow, error) {
+	row := q.db.QueryRow(ctx, transferMoneyInternal, arg.Amount, arg.FromAccount, arg.ToAccount)
+	var i TransferMoneyInternalRow
+	err := row.Scan(
+		&i.FromID,
+		&i.FromBalance,
+		&i.ToID,
+		&i.ToBalance,
+	)
+	return i, err
+}

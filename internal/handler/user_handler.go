@@ -217,6 +217,26 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 	)
 }
 
+func (h *UserHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
+	email := chi.URLParam(r, "email")
+	if email == "" {
+		response.SendError(w, r, response.BadRequest(nil, "email is required"))
+		return
+	}
+
+	user, err := h.userService.GetUserByEmail(r.Context(), email)
+	if err != nil {
+		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(
+		response.Obj("user", user),
+		nil,
+		"User info retrieved successfully",
+	))
+}
+
 // HELPERS
 func EncodeCursor(createdAt time.Time, id int64) string {
 	raw := fmt.Sprintf("%d|%d", createdAt.UnixNano(), id)

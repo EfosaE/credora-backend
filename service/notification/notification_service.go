@@ -27,8 +27,8 @@ func NewNotificationService(event event.EventBus, fcm fcm.FCMSender) *Notificati
 //		return ns.fcmSender.SendPushNotification(ctx, payload)
 //	}
 func (ns *NotificationService) SendNotification(ctx context.Context, userId string, notif *messaging.Notification, data map[string]string) error {
-	fmt.Println("From Notification service")
-	utils.PrintJSON(data)
+	// fmt.Println("From Notification service")
+	// utils.PrintJSON(data)
 	// Handle Notifixation here, FCM, Enail, Text Message, Websocket.
 	// For FCM, Get Token by userId,
 	const token = "Dummy-Token"
@@ -67,8 +67,8 @@ func (ns *NotificationService) handleInternalTransferSuccess(
 		)
 	}
 
-	fmt.Println("From HandleInternalTransferSuccess")
-	utils.PrintJSON(evt)
+	// fmt.Println("From HandleInternalTransferSuccess")
+	// utils.PrintJSON(evt)
 
 	// Build notification title and body
 	notif := &messaging.Notification{

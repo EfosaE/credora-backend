@@ -49,6 +49,13 @@ type CreditAcctResp struct {
 	Balance decimal.Decimal `json:"balance"`
 }
 
+type InternalTransferResp struct {
+	FromAccountId uuid.UUID
+	FromBalance   decimal.Decimal
+	ToAccountId   uuid.UUID
+	ToBalance     decimal.Decimal
+}
+
 type GetUserDetailsWithAccountRow struct {
 	UserId        uuid.UUID `json:"userId"`
 	Password      string    `json:"-"`
