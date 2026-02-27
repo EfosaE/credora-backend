@@ -95,3 +95,7 @@ func toDomainPasswordReset(sqlcReset sqlc.PasswordReset) *auth.PasswordReset {
 		CreatedAt: sqlcReset.CreatedAt.Time,
 	}
 }
+
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ auth.PasswordResetRepository = (*SqlcPasswordResetRepository)(nil)

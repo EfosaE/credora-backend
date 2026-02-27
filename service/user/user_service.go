@@ -5,11 +5,10 @@ import (
 	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/event"
+	"github.com/EfosaE/credora-backend/domain/logger"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-
-	// accountsvc "github.com/EfosaE/credora-backend/service/account"
 
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/queues"
@@ -23,20 +22,24 @@ type UserService struct {
 	eventBus      event.EventBus
 	monnifySvc    *service.MonnifyService
 	usrDeviceRepo user.DeviceRepository
-	queue         queues.Queue // It should depend on the Queue interface for unit testing
+	queue         queues.Queue
 }
 
 func NewUserService(
 	userRepo user.UserRepository,
-	logger zerolog.Logger,
+	log zerolog.Logger,
 	eventBus event.EventBus,
 	monnifySvc *service.MonnifyService,
 	queue queues.Queue,
 	device user.DeviceRepository,
 ) *UserService {
+	serviceLogger := log.With().
+		Str("service", "user-service").
+		Logger()
+
 	return &UserService{
 		userRepo:      userRepo,
-		logger:        logger,
+		logger:        serviceLogger,
 		eventBus:      eventBus,
 		monnifySvc:    monnifySvc,
 		usrDeviceRepo: device,
@@ -45,101 +48,120 @@ func NewUserService(
 }
 
 func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserRequest) (*user.CreateUserResponse, error) {
-	s.logger.Info().
-		Str("userName", req.Name).
+
+	log := logger.FromCtx(ctx, s.logger).With().
 		Str("email", req.Email).
-		Msg("User creation initiated")
+		Str("user_name", req.Name).
+		Logger()
 
-	// utils.PrintJSON(req) // Print the user request for debugging
-	hashedPassword, _ := authsvc.HashPassword(req.Password)
+	log.Info().Msg("user creation initiated")
 
+	hashedPassword, err := authsvc.HashPassword(req.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to hash password")
+		return nil, err
+	}
 	req.Password = hashedPassword
 
 	result, err := s.userRepo.Create(ctx, req)
 	if err != nil {
-		s.logger.Error().
-			Str("error", err.Error()).
-			Msg("failed to create user")
+		log.Error().Err(err).Msg("failed to create user in repository")
 		return nil, err
 	}
 
-	// create a bank account for the user
+	log = log.With().Str("user_id", result.ID.String()).Logger()
+	log.Info().Msg("user persisted successfully")
+
 	monnifyCustResp, err := s.CreateVirtualAccount(ctx, req, result.ID.String())
-
 	if err != nil {
-		s.logger.Error().
-			Str("error", err.Error()).
-			Msg("failed to create monnify customer")
+		log.Error().Err(err).Msg("failed to create monnify virtual account")
 		return nil, err
 	}
 
-	// Enqueue account number email
-	if err := s.SendAccountNumberEmailAsync(result.Email, monnifyCustResp.ResponseBody.Accounts[0].BankName, monnifyCustResp.ResponseBody.Accounts[0].AccountNumber); err != nil {
-		s.logger.Error().
-			Str("error", err.Error()).
-			Msg("Failed to enqueue account number email")
+	accountNumber := monnifyCustResp.ResponseBody.Accounts[0].AccountNumber
+	bankName := monnifyCustResp.ResponseBody.Accounts[0].BankName
+	accountRef := monnifyCustResp.ResponseBody.AccountReference
+
+	log = log.With().
+		Str("account_reference", accountRef).
+		Str("bank_name", bankName).
+		Str("account_number", accountNumber).
+		Logger()
+
+	log.Info().Msg("virtual account created successfully")
+
+	if err := s.SendAccountNumberEmailAsync(result.Email, bankName, accountNumber); err != nil {
+		log.Error().Err(err).Msg("failed to enqueue account number email")
+	} else {
+		log.Info().Msg("account number email enqueued successfully")
 	}
+
 	evt := event.UserCreatedEvent{
 		UserID:        result.ID,
-		AccountNumber: monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
+		AccountNumber: accountNumber,
 		Name:          result.Name,
-		BankName:      monnifyCustResp.ResponseBody.Accounts[0].BankName,
+		BankName:      bankName,
 		Email:         result.Email,
 	}
 
 	payload, err := utils.StructToMap(evt)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to convert user created event to payload map")
 		return nil, fmt.Errorf("failed to convert typed struct to map: %w", err)
 	}
-	s.eventBus.Publish(ctx, event.StreamUserEvents, event.EventUserCreated, payload)
 
-	s.logger.Info().
-		Str("userID", result.ID.String()).
-		Str("userName", result.Name).
-		Str("user_account_ref", monnifyCustResp.ResponseBody.AccountReference).
-		Msg("User successfully created")
-
-	userResp := &user.CreateUserResponse{
-		ID:               result.ID,
-		Name:             req.Name,
-		Email:            req.Email,
-		AccountReference: monnifyCustResp.ResponseBody.AccountReference,
-		// AccountName:          monnifyCustResp.ResponseBody.AccountName,
-		// Accounts:             monnifyCustResp.ResponseBody.Accounts,
-		ReservationReference: monnifyCustResp.ResponseBody.ReservationReference,
-		// BankName:             monnifyCustResp.ResponseBody.Accounts[0].BankName,
-		// AccountNumber:        monnifyCustResp.ResponseBody.Accounts[0].AccountNumber,
-		Status:    monnifyCustResp.ResponseBody.Status,
-		CreatedAt: result.CreatedAt,
+	if err := s.eventBus.Publish(ctx, event.StreamUserEvents, event.EventUserCreated, payload); err != nil {
+		log.Error().Err(err).Str("event_type", event.EventUserCreated).Msg("failed to publish user created event")
+	} else {
+		log.Info().Str("event_type", event.EventUserCreated).Msg("user created event published successfully")
 	}
-	return userResp, nil
+
+	log.Info().Msg("user creation flow completed successfully")
+
+	return &user.CreateUserResponse{
+		ID:                   result.ID,
+		Name:                 req.Name,
+		Email:                req.Email,
+		AccountReference:     accountRef,
+		ReservationReference: monnifyCustResp.ResponseBody.ReservationReference,
+		Status:               monnifyCustResp.ResponseBody.Status,
+		CreatedAt:            result.CreatedAt,
+	}, nil
 }
 
 func (s *UserService) RegisterDeviceTokenToUserID(ctx context.Context, userID uuid.UUID, token, platform string) (*user.DeviceToken, error) {
-	s.logger.Info().
+
+	log := logger.FromCtx(ctx, s.logger).With().
 		Str("user_id", userID.String()).
-		Msg("Registering device token for user")
+		Str("platform", platform).
+		Logger()
+
+	log.Info().Msg("registering device token for user")
 
 	dt, err := s.usrDeviceRepo.Create(ctx, userID, token, platform)
 	if err != nil {
-		s.logger.Error().
-			Err(err).
-			Msg("failed to register device token")
+		log.Error().Err(err).Msg("failed to register device token")
 		return nil, err
 	}
+
+	log.Info().Msg("device token registered successfully")
 	return dt, nil
 }
 
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
-	s.logger.Info().
+
+	log := logger.FromCtx(ctx, s.logger).With().
 		Str("email", email).
-		Msg("Fetching user by email")
+		Logger()
+
+	log.Info().Msg("fetching user by email")
+
 	usr, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		s.logger.Error().
-			Err(err).
-			Msg("failed to fetch user by email")
+		log.Error().Err(err).Msg("failed to fetch user by email")
 		return nil, err
 	}
+
+	log.Info().Str("user_id", usr.ID.String()).Msg("user fetched successfully")
 	return usr, nil
 }

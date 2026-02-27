@@ -9,6 +9,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/auth"
+	"github.com/EfosaE/credora-backend/test"
 	"github.com/EfosaE/credora-backend/test/fakes"
 
 	// "github.com/EfosaE/credora-backend/domain/auth"
@@ -63,6 +64,7 @@ func TestAuthService_Login(t *testing.T) {
 			userID := uuid.New()
 
 			m := fakes.NewAuthSvcMockDeps()
+			testLogger := test.SetupTestLogger()
 			tt.setup(m)
 
 			m.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
@@ -81,6 +83,7 @@ func TestAuthService_Login(t *testing.T) {
 				m.TokenService,
 				m.AcctRepo,
 				m.Mailer,
+				testLogger,
 			)
 
 			_, _, err := service.Login(ctx, "1111111111", fakes.CorrectPassword)

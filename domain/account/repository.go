@@ -15,6 +15,4 @@ type AccountRepository interface {
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (*Account, error)
 	GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*Account, error)
 	InternalMoneyTransfer(ctx context.Context, amount decimal.Decimal, fromAcctNum, toAcctNum string) (*InternalTransferResp, error)
-	// // Transaction wrapper
-	// WithTx(ctx context.Context, fn func(tx AccountTx) error) error
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/transaction"
 )
 
-// IdempotencyRepo defines non-transactional operations
+// IdempotencyRepo defines methods that you can use with redi directly
 type IdempotencyRepo interface {
 	Check(ctx context.Context, key string) (bool, error)
 	Insert(ctx context.Context, key string, operationType operation.OperationType, payload any, status transaction.TransactionStatus) error

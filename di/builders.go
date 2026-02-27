@@ -43,7 +43,7 @@ type AppDependencies struct {
 	AsynqInspector *asynq.Inspector
 
 	//Transaction Manager
-	TxManager infrastructure.TxManager
+	TxManager *infrastructure.TxManager
 
 	// Repositories
 	AcctRepo          *infrastructure.SqlcAccountRepository
@@ -287,7 +287,7 @@ func (b *AppBuilder) WithEmailService() *AppBuilder {
 		return b
 	}
 	adapter := infrastructure.NewEmailAdapter()
-	b.deps.EmailSvc = service.NewEmailService(adapter, b.deps.EventBus)
+	b.deps.EmailSvc = service.NewEmailService(adapter, b.deps.EventBus, b.deps.Logger)
 	return b
 }
 
@@ -419,7 +419,7 @@ func (b *AppBuilder) WithAuthService() *AppBuilder {
 		return b
 	}
 	b.deps.TokenSvc = authsvc.NewJWTTokenService(b.cfg.JwtSecret, 24*time.Hour)
-	b.deps.AuthSvc = authsvc.NewAuthService(b.deps.TxManager, b.deps.UserRepo, b.deps.PasswordResetRepo, b.deps.TokenSvc, b.deps.AcctRepo, b.deps.EmailSvc)
+	b.deps.AuthSvc = authsvc.NewAuthService(b.deps.TxManager, b.deps.UserRepo, b.deps.PasswordResetRepo, b.deps.TokenSvc, b.deps.AcctRepo, b.deps.EmailSvc, b.deps.Logger)
 	return b
 }
 

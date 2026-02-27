@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
+// This is different from Idempotency Repo has that one communicates direct with db, this communicates with Redis
 type IdempotencyStore interface {
 	TryAcquire(ctx context.Context, key string) (bool, error)
 	MarkDone(ctx context.Context, key string, reference string) error
@@ -91,3 +91,6 @@ func (c *IdempotencyCache) Delete(ctx context.Context, key string) error {
 	redisKey := "idem:" + key
 	return c.client.Del(ctx, redisKey).Err()
 }
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ IdempotencyStore = (*IdempotencyCache)(nil)

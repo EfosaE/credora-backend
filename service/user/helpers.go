@@ -41,9 +41,10 @@ func (s *UserService) SendWelcomeEmailAsync(user user.User) error {
 func (s *UserService) SendAccountNumberEmailAsync(to, bank, accountNumber string) error {
 	payload := queues.AccountNumberEmailPayload{
 		To:            to,
-		Bank:          bank,          // You might want to set the bank name here
-		AccountNumber: accountNumber, // You might want to set the account number here
+		Bank:          bank,
+		AccountNumber: accountNumber,
 	}
+	s.logger.Info().Msgf("Enqueueing email containing account number for: %s", accountNumber)
 	return s.queue.EnqueueAccountNumberEmail(payload)
 }
 

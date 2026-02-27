@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/logger"
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/handler"
@@ -13,8 +14,8 @@ import (
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
-	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	"github.com/go-chi/jwtauth/v5"
@@ -39,10 +40,14 @@ type RouterSetupParams struct {
 }
 
 func SetupRouter(params RouterSetupParams) chi.Router {
+	log := logger.Get()
+
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
-	// r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(custmiddleware.RequestLogger(log))
 
 	// Basic CORS
 	r.Use(cors.Handler(cors.Options{

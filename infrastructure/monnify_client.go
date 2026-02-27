@@ -176,3 +176,7 @@ func (m *MonnifyClient) DeleteReservedAccount(acctRef string) (*monnify.CreateCR
 
 	return &response, nil
 }
+
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ monnify.MonnifyRepository = (*MonnifyClient)(nil)

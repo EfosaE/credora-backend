@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"context"
+	"github.com/go-chi/chi/v5/middleware"
 	"io"
 	"os"
 	"runtime/debug"
@@ -53,9 +55,10 @@ func Get() zerolog.Logger {
 		}
 
 		var gitRevision string
+		var goVersion string
 
-		buildInfo, ok := debug.ReadBuildInfo()
-		if ok {
+		if buildInfo, ok := debug.ReadBuildInfo(); ok {
+			goVersion = buildInfo.GoVersion
 			for _, v := range buildInfo.Settings {
 				if v.Key == "vcs.revision" {
 					gitRevision = v.Value
@@ -71,9 +74,19 @@ func Get() zerolog.Logger {
 			Caller().                // Add caller info (file:line)
 			Int("pid", os.Getpid()). // Add process ID
 			Str("git_revision", gitRevision).
-			Str("go_version", buildInfo.GoVersion).
+			Str("go_version", goVersion).
 			Logger()
 	})
 
 	return log
+}
+
+// FromCtx enriches the provided logger with the request_id from context if present.
+// Falls back to the base logger unchanged for workers/background jobs.
+func FromCtx(ctx context.Context, base zerolog.Logger) zerolog.Logger {
+	requestID := middleware.GetReqID(ctx)
+	if requestID == "" {
+		return base
+	}
+	return base.With().Str("request_id", requestID).Logger()
 }

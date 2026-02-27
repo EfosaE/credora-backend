@@ -89,3 +89,6 @@ func (s *EmailAdapter) SendEmail(ctx context.Context, req email.SendEmailRequest
 	}
 	return nil
 }
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ email.EmailSender = (*EmailAdapter)(nil)

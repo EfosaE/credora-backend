@@ -20,26 +20,49 @@ type AccountService struct {
 }
 
 func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger, eventBus event.EventBus) *AccountService {
+
+	serviceLogger := logger.With().
+		Str("service", "account-service").
+		Logger()
+
 	return &AccountService{
 		AcctRepo: acctRepo,
-		logger:   logger,
+		logger:   serviceLogger,
 		EventBus: eventBus,
 	}
 }
 
 func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
+
+	logCtx := a.logger.With().
+		Str("user_id", req.UserId.String()).
+		Str("account_number", req.AccountNumber).
+		Str("account_type", req.AccountType).
+		Logger()
+
+	logCtx.Info().Msg("creating account")
+
 	acct, err := a.AcctRepo.CreateAcct(ctx, req)
 	if err != nil {
+		logCtx.Error().Err(err).Msg("failed to create account")
 		return nil, err
 	}
+
+	logCtx.Info().Msg("account created successfully")
 	return acct, nil
 }
 
 func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) (*user.User, error) {
+
+	logCtx := a.logger.With().Str("account_number", acctNum).Logger()
+	logCtx.Info().Msg("fetching user by account number")
+
 	acct, err := a.AcctRepo.GetUserByAccountNumber(ctx, acctNum)
 	if err != nil {
+		logCtx.Error().Err(err).Msg("failed to find user by account number")
 		return nil, err
 	}
+
 	return &user.User{
 		ID:      acct.UserId,
 		Email:   acct.Email,
@@ -49,18 +72,36 @@ func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) 
 }
 
 func (a *AccountService) FindAccountByAcctNum(ctx context.Context, acctNum string) (*account.Account, error) {
+
+	logCtx := a.logger.With().Str("account_number", acctNum).Logger()
+	logCtx.Info().Msg("fetching account by account number")
+
 	acct, err := a.AcctRepo.GetAccountByAccountNumber(ctx, acctNum)
 	if err != nil {
+		logCtx.Error().Err(err).Msg("failed to find account")
 		return nil, err
 	}
+
+	logCtx.Info().Msg("account retrieved successfully")
 	return acct, nil
 }
 
 func (a *AccountService) CreditUserBalance(ctx context.Context, amount decimal.Decimal, acctNum string) (*account.CreditAcctResp, error) {
+
+	logCtx := a.logger.With().
+		Str("account_number", acctNum).
+		Str("amount", amount.String()).
+		Logger()
+
+	logCtx.Info().Msg("crediting user balance")
+
 	result, err := a.AcctRepo.CreditAccount(ctx, amount, acctNum)
 	if err != nil {
+		logCtx.Error().Err(err).Msg("failed to credit user balance")
 		return nil, err
 	}
+
+	logCtx.Info().Msg("user balance credited successfully")
 	return result, nil
 }
 
@@ -81,11 +122,19 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 
 			var evt event.UserCreatedEvent
 			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
-				return fmt.Errorf("failed to decode %s event: %w",
-					event.EventUserCreated,
-					err,
-				)
+				a.logger.Error().
+					Err(err).
+					Str("event_type", event.EventUserCreated).
+					Msg("failed to decode user.created event")
+				return fmt.Errorf("failed to decode %s event: %w", event.EventUserCreated, err)
 			}
+
+			logCtx := a.logger.With().
+				Str("user_id", evt.UserID.String()).
+				Str("user_name", evt.Name).
+				Str("account_number", evt.AccountNumber).
+				Str("bank_name", evt.BankName).
+				Logger()
 
 			_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
 				UserId:         evt.UserID,
@@ -97,17 +146,13 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 			})
 
 			if err != nil {
-				a.logger.Error().
+				logCtx.Error().
 					Err(err).
-					Str("userName", evt.Name).
-					Str("accountNumber", evt.Email).
 					Msg("account recording failed")
 				return fmt.Errorf("account creation failed: %w", err)
 			}
-			a.logger.Info().
-				Str("userName", evt.Name).
-				Str("accountNumber", evt.Email).
-				Msg("account recorded successfully")
+
+			logCtx.Info().Msg("account recorded successfully")
 			return nil
 		},
 	)

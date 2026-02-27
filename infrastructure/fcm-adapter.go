@@ -7,6 +7,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
+	"github.com/EfosaE/credora-backend/domain/fcm"
 	// "github.com/EfosaE/credora-backend/internal/utils"
 )
 
@@ -60,3 +61,7 @@ func (f *FCMAdapter) SendPushNotification(
 	fmt.Println("Successfully sent message:", response)
 	return nil
 }
+
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ fcm.FCMSender = (*FCMAdapter)(nil)

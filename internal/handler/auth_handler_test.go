@@ -52,7 +52,8 @@ func TestCreateUserHandler_Success(t *testing.T) {
 	mockDeviceRepo := &fakes.MockDeviceTokenRepository{}
 
 	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc, mockQueue, mockDeviceRepo)
-	authSvc := authsvc.NewAuthService(nil, nil, nil, nil, nil, nil)
+	//This test doesnt really need the dependencies in authsvc hence nil
+	authSvc := authsvc.NewAuthService(nil, nil, nil, nil, nil, nil, log)
 
 	handler := NewAuthHandler(userSvc, authSvc)
 

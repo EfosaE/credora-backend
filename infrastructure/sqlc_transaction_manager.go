@@ -7,21 +7,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type TxManager interface {
-	WithTx(ctx context.Context, fn func(txCtx context.Context) error) error
-}
-
-type txManager struct {
+type TxManager struct {
 	db *pgxpool.Pool
 }
 
-func NewTxManager(db *pgxpool.Pool) TxManager {
-	return &txManager{db: db}
+func NewTxManager(db *pgxpool.Pool) *TxManager {
+	return &TxManager{db: db}
 }
 
 type txKey struct{}
 
-func (m *txManager) WithTx(
+func (m *TxManager) WithTx(
 	ctx context.Context,
 	fn func(txCtx context.Context) error,
 ) (err error) {

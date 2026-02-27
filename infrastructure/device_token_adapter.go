@@ -89,3 +89,6 @@ func toDomainDeviceToken(dt sqlc.DeviceToken) *user.DeviceToken {
 		CreatedAt: dt.CreatedAt.Time,
 	}
 }
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ user.DeviceRepository = (*SqlcDeviceTokenRepository)(nil)
