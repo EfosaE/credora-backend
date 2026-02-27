@@ -25,6 +25,14 @@ type Account struct {
 	Username           string           `json:"username"`
 }
 
+type DeviceToken struct {
+	ID        int64            `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	Token     string           `json:"token"`
+	Platform  pgtype.Text      `json:"platform"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type IdempotencyKey struct {
 	IdemKey       string             `json:"idem_key"`
 	OperationType string             `json:"operation_type"`

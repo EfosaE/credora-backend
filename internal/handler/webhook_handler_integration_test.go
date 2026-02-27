@@ -12,13 +12,14 @@ import (
 	"testing"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
+	"github.com/EfosaE/credora-backend/test/fakes"
+
 	// "github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/service"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
 	"github.com/EfosaE/credora-backend/test"
-	"github.com/EfosaE/credora-backend/test/mocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,20 +32,20 @@ func TestMonnifyWebhook_IdempotencyRecorded(t *testing.T) {
 
 	// queries := sqlc.New(pool)
 
-	mockQueue := &mocks.MockQueueClient{}
-	mockEvtBus := &mocks.MockEventBus{}
+	mockQueue := &fakes.MockQueueClient{}
+	mockEvtBus := &fakes.MockEventBus{}
 	testLogger := test.SetupTestLogger()
 
 	// ----- Setup dependencies -----
 	idemRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
 	acctRepo := infrastructure.NewSqlcAccountRepository(pool)
 	trxRepo := infrastructure.NewSqlcTransactionRepository(pool)
-	// mockMonnifyRepo := mocks.MockMonnifyRepo{}
+	// mockMonnifyRepo := fakes.MockMonnifyRepo{}
 
 	idemSvc := idempotencysvc.NewIdempotencyService(idemRepo)
 	acctSvc := accountsvc.NewAccountService(acctRepo, testLogger, mockEvtBus)
 	trxSvc := transactionsvc.NewTransactionService(trxRepo, testLogger, mockEvtBus)
-	mockMonnifyRepo := &mocks.MockMonnifyRepo{}
+	mockMonnifyRepo := &fakes.MockMonnifyRepo{}
 	monnifySvc := &service.MonnifyService{
 		MonnifyRepo: mockMonnifyRepo,
 	}

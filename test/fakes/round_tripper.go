@@ -1,4 +1,4 @@
-package mocks
+package fakes
 
 import "net/http"
 
@@ -11,5 +11,3 @@ type MockRoundTripper struct {
 func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return m.ReqFn(req)
 }
-
-

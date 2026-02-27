@@ -52,6 +52,7 @@ type AppDependencies struct {
 	PasswordResetRepo *infrastructure.SqlcPasswordResetRepository
 	IdempotencyRepo   *infrastructure.SqlcIdempotencyRepository
 	IdempotencyCache  *infrastructure.IdempotencyCache
+	DeviceTokenRepo   *infrastructure.SqlcDeviceTokenRepository
 
 	// Services
 	MonnifySvc      *service.MonnifyService
@@ -70,14 +71,15 @@ type AppDependencies struct {
 	BackPressureMiddleware *custmiddleware.BackpressureMiddleware
 
 	// Handlers
-	AuthHandler        *handler.AuthHandler
-	UserHandler        *handler.UserHandler
-	WebhookHandler     *handler.WebHookHandler
-	OperationsHandler  *handler.OperationHandler
-	MonnifyHandler     *handler.MonnifyHandler
-	SimHandler         *handler.SimulatorHandler
-	HealthHandler      *handler.HealthHandler
-	IdempotencyHandler *handler.IdempotencyHandler
+	AuthHandler         *handler.AuthHandler
+	UserHandler         *handler.UserHandler
+	WebhookHandler      *handler.WebHookHandler
+	OperationsHandler   *handler.OperationHandler
+	MonnifyHandler      *handler.MonnifyHandler
+	SimHandler          *handler.SimulatorHandler
+	HealthHandler       *handler.HealthHandler
+	IdempotencyHandler  *handler.IdempotencyHandler
+	NotificationHandler *handler.NotificationHandler
 
 	// Contexts
 	Ctx context.Context
@@ -187,8 +189,6 @@ func (b *AppBuilder) WithNotificationService() *AppBuilder {
 	}
 
 	//Initialize the Firebase here:
-	fmt.Println("FIREBASE CREDS")
-	fmt.Println(b.cfg.GoogleApplicationCredentials)
 	opt := option.WithCredentialsFile(b.cfg.GoogleApplicationCredentials)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
@@ -202,8 +202,18 @@ func (b *AppBuilder) WithNotificationService() *AppBuilder {
 		b.err = fmt.Errorf("Event bus must be initialized before notification service")
 		return b
 	}
+	if b.deps.AcctRepo == nil {
+		log.Println("[ERROR] Acct Repo dependency is missing: Acct Repo must be initialized before notification service")
+		b.err = fmt.Errorf("Repositories must be initialized before notification service")
+		return b
+	}
+	if b.deps.DeviceTokenRepo == nil {
+		log.Println("[ERROR] Device Token Repo dependency is missing: Device Token Repo must be initialized before notification service")
+		b.err = fmt.Errorf("Repositories must be initialized before notification service")
+		return b
+	}
 
-	b.deps.NotificationSvc = notificationsvc.NewNotificationService(b.deps.EventBus, fcmAdapter)
+	b.deps.NotificationSvc = notificationsvc.NewNotificationService(b.deps.EventBus, fcmAdapter, b.deps.AcctRepo, b.deps.DeviceTokenRepo, b.deps.Logger)
 	return b
 }
 
@@ -236,6 +246,7 @@ func (b *AppBuilder) WithRepositories() *AppBuilder {
 	b.deps.IdempotencyRepo = infrastructure.NewSqlcIdempotencyRepository(b.deps.DB.Pool)
 	b.deps.PasswordResetRepo = infrastructure.NewSqlcPasswordResetRepository(b.deps.DB.Pool)
 	b.deps.IdempotencyCache = infrastructure.NewIdempotencyCache(b.deps.Redis, 5*time.Minute)
+	b.deps.DeviceTokenRepo = infrastructure.NewSqlcDeviceTokenRepository(b.deps.DB.Pool)
 	return b
 }
 
@@ -366,12 +377,18 @@ func (b *AppBuilder) WithUserService() *AppBuilder {
 		b.err = fmt.Errorf("queue client must be initialized before user service")
 		return b
 	}
+	if b.deps.DeviceTokenRepo == nil {
+		log.Println("[ERROR] DeviceRepository dependency is missing: Devide Repo must be initialized before user service")
+		b.err = fmt.Errorf("device repo must be initialized before user service")
+		return b
+	}
 	b.deps.UserSvc = usersvc.NewUserService(
 		b.deps.UserRepo,
 		b.deps.Logger,
 		b.deps.EventBus,
 		b.deps.MonnifySvc,
 		b.deps.QueueClient,
+		b.deps.DeviceTokenRepo,
 	)
 	return b
 }
@@ -500,6 +517,7 @@ func (b *AppBuilder) WithHandlers() *AppBuilder {
 	b.deps.SimHandler = handler.NewSimulatorHandler(b.deps.SimulatorSvc)
 	b.deps.HealthHandler = handler.NewHealthHandler(b.deps.AsynqInspector, b.cfg.Job.QueueName, b.cfg.Job.QueueMaxSize)
 	b.deps.IdempotencyHandler = handler.NewIdempotencyHandler(b.deps.IdempotencySvc)
+	b.deps.NotificationHandler = handler.NewNotificationHandler(b.deps.NotificationSvc)
 
 	return b
 }
@@ -519,8 +537,8 @@ func (b *AppBuilder) BuildForServer() (*AppDependencies, error) {
 		WithRedis().
 		WithEventBus().
 		WithQueueClient().
-		WithNotificationService().
 		WithRepositories().
+		WithNotificationService().
 		WithMonnifyService().
 		WithEmailService().
 		WithAccountService().
@@ -541,8 +559,8 @@ func (b *AppBuilder) BuildForWorker() (*AppDependencies, error) {
 		WithDB().
 		WithRedis().
 		WithEventBus().
-		WithNotificationService().
 		WithRepositories().
+		WithNotificationService().
 		WithEmailService().
 		WithOperationService().
 		WithAccountService().

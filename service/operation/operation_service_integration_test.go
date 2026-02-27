@@ -14,7 +14,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/operation"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	"github.com/EfosaE/credora-backend/test"
-	"github.com/EfosaE/credora-backend/test/mocks"
+	"github.com/EfosaE/credora-backend/test/fakes"
 
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
@@ -113,7 +113,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 			txRepo := infrastructure.NewSqlcTransactionRepository(pool)
 			idempRepo := infrastructure.NewSqlcIdempotencyRepository(pool)
 			txManager := infrastructure.NewTxManager(pool)
-			eventBus := &mocks.MockEventBus{}
+			eventBus := &fakes.MockEventBus{}
 
 			svc := operationsvc.NewOperationService(
 				txManager,

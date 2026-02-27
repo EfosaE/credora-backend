@@ -28,10 +28,9 @@ type InternalTransferEvent struct {
 	FromAcctId     uuid.UUID
 	ToAcctId       uuid.UUID
 	FromAcctNum    string
-	RecipientName  string
-	SenderName     string
 	ToAcctNum      string
 	ToAcctUserId   uuid.UUID
+	FromAcctUserId uuid.UUID
 	Amount         decimal.Decimal
 	OccurredAt     time.Time
 	TransactionRef string

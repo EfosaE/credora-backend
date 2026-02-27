@@ -32,17 +32,29 @@ WITH debit AS (
     SET balance = accounts.balance - sqlc.arg(amount)
     WHERE accounts.account_number = sqlc.arg(from_account)
       AND accounts.balance >= sqlc.arg(amount)
-    RETURNING id AS from_id, balance AS from_balance
+    RETURNING 
+        id AS from_id,
+        user_id AS from_user_id,
+        balance AS from_balance
 ),
 credit AS (
     UPDATE accounts
     SET balance = accounts.balance + sqlc.arg(amount)
     WHERE accounts.account_number = sqlc.arg(to_account)
       AND EXISTS (SELECT 1 FROM debit)
-    RETURNING id AS to_id, balance AS to_balance
+    RETURNING 
+        id AS to_id,
+        user_id AS to_user_id,
+        balance AS to_balance
 )
 SELECT *
 FROM debit, credit;
+
+-- name: GetAccounts :many
+SELECT *
+FROM accounts
+WHERE account_number = ANY($1::text[])
+ORDER BY account_number ASC;
 
 
 

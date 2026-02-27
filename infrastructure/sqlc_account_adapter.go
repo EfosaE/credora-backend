@@ -9,6 +9,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/google/uuid"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -83,6 +84,32 @@ func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, a
 		AccountNumber: row.AccountNumber,
 		Balance:       utils.MustPgNumericToDecimal(row.Balance),
 	}, nil
+}
+
+func (r *SqlcAccountRepository) GetAccountsDetails(
+	ctx context.Context,
+	accountNumbers []string,
+) ([]*account.Account, error) {
+
+	rows, err := r.queries(ctx).GetAccounts(ctx, accountNumbers)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*account.Account, 0, len(rows))
+
+	for _, row := range rows {
+		accounts = append(accounts, &account.Account{
+			ID:            row.ID,
+			UserName:      row.Username,
+			UserId:        row.UserID.String(),
+			AccountNumber: row.AccountNumber,
+			Balance:       utils.MustPgNumericToDecimal(row.Balance),
+		})
+	}
+
+	// No strict validation needed for notification context
+	return accounts, nil
 }
 
 // ------------------------------------
@@ -190,10 +217,24 @@ func (r *SqlcAccountRepository) InternalMoneyTransfer(
 	if err != nil {
 		// --- DB → Domain mapping ---
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, operation.ErrAccountNotFound    // Basically, no account found that satisfies the defined query contraints, insufficient balnce or the accoutn number doesnt exist
+			return nil, operation.ErrAccountNotFound // Basically, no account found that satisfies the defined query contraints, insufficient balnce or the accoutn number doesnt exist
 		}
 
 		return nil, err
+	}
+	var toUserID uuid.UUID
+	var fromUserID uuid.UUID
+
+	if result.ToUserID.Valid {
+		toUserID = result.ToUserID.Bytes
+	} else {
+		return nil, errors.New("to_user_id is null")
+	}
+
+	if result.FromUserID.Valid {
+		fromUserID = result.FromUserID.Bytes
+	} else {
+		return nil, errors.New("from_user_id is null")
 	}
 
 	return &account.InternalTransferResp{
@@ -201,6 +242,8 @@ func (r *SqlcAccountRepository) InternalMoneyTransfer(
 		ToAccountId:   result.ToID,
 		FromBalance:   utils.MustPgNumericToDecimal(result.FromBalance),
 		ToBalance:     utils.MustPgNumericToDecimal(result.ToBalance),
+		ToUserId:      toUserID,
+		FromUserId:    fromUserID,
 	}, nil
 }
 

@@ -11,6 +11,7 @@ type AccountRepository interface {
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (*GetUserDetailsWithAccountRow, error)
 	CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
 	DebitAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*CreditAcctResp, error)
+	GetAccountsDetails(ctx context.Context, accountNumbers []string) ([]*Account, error)
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (*Account, error)
 	GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*Account, error)
 	InternalMoneyTransfer(ctx context.Context, amount decimal.Decimal, fromAcctNum, toAcctNum string) (*InternalTransferResp, error)

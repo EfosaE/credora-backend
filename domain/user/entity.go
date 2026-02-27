@@ -53,3 +53,28 @@ type CreateUserResponse struct {
 	Status    string    `json:"status"` // Monnify reserved account status
 	CreatedAt time.Time `json:"createdAt"`
 }
+
+type RegisterDeviceTokenRequest struct {
+	Token    string `json:"token"`
+	Platform string `json:"platform"`
+}
+
+type DeviceToken struct {
+	ID        int64
+	UserID    uuid.UUID
+	Token     string
+	Platform  string
+	CreatedAt time.Time
+}
+
+type CreateDeviceTokenRequest struct {
+	UserID   uuid.UUID
+	Token    string
+	Platform string
+}
+
+type UpdateDeviceTokenRequest struct {
+	ID       int64
+	Token    string
+	Platform string
+}

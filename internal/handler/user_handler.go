@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/auth"
 	"github.com/EfosaE/credora-backend/domain/transaction"
+	"github.com/EfosaE/credora-backend/domain/user"
 
 	"github.com/EfosaE/credora-backend/internal/response"
 
@@ -215,6 +217,54 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 			fmt.Sprintf("%d records retrieved successfully", len(*txns)),
 		),
 	)
+}
+
+func (h *UserHandler) RegisterDeviceToken(w http.ResponseWriter, r *http.Request) {
+	var req user.RegisterDeviceTokenRequest
+
+	// Decode JSON body
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.SendError(w, r, response.BadRequest(nil, "invalid request body"))
+		return
+	}
+
+	// Basic validation
+	if req.Token == "" || req.Platform == "" {
+		response.SendError(w, r, response.BadRequest(nil, "token and platform are required"))
+		return
+	}
+
+	_, claims, _ := jwtauth.FromContext(r.Context())
+
+	userIDStr, ok := claims["userId"].(string)
+	if !ok {
+		response.SendError(w, r, response.Unauthorized("invalid userId in token"))
+		return
+	}
+
+	userID, iErr := uuid.Parse(userIDStr)
+	if iErr != nil {
+		response.SendError(w, r, response.Unauthorized("invalid uuid format"))
+		return
+	}
+
+	// Call service layer
+	_, err := h.userService.RegisterDeviceTokenToUserID(
+		r.Context(),
+		userID,
+		req.Token,
+		req.Platform,
+	)
+	if err != nil {
+		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(
+		nil,
+		nil,
+		"Device token registered successfully",
+	))
 }
 
 func (h *UserHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {

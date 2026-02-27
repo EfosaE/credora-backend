@@ -1,4 +1,3 @@
-// // handler/user_test.go
 package handler
 
 import (
@@ -18,19 +17,19 @@ import (
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
 	usersvc "github.com/EfosaE/credora-backend/service/user"
 	"github.com/EfosaE/credora-backend/test"
-	"github.com/EfosaE/credora-backend/test/mocks"
+	"github.com/EfosaE/credora-backend/test/fakes"
 	"github.com/EfosaE/credora-backend/test/stubs"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateUserHandler_Success(t *testing.T) {
-	// mockEmailAdapter := &mocks.MockEmailAdapter{
+	// mockEmailAdapter := &fakes.MockEmailAdapter{
 	// 	SendEmailFunc: func(ctx context.Context, req email.SendEmailRequest) error {
 	// 		return nil
 	// 	},
 	// }
-	mockUserRepo := &mocks.MockUserRepo{
+	mockUserRepo := &fakes.MockUserRepo{
 		CreateFunc: func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error) {
 			return &user.User{
 				ID:   uuid.New(),
@@ -39,20 +38,20 @@ func TestCreateUserHandler_Success(t *testing.T) {
 		},
 	}
 
-	mockMonnifyRepo := &mocks.MockMonnifyRepo{
+	mockMonnifyRepo := &fakes.MockMonnifyRepo{
 		CreateReservedAccountFunc: func(req *monnify.CreateCRAParams) (*monnify.CreateCRAResponse, error) {
 			return stubs.StubCreateCRAResponse, nil
 		},
 	}
 
 	log := test.SetupTestLogger()
-	
 
 	mockMonnifySvc := service.NewMonnifyService(mockMonnifyRepo, log)
-	mockEventBus := &mocks.MockEventBus{}
-	mockQueue := &mocks.MockQueueClient{}
+	mockEventBus := &fakes.MockEventBus{}
+	mockQueue := &fakes.MockQueueClient{}
+	mockDeviceRepo := &fakes.MockDeviceTokenRepository{}
 
-	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc, mockQueue)
+	userSvc := usersvc.NewUserService(mockUserRepo, log, mockEventBus, mockMonnifySvc, mockQueue, mockDeviceRepo)
 	authSvc := authsvc.NewAuthService(nil, nil, nil, nil, nil, nil)
 
 	handler := NewAuthHandler(userSvc, authSvc)

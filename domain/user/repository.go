@@ -18,3 +18,11 @@ type UserRepository interface {
 	// UpdateUser(ctx context.Context, id int64, req *UpdateUserRequest) (*sqlc.User, error)
 	// DeleteUser(ctx context.Context, id int64) error
 }
+
+type DeviceRepository interface {
+	Create(ctx context.Context, userID uuid.UUID, token, platform string) (*DeviceToken, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*DeviceToken, error)
+	Update(ctx context.Context, id int64, token, platform string) (*DeviceToken, error)
+	Delete(ctx context.Context, id int64) error
+	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
+}

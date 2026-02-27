@@ -54,6 +54,8 @@ type InternalTransferResp struct {
 	FromBalance   decimal.Decimal
 	ToAccountId   uuid.UUID
 	ToBalance     decimal.Decimal
+	ToUserId      uuid.UUID
+	FromUserId    uuid.UUID
 }
 
 type GetUserDetailsWithAccountRow struct {

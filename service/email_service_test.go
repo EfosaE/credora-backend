@@ -6,15 +6,15 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/user"
-	"github.com/EfosaE/credora-backend/test/mocks"
 	"github.com/EfosaE/credora-backend/service"
+	"github.com/EfosaE/credora-backend/test/fakes"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSendWelcomeEmail_Success(t *testing.T) {
-	mockEventBus := &mocks.MockEventBus{}
-	mockEmailAdapter := &mocks.MockEmailAdapter{
+	mockEventBus := &fakes.MockEventBus{}
+	mockEmailAdapter := &fakes.MockEmailAdapter{
 		SendEmailFunc: func(ctx context.Context, req email.SendEmailRequest) error {
 			return nil
 		},

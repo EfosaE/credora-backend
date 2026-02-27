@@ -27,8 +27,8 @@ func ObjKV(pairs ...KV) map[string]any {
 type SuccessResponse struct {
 	StatusCode int            `json:"-"`
 	Success    bool           `json:"success"`
-	Data       map[string]any `json:"data,omitempty"`
 	Message    string         `json:"message,omitempty"`
+	Data       map[string]any `json:"data,omitempty"`
 	Meta       map[string]any `json:"meta,omitempty"`
 }
 

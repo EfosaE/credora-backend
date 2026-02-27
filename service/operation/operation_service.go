@@ -49,7 +49,7 @@ func (s *OperationService) InternalTransfer(
 ) error {
 	// var tRef, recipientName, senderName string
 	var tRef string
-	var toAcctId, fromAcctId uuid.UUID
+	var toAcctId, fromAcctId, toUserId, fromUserId uuid.UUID
 
 	// ---- Insert PROCESSING state OUTSIDE transaction ----
 	// t0 := time.Now()
@@ -88,6 +88,8 @@ func (s *OperationService) InternalTransfer(
 		tRef = utils.GenerateTransactionReference(result.FromAccountId)
 		fromAcctId = result.FromAccountId
 		toAcctId = result.ToAccountId
+		toUserId = result.ToUserId
+		fromUserId = result.FromUserId
 		return nil
 	})
 
@@ -126,13 +128,13 @@ func (s *OperationService) InternalTransfer(
 
 	if err == nil {
 		evt := event.InternalTransferEvent{
-			ToAcctId:   toAcctId,
-			FromAcctId: fromAcctId,
-			Amount:     req.Amount,
-			// RecipientName:  recipientName,
-			// SenderName:     senderName,
+			ToAcctId:       toAcctId,
+			FromAcctId:     fromAcctId,
+			Amount:         req.Amount,
+			ToAcctUserId:   toUserId,
 			FromAcctNum:    req.FromAcctNum,
 			ToAcctNum:      req.ToAcctNum,
+			FromAcctUserId: fromUserId,
 			OccurredAt:     time.Now().UTC(),
 			TransactionRef: tRef,
 		}
@@ -248,15 +250,15 @@ func (s *OperationService) InternalTransfer(
 // 			return fmt.Errorf("failed to lock accounts: %w", err)
 // 		}
 
-// 		accountMap := make(map[string]*account.Account)
-// 		for _, acc := range accounts {
-// 			accountMap[acc.AccountNumber] = acc
-// 		}
+// accountMap := make(map[string]*account.Account)
+// for _, acc := range accounts {
+// 	accountMap[acc.AccountNumber] = acc
+// }
 
-// 		fromAcct, ok := accountMap[from]
-// 		if !ok {
-// 			return fmt.Errorf("from account %s not found", from)
-// 		}
+// fromAcct, ok := accountMap[from]
+// if !ok {
+// 	return fmt.Errorf("from account %s not found", from)
+// }
 // 		senderName = fromAcct.UserName
 
 // 		toAcct, ok := accountMap[to]

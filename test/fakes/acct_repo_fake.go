@@ -1,4 +1,4 @@
-package mocks
+package fakes
 
 import (
 	"context"
@@ -152,7 +152,7 @@ func (m *MockAcctRepo) DebitAccount(
 	}, nil
 }
 
-// GetAccountForUpdate mocks row locking inside a transaction
+// GetAccountForUpdate fakes row locking inside a transaction
 func (m *MockAcctRepo) GetAccountForUpdate(ctx context.Context, accountNumber string) (*account.Account, error) {
 	// if m.GetAccountForUpdateFunc != nil {
 	// 	return m.GetAccountForUpdateFunc(ctx, accountNumber)
@@ -167,6 +167,12 @@ func (m *MockAcctRepo) GetAccountForUpdate(ctx context.Context, accountNumber st
 }
 
 func (m *MockAcctRepo) GetAccountsForUpdate(ctx context.Context, accountNumbers []string) ([]*account.Account, error) {
+	// if m.GetAccountsForUpdateFunc != nil {
+	// 	return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
+	// }
+	return nil, nil
+}
+func (m *MockAcctRepo) GetAccountsDetails(ctx context.Context, accountNumbers []string) ([]*account.Account, error) {
 	// if m.GetAccountsForUpdateFunc != nil {
 	// 	return m.GetAccountsForUpdateFunc(ctx, accountNumbers)
 	// }

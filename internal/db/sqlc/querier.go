@@ -14,17 +14,22 @@ import (
 type Querier interface {
 	CheckIdempotency(ctx context.Context, idemKey string) (bool, error)
 	CreateAccountWithMonnify(ctx context.Context, arg CreateAccountWithMonnifyParams) (Account, error)
+	CreateDeviceToken(ctx context.Context, arg CreateDeviceTokenParams) (DeviceToken, error)
 	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) (PasswordReset, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreditAccountBalance(ctx context.Context, arg CreditAccountBalanceParams) (CreditAccountBalanceRow, error)
 	DebitAccountBalance(ctx context.Context, arg DebitAccountBalanceParams) (DebitAccountBalanceRow, error)
+	DeleteDeviceToken(ctx context.Context, id int64) error
+	DeleteDeviceTokensByUserID(ctx context.Context, userID uuid.UUID) error
 	DeleteIdempotencyKey(ctx context.Context, idemKey string) error
 	DeletePasswordReset(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
+	GetAccounts(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetActivePasswordReset(ctx context.Context, userID uuid.UUID) (PasswordReset, error)
+	GetDeviceTokensByUserID(ctx context.Context, userID uuid.UUID) ([]DeviceToken, error)
 	GetIdempotencyKey(ctx context.Context, idemKey string) (IdempotencyKey, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
@@ -36,6 +41,7 @@ type Querier interface {
 	SaveIdempotencyFailure(ctx context.Context, idemKey string) error
 	SaveIdempotencySuccess(ctx context.Context, idemKey string) error
 	TransferMoneyInternal(ctx context.Context, arg TransferMoneyInternalParams) (TransferMoneyInternalRow, error)
+	UpdateDeviceToken(ctx context.Context, arg UpdateDeviceTokenParams) (DeviceToken, error)
 	UpdateIdempotencyStatus(ctx context.Context, arg UpdateIdempotencyStatusParams) error
 	UpdatePasswordResetUsedAt(ctx context.Context, arg UpdatePasswordResetUsedAtParams) error
 	UpdateUserFullNameAndEmail(ctx context.Context, arg UpdateUserFullNameAndEmailParams) (User, error)

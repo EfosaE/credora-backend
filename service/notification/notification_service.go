@@ -6,37 +6,110 @@ import (
 	"fmt"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/fcm"
+	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type NotificationService struct {
-	fcmSender fcm.FCMSender
-	eventBus  event.EventBus
+	fcmSender  fcm.FCMSender
+	eventBus   event.EventBus
+	acctRepo   account.AccountRepository
+	deviceRepo user.DeviceRepository
+	logger     zerolog.Logger
 }
 
-func NewNotificationService(event event.EventBus, fcm fcm.FCMSender) *NotificationService {
+func NewNotificationService(
+	e event.EventBus,
+	fcm fcm.FCMSender,
+	a account.AccountRepository,
+	d user.DeviceRepository,
+	l zerolog.Logger,
+) *NotificationService {
+
+	logger := l.With().
+		Str("service", "notification-service").
+		Logger()
+
+	logger.Info().Msg("notification service initialized")
+
 	return &NotificationService{
-		eventBus:  event,
-		fcmSender: fcm,
+		eventBus:   e,
+		fcmSender:  fcm,
+		acctRepo:   a,
+		deviceRepo: d,
+		logger:     logger,
 	}
 }
 
-//	func (ns *NotificationService) SendNotification(ctx context.Context, payload map[string]any) error {
-//		return ns.fcmSender.SendPushNotification(ctx, payload)
-//	}
-func (ns *NotificationService) SendNotification(ctx context.Context, userId string, notif *messaging.Notification, data map[string]string) error {
-	// fmt.Println("From Notification service")
-	// utils.PrintJSON(data)
-	// Handle Notifixation here, FCM, Enail, Text Message, Websocket.
-	// For FCM, Get Token by userId,
-	const token = "Dummy-Token"
-	return ns.fcmSender.SendPushNotification(ctx, token, notif, data)
+func (ns *NotificationService) SendNotification(
+	ctx context.Context,
+	userId uuid.UUID,
+	notif *messaging.Notification,
+	data map[string]string,
+) error {
+
+	log := ns.logger.With().
+		Str("operation", "SendNotification").
+		Str("user_id", userId.String()).
+		Logger()
+
+	tokens, err := ns.deviceRepo.GetByUserID(ctx, userId)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to fetch device tokens")
+		return err
+	}
+
+	if len(tokens) == 0 {
+		log.Info().
+			Msg("no registered device tokens found for user")
+		return nil
+	}
+
+	log.Info().
+		Int("device_count", len(tokens)).
+		Msg("sending push notification to devices")
+
+	for _, device := range tokens {
+
+		err := ns.fcmSender.SendPushNotification(
+			ctx,
+			device.Token,
+			notif,
+			data,
+		)
+
+		if err != nil {
+			log.Error().
+				Str("token", device.Token).
+				Err(err).
+				Msg("failed to send push notification")
+			continue
+		}
+
+		log.Info().
+			Str("token", device.Token).
+			Msg("push notification sent successfully")
+	}
+
+	return nil
 }
 
 func (ns *NotificationService) SubscribeToInternalTransferCompletedEvents(ctx context.Context) error {
+
 	consumer := utils.WorkerID("notification")
+
+	ns.logger.Info().
+		Str("stream", event.StreamTransferEvents).
+		Str("consumer_group", "notification-service-group").
+		Str("consumer_id", consumer).
+		Msg("subscribing to internal transfer events")
 
 	return ns.eventBus.Subscribe(
 		ctx,
@@ -44,6 +117,10 @@ func (ns *NotificationService) SubscribeToInternalTransferCompletedEvents(ctx co
 		"notification-service-group",
 		consumer,
 		func(ctx context.Context, msg event.EventMessage) error {
+
+			ns.logger.Info().
+				Str("event_type", msg.EventType).
+				Msg("event received")
 
 			if msg.EventType != event.EventInternalTransferSuccess {
 				return nil
@@ -59,122 +136,90 @@ func (ns *NotificationService) handleInternalTransferSuccess(
 	msg event.EventMessage,
 ) error {
 
+	log := ns.logger.With().
+		Str("operation", "handleInternalTransferSuccess").
+		Str("event_type", msg.EventType).
+		Logger()
+
 	var evt event.InternalTransferEvent
 	if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
+		log.Error().
+			Err(err).
+			Str("raw_data", msg.Data).
+			Msg("failed to decode internal transfer event")
 		return fmt.Errorf("failed to decode %s event: %w",
 			event.EventInternalTransferSuccess,
 			err,
 		)
 	}
 
-	// fmt.Println("From HandleInternalTransferSuccess")
-	// utils.PrintJSON(evt)
+	log.Info().
+		Str("from_account", evt.FromAcctNum).
+		Str("to_account", evt.ToAcctNum).
+		Str("amount", evt.Amount.String()).
+		Msg("processing internal transfer success event")
 
-	// Build notification title and body
-	notif := &messaging.Notification{
-		Title: "Transfer Successful",
-		Body:  fmt.Sprintf("You sent ₦%s to %s", evt.Amount, evt.RecipientName),
+	accounts, err := ns.acctRepo.GetAccountsDetails(
+		ctx,
+		[]string{evt.FromAcctNum, evt.ToAcctNum},
+	)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to fetch account details")
+		return err
 	}
-	// send the data the Client will need
+
+	accountMap := make(map[string]*account.Account)
+	for _, acc := range accounts {
+		accountMap[acc.AccountNumber] = acc
+	}
+
+	fromAcct, ok := accountMap[evt.FromAcctNum]
+	if !ok {
+		log.Error().
+			Str("account_number", evt.FromAcctNum).
+			Msg("sender account not found")
+		return fmt.Errorf("from account %s not found", evt.FromAcctNum)
+	}
+
+	toAcct, ok := accountMap[evt.ToAcctNum]
+	if !ok {
+		log.Error().
+			Str("account_number", evt.ToAcctNum).
+			Msg("recipient account not found")
+		return fmt.Errorf("to account %s not found", evt.ToAcctNum)
+	}
+
+	amountStr := evt.Amount.StringFixed(2)
+
+	notif := &messaging.Notification{
+		Title: "Credit Alert",
+		Body:  fmt.Sprintf("₦%s received from %s", amountStr, fromAcct.UserName),
+	}
+
 	data := map[string]string{
 		"type":          event.EventInternalTransferSuccess,
 		"amount":        evt.Amount.String(),
-		"recipientName": evt.RecipientName,
-		"senderName":    evt.SenderName,
+		"recipientName": toAcct.UserName,
+		"senderName":    fromAcct.UserName,
 		"toAcctNum":     evt.ToAcctNum,
 	}
 
-	// Fire and forget
-	_ = ns.SendNotification(ctx, evt.ToAcctUserId.String(), notif, data)
+	log.Info().
+		Str("recipient_user_id", evt.ToAcctUserId.String()).
+		Msg("dispatching credit notification")
 
-	// Always return nil so event is considered processed
+	err = ns.SendNotification(ctx, evt.ToAcctUserId, notif, data)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to dispatch notification")
+		return err
+	}
+
+	log.Info().
+		Msg("internal transfer notification processed successfully")
+
 	return nil
 }
-
-// package notificationsvc
-
-// import (
-// 	"context"
-// 	"encoding/json"
-// 	"fmt"
-
-// 	"github.com/EfosaE/credora-backend/domain/event"
-// 	"github.com/EfosaE/credora-backend/domain/fcm"
-// 	"github.com/EfosaE/credora-backend/internal/utils"
-// )
-
-// type NotificationService struct {
-// 	fcmSender fcm.FCMSender
-// 	eventBus  event.EventBus
-// }
-
-// func NewNotificationService(event event.EventBus, fcm fcm.FCMSender) *NotificationService {
-// 	return &NotificationService{
-// 		eventBus:  event,
-// 		fcmSender: fcm,
-// 	}
-// }
-
-// func (ns *NotificationService) SendNotification(ctx context.Context, userId string, payload map[string]string) error {
-// 	// Handle Notifixation here, FCM, Enail, Text Message, Websocket.
-// 	// For FCM, Get Token by userId,
-// 	const token = "Dummy-Token"
-// 	return ns.fcmSender.SendPushNotification(ctx, token, nil, payload)
-// }
-
-// func (ns *NotificationService) handleInternalTransferSuccess(
-// 	ctx context.Context,
-// 	evt event.MoneyTransferredEvent,
-// ) {
-
-// 	notification := &fcm.FCMNotification{
-// Title: "Transfer Successful",
-// Body:  fmt.Sprintf("You sent ₦%s to %s", evt.Amount, evt.RecipientName),
-// 	}
-
-// 	payload := map[string]string{
-// 		"type":        "internal_transfer_success",
-// 		"amount":      evt.Amount,
-// 		"recipientId": evt.RecipientID,
-// 	}
-
-// 	err := ns.fcmSender.SendPushNotification(
-// 		ctx,
-// 		evt.SenderDeviceToken, // get token from event
-// 		notification,
-// 		payload,
-// 	)
-
-// 	if err != nil {
-// 		// LOG ONLY. DO NOT RETURN ERROR.
-// 		fmt.Printf("push notification failed: %v\n", err)
-// 	}
-// }
-
-// func (ns *NotificationService) SubscribeToInternalTransferCompletedEvents(ctx context.Context) error {
-
-// 	consumer := utils.WorkerID("notification")
-
-// 	return ns.eventBus.Subscribe(
-// 		ctx,
-// 		event.StreamTransferEvents,
-// 		"notification-service-group",
-// 		consumer,
-// 		func(ctx context.Context, msg event.EventMessage) error {
-
-// 			if msg.EventType != event.EventInternalTransferSuccess {
-// 				return nil
-// 			}
-
-// 			var evt event.MoneyTransferredEvent
-// 			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
-// 				return fmt.Errorf("failed to decode transfer event: %w", err)
-// 			}
-
-// 			// DO NOT return error for notification failures so redis doesnt retry
-// 			ns.handleInternalTransferSuccess(ctx, evt)
-
-// 			return nil
-// 		},
-// 	)
-// }

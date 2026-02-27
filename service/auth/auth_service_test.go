@@ -3,16 +3,17 @@ package authsvc_test
 import (
 	"context"
 	"errors"
+
 	// "errors"
 	"testing"
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/auth"
+	"github.com/EfosaE/credora-backend/test/fakes"
 
 	// "github.com/EfosaE/credora-backend/domain/auth"
 	// "github.com/EfosaE/credora-backend/domain/user"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
-	"github.com/EfosaE/credora-backend/test/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -21,13 +22,13 @@ func TestAuthService_Login(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		setup       func(*mocks.AuthSvcMockDeps)
+		setup       func(*fakes.AuthSvcMockDeps)
 		expectError bool
 	}{
 		{
 			name: "success",
-			setup: func(m *mocks.AuthSvcMockDeps) {
-				hashed, _ := authsvc.HashPassword(mocks.CorrectPassword)
+			setup: func(m *fakes.AuthSvcMockDeps) {
+				hashed, _ := authsvc.HashPassword(fakes.CorrectPassword)
 
 				// Override the default GetUserByAccountNumber method because we use hashed passwords and we didnt set the 11111111 in the accounts map for the login
 				m.AcctRepo.GetUserByAccountNumberFunc = func(ctx context.Context, acctNo string) (*account.GetUserDetailsWithAccountRow, error) {
@@ -47,7 +48,7 @@ func TestAuthService_Login(t *testing.T) {
 		},
 		{
 			name: "account not found",
-			setup: func(m *mocks.AuthSvcMockDeps) {
+			setup: func(m *fakes.AuthSvcMockDeps) {
 				m.AcctRepo.GetUserByAccountNumberFunc = func(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error) {
 					return nil, errors.New("not found")
 				}
@@ -61,7 +62,7 @@ func TestAuthService_Login(t *testing.T) {
 			ctx := context.Background()
 			userID := uuid.New()
 
-			m := mocks.NewAuthSvcMockDeps()
+			m := fakes.NewAuthSvcMockDeps()
 			tt.setup(m)
 
 			m.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
@@ -82,7 +83,7 @@ func TestAuthService_Login(t *testing.T) {
 				m.Mailer,
 			)
 
-			_, _, err := service.Login(ctx, "1111111111", mocks.CorrectPassword)
+			_, _, err := service.Login(ctx, "1111111111", fakes.CorrectPassword)
 
 			if tt.expectError {
 				require.Error(t, err)

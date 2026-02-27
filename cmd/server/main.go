@@ -40,6 +40,7 @@ func main() {
 		IdempSvc:               deps.IdempotencySvc,
 		IdempHandler:           deps.IdempotencyHandler,
 		BackPressureMiddleware: deps.BackPressureMiddleware,
+		NotificationHandler:    deps.NotificationHandler,
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

@@ -1,5 +1,5 @@
-// File: mocks/mock_tx_manager.go
-package mocks
+// File: fakes/mock_tx_manager.go
+package fakes
 
 import (
 	"context"
@@ -13,8 +13,8 @@ type MockTxManager struct {
 	WithTxFunc func(ctx context.Context, fn func(txCtx context.Context) error) error
 
 	// Tracking
-	WithTxCalled bool
-	CommitCalled bool
+	WithTxCalled   bool
+	CommitCalled   bool
 	RollbackCalled bool
 }
 

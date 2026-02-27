@@ -35,6 +35,7 @@ type RouterSetupParams struct {
 	AcctSvc                *accountsvc.AccountService
 	IdempSvc               *idempotencysvc.IdempotencyService
 	BackPressureMiddleware *custmiddleware.BackpressureMiddleware
+	NotificationHandler    *handler.NotificationHandler
 }
 
 func SetupRouter(params RouterSetupParams) chi.Router {
@@ -81,12 +82,14 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Use(params.Auth.Verifier())
 			r.Use(params.Auth.Authenticator())
 
-			r.Get("/user/info", params.UserHandler.GetUserInfo)
-			r.Get("/user/balance", params.UserHandler.GetUserBalance)
+			r.Get("/users/info", params.UserHandler.GetUserInfo)
+			r.Get("/users/balance", params.UserHandler.GetUserBalance)
 			r.Get("/users/{email}", params.UserHandler.GetUserByEmailHandler)
-			r.Get("/user/transactions", params.UserHandler.GetTransactionHistoryHandler) // with cursor pagination
+			r.Get("/users/transactions", params.UserHandler.GetTransactionHistoryHandler) // with cursor pagination
+			r.Post("/users/register-token", params.UserHandler.RegisterDeviceToken)
 			r.Get("/recipient/internal/{acctNum}", params.UserHandler.GetRecipientName)
 			r.Get("/transfers/{trxID}/status", params.OperationsHandler.GetTransferStatus)
+			r.Post("/notifications/{token}", params.NotificationHandler.SendNotificationHandler) // test notification
 			// Internal transfer route
 			r.Group(func(r chi.Router) {
 				// r.Use(httprate.LimitByIP(config.App.Job.RateLimitPerMinute,

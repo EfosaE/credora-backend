@@ -9,14 +9,14 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/infrastructure"
-	"github.com/EfosaE/credora-backend/test/mocks"
+	"github.com/EfosaE/credora-backend/test/fakes"
 	"github.com/EfosaE/credora-backend/test/stubs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthenticate_Success(t *testing.T) {
 	body, _ := json.Marshal(stubs.StubAuthenticateResponse)
-	mockTransport := &mocks.MockRoundTripper{
+	mockTransport := &fakes.MockRoundTripper{
 		ReqFn: func(req *http.Request) (*http.Response, error) {
 			// respBody := `{
 			// 	"responseCode": "0",

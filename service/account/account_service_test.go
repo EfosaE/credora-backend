@@ -11,7 +11,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
-	"github.com/EfosaE/credora-backend/test/mocks"
+	"github.com/EfosaE/credora-backend/test/fakes"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
@@ -26,13 +26,13 @@ func TestAccountService_CoreMethods(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		setup    func(repo *mocks.MockAcctRepo)
+		setup    func(repo *fakes.MockAcctRepo)
 		exec     func(svc *accountsvc.AccountService) (any, error)
 		validate func(t *testing.T, result any, err error)
 	}{
 		{
 			name: "CreateAccount success",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
 					return &account.Account{ID: acctID}, nil
 				}
@@ -47,7 +47,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "CreateAccount failure",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
 					return nil, errors.New("db error")
 				}
@@ -62,7 +62,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "FindUserByAccount success (mapping verified)",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.GetUserByAccountNumberFunc = func(ctx context.Context, acc string) (*account.GetUserDetailsWithAccountRow, error) {
 					return &account.GetUserDetailsWithAccountRow{
 						UserId:   userID,
@@ -86,7 +86,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "FindUserByAccount failure",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.GetUserByAccountNumberFunc = func(ctx context.Context, acc string) (*account.GetUserDetailsWithAccountRow, error) {
 					return nil, errors.New("not found")
 				}
@@ -101,7 +101,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "FindAccountByAcctNum success",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.GetAccountByAccountNumberFunc = func(ctx context.Context, acc string) (*account.Account, error) {
 					return &account.Account{ID: acctID}, nil
 				}
@@ -116,7 +116,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "FindAccountByAcctNum failure",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.GetAccountByAccountNumberFunc = func(ctx context.Context, acc string) (*account.Account, error) {
 					return nil, errors.New("not found")
 				}
@@ -131,7 +131,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "CreditUserBalance success",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.CreditFunc = func(ctx context.Context, amt decimal.Decimal, acc string) (*account.CreditAcctResp, error) {
 					return &account.CreditAcctResp{
 						AcctId:  acctID,
@@ -149,7 +149,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		},
 		{
 			name: "CreditUserBalance failure",
-			setup: func(repo *mocks.MockAcctRepo) {
+			setup: func(repo *fakes.MockAcctRepo) {
 				repo.CreditFunc = func(ctx context.Context, amt decimal.Decimal, acc string) (*account.CreditAcctResp, error) {
 					return nil, errors.New("credit failed")
 				}
@@ -166,7 +166,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockRepo := &mocks.MockAcctRepo{}
+			mockRepo := &fakes.MockAcctRepo{}
 			tt.setup(mockRepo)
 
 			service := &accountsvc.AccountService{
@@ -187,21 +187,21 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 		name        string
 		eventType   string
 		payload     any
-		setupRepo   func(repo *mocks.MockAcctRepo)
+		setupRepo   func(repo *fakes.MockAcctRepo)
 		expectError bool
 	}{
 		{
 			name:        "ignores non USER_CREATED event",
 			eventType:   "SOME_OTHER_EVENT",
 			payload:     map[string]any{},
-			setupRepo:   func(repo *mocks.MockAcctRepo) {},
+			setupRepo:   func(repo *fakes.MockAcctRepo) {},
 			expectError: false,
 		},
 		{
 			name:        "fails on invalid JSON",
 			eventType:   event.EventUserCreated,
 			payload:     "{bad-json",
-			setupRepo:   func(repo *mocks.MockAcctRepo) {},
+			setupRepo:   func(repo *fakes.MockAcctRepo) {},
 			expectError: true,
 		},
 		{
@@ -213,7 +213,7 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 				AccountNumber: "12345",
 				BankName:      "Test Bank",
 			},
-			setupRepo: func(repo *mocks.MockAcctRepo) {
+			setupRepo: func(repo *fakes.MockAcctRepo) {
 				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
 					require.Equal(t, userID, req.UserId)
 					require.Equal(t, "John Doe", req.Username)
@@ -235,7 +235,7 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 				AccountNumber: "12345",
 				BankName:      "Test Bank",
 			},
-			setupRepo: func(repo *mocks.MockAcctRepo) {
+			setupRepo: func(repo *fakes.MockAcctRepo) {
 				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
 					return nil, errors.New("db error")
 				}
@@ -247,8 +247,8 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			mockRepo := &mocks.MockAcctRepo{}
-			mockBus := &mocks.MockEventBus{}
+			mockRepo := &fakes.MockAcctRepo{}
+			mockBus := &fakes.MockEventBus{}
 			tt.setupRepo(mockRepo)
 
 			service := &accountsvc.AccountService{
@@ -301,7 +301,7 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 }
 
 // func TestCreditUserBalance(t *testing.T) {
-// 	mockRepo := &mocks.MockAcctRepo{}
+// 	mockRepo := &fakes.MockAcctRepo{}
 
 // 	amount := decimal.NewFromFloat(1500.0)
 // 	acctNum := "1234567890"

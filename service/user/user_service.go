@@ -6,6 +6,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/event"
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	// accountsvc "github.com/EfosaE/credora-backend/service/account"
@@ -17,11 +18,12 @@ import (
 )
 
 type UserService struct {
-	userRepo   user.UserRepository
-	logger     zerolog.Logger
-	eventBus   event.EventBus
-	monnifySvc *service.MonnifyService
-	queue      queues.Queue // It should depend on the Queue interface for unit testing
+	userRepo      user.UserRepository
+	logger        zerolog.Logger
+	eventBus      event.EventBus
+	monnifySvc    *service.MonnifyService
+	usrDeviceRepo user.DeviceRepository
+	queue         queues.Queue // It should depend on the Queue interface for unit testing
 }
 
 func NewUserService(
@@ -30,13 +32,15 @@ func NewUserService(
 	eventBus event.EventBus,
 	monnifySvc *service.MonnifyService,
 	queue queues.Queue,
+	device user.DeviceRepository,
 ) *UserService {
 	return &UserService{
-		userRepo:   userRepo,
-		logger:     logger,
-		eventBus:   eventBus,
-		monnifySvc: monnifySvc,
-		queue:      queue,
+		userRepo:      userRepo,
+		logger:        logger,
+		eventBus:      eventBus,
+		monnifySvc:    monnifySvc,
+		usrDeviceRepo: device,
+		queue:         queue,
 	}
 }
 
@@ -109,6 +113,21 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		CreatedAt: result.CreatedAt,
 	}
 	return userResp, nil
+}
+
+func (s *UserService) RegisterDeviceTokenToUserID(ctx context.Context, userID uuid.UUID, token, platform string) (*user.DeviceToken, error) {
+	s.logger.Info().
+		Str("user_id", userID.String()).
+		Msg("Registering device token for user")
+
+	dt, err := s.usrDeviceRepo.Create(ctx, userID, token, platform)
+	if err != nil {
+		s.logger.Error().
+			Err(err).
+			Msg("failed to register device token")
+		return nil, err
+	}
+	return dt, nil
 }
 
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {

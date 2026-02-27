@@ -159,6 +159,45 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string)
 	return i, err
 }
 
+const getAccounts = `-- name: GetAccounts :many
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username
+FROM accounts
+WHERE account_number = ANY($1::text[])
+ORDER BY account_number ASC
+`
+
+func (q *Queries) GetAccounts(ctx context.Context, dollar_1 []string) ([]Account, error) {
+	rows, err := q.db.Query(ctx, getAccounts, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AccountNumber,
+			&i.AccountType,
+			&i.Balance,
+			&i.Currency,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.VirtualAccountBank,
+			&i.MonnifyCustomerRef,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAccountsForUpdate = `-- name: GetAccountsForUpdate :many
 SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username
 FROM accounts
@@ -245,16 +284,22 @@ WITH debit AS (
     SET balance = accounts.balance - $1
     WHERE accounts.account_number = $2
       AND accounts.balance >= $1
-    RETURNING id AS from_id, balance AS from_balance
+    RETURNING 
+        id AS from_id,
+        user_id AS from_user_id,
+        balance AS from_balance
 ),
 credit AS (
     UPDATE accounts
     SET balance = accounts.balance + $1
     WHERE accounts.account_number = $3
       AND EXISTS (SELECT 1 FROM debit)
-    RETURNING id AS to_id, balance AS to_balance
+    RETURNING 
+        id AS to_id,
+        user_id AS to_user_id,
+        balance AS to_balance
 )
-SELECT from_id, from_balance, to_id, to_balance
+SELECT from_id, from_user_id, from_balance, to_id, to_user_id, to_balance
 FROM debit, credit
 `
 
@@ -266,8 +311,10 @@ type TransferMoneyInternalParams struct {
 
 type TransferMoneyInternalRow struct {
 	FromID      uuid.UUID      `json:"from_id"`
+	FromUserID  pgtype.UUID    `json:"from_user_id"`
 	FromBalance pgtype.Numeric `json:"from_balance"`
 	ToID        uuid.UUID      `json:"to_id"`
+	ToUserID    pgtype.UUID    `json:"to_user_id"`
 	ToBalance   pgtype.Numeric `json:"to_balance"`
 }
 
@@ -276,8 +323,10 @@ func (q *Queries) TransferMoneyInternal(ctx context.Context, arg TransferMoneyIn
 	var i TransferMoneyInternalRow
 	err := row.Scan(
 		&i.FromID,
+		&i.FromUserID,
 		&i.FromBalance,
 		&i.ToID,
+		&i.ToUserID,
 		&i.ToBalance,
 	)
 	return i, err
