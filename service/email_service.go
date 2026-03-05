@@ -2,18 +2,16 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/email"
 	"github.com/EfosaE/credora-backend/domain/event"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
-	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/rs/zerolog"
 )
 
 type EmailService interface {
-	SendAccountNumberEmail(ctx context.Context, to, bank, accountNumber string) error
+	SendAccountNumberEmail(ctx context.Context, to string, accounts []monnify.ReservedAccount) error
 	SendPasswordResetEmail(ctx context.Context, to, resetLink string) error
 	SendWelcomeEmail(ctx context.Context, user user.User) error
 }
@@ -41,25 +39,19 @@ func NewEmailService(
 	}
 }
 
-func (s *EmailServiceImpl) SendAccountNumberEmail(ctx context.Context, to, bank, accountNumber string) error {
-
+func (s *EmailServiceImpl) SendAccountNumberEmail(ctx context.Context, to string, accounts []monnify.ReservedAccount) error {
 	log := s.logger.With().
 		Str("email", to).
-		Str("bank", bank).
-		Str("account_number", accountNumber).
+		Int("accounts", len(accounts)).
 		Logger()
 
 	log.Info().Msg("sending account number email")
 
-	html, err := email.RenderTemplate("account_email", map[string]string{
-		"Bank":          bank,
-		"AccountNumber": accountNumber,
+	html, err := email.RenderTemplate("account_email", map[string]any{
+		"Accounts": accounts,
 	})
-
 	if err != nil {
-		log.Error().
-			Err(err).
-			Msg("failed to render account email template")
+		log.Error().Err(err).Msg("failed to render account email template")
 		return err
 	}
 
@@ -69,9 +61,7 @@ func (s *EmailServiceImpl) SendAccountNumberEmail(ctx context.Context, to, bank,
 		Subject: "Your Virtual Account Details",
 		Html:    html,
 	}); err != nil {
-		log.Error().
-			Err(err).
-			Msg("failed to send account number email")
+		log.Error().Err(err).Msg("failed to send account number email")
 		return err
 	}
 
@@ -155,63 +145,63 @@ func (s *EmailServiceImpl) SendPasswordResetEmail(ctx context.Context, to, reset
 	return nil
 }
 
-func (s *EmailServiceImpl) SubscribeToUserCreatedEvents(ctx context.Context) error {
+// func (s *EmailServiceImpl) SubscribeToUserCreatedEvents(ctx context.Context) error {
 
-	log := s.logger.With().
-		Str("stream", event.StreamUserEvents).
-		Str("consumer_group", "email-service-group").
-		Logger()
+// 	log := s.logger.With().
+// 		Str("stream", event.StreamUserEvents).
+// 		Str("consumer_group", "email-service-group").
+// 		Logger()
 
-	log.Info().Msg("subscribing to user created events")
+// 	log.Info().Msg("subscribing to user created events")
 
-	consumer := utils.WorkerID("email")
+// 	consumer := utils.WorkerID("email")
 
-	return s.eventBus.Subscribe(
-		ctx,
-		event.StreamUserEvents,
-		"email-service-group",
-		consumer,
-		func(ctx context.Context, msg event.EventMessage) error {
+// 	return s.eventBus.Subscribe(
+// 		ctx,
+// 		event.StreamUserEvents,
+// 		"email-service-group",
+// 		consumer,
+// 		func(ctx context.Context, msg event.EventMessage) error {
 
-			eventLog := log.With().
-				Str("event_type", msg.EventType).
-				Logger()
+// 			eventLog := log.With().
+// 				Str("event_type", msg.EventType).
+// 				Logger()
 
-			// Ignore other event types
-			if msg.EventType != event.EventUserCreated {
-				eventLog.Debug().Msg("ignoring unrelated event type")
-				return nil
-			}
+// 			// Ignore other event types
+// 			if msg.EventType != event.EventUserCreated {
+// 				eventLog.Debug().Msg("ignoring unrelated event type")
+// 				return nil
+// 			}
 
-			eventLog.Info().Msg("processing user created event")
+// 			eventLog.Info().Msg("processing user created event")
 
-			var evt event.UserCreatedEvent
-			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
-				eventLog.Error().
-					Err(err).
-					Msg("failed to decode user created event")
-				return fmt.Errorf("failed to decode user.created event: %w", err)
-			}
+// 			var evt event.UserCreatedEvent
+// 			if err := json.Unmarshal([]byte(msg.Data), &evt); err != nil {
+// 				eventLog.Error().
+// 					Err(err).
+// 					Msg("failed to decode user created event")
+// 				return fmt.Errorf("failed to decode user.created event: %w", err)
+// 			}
 
-			eventLog = eventLog.With().
-				Str("email", evt.Email).
-				Str("user_id", evt.UserID.String()).
-				Logger()
+// 			eventLog = eventLog.With().
+// 				Str("email", evt.Email).
+// 				Str("user_id", evt.UserID.String()).
+// 				Logger()
 
-			if err := s.SendAccountNumberEmail(
-				ctx,
-				evt.Email,
-				evt.BankName,
-				evt.AccountNumber,
-			); err != nil {
-				eventLog.Error().
-					Err(err).
-					Msg("failed to send account number email from event")
-				return fmt.Errorf("failed to send account email: %w", err)
-			}
+// 			if err := s.SendAccountNumberEmail(
+// 				ctx,
+// 				evt.Email,
+// 				evt.BankName,
+// 				evt.AccountNumber,
+// 			); err != nil {
+// 				eventLog.Error().
+// 					Err(err).
+// 					Msg("failed to send account number email from event")
+// 				return fmt.Errorf("failed to send account email: %w", err)
+// 			}
 
-			eventLog.Info().Msg("user created event processed successfully")
-			return nil
-		},
-	)
-}
+// 			eventLog.Info().Msg("user created event processed successfully")
+// 			return nil
+// 		},
+// 	)
+// }

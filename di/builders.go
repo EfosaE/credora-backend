@@ -474,9 +474,9 @@ func (b *AppBuilder) WithEventSubscriptions() *AppBuilder {
 
 	// fmt.Println("trx service", b.deps.TrxSvc)
 
-	if err := b.deps.EmailSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
-		b.err = err
-	}
+	// if err := b.deps.EmailSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
+	// 	b.err = err
+	// }
 	if err := b.deps.AcctSvc.SubscribeToUserCreatedEvents(b.deps.Ctx); err != nil {
 		b.err = err
 	}

@@ -39,20 +39,25 @@ func (r *SqlcAccountRepository) queries(ctx context.Context) *sqlc.Queries {
 // Normal methods
 // ------------------------------------
 
-func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
-	sqlcAcct, err := r.queries(ctx).CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-		UserID:             utils.ToPgUUID(req.UserId),
-		Username:           req.Username,
-		AccountNumber:      req.AccountNumber,
-		AccountType:        req.AccountType,
-		MonnifyCustomerRef: utils.ToPgText(req.MonnifyCustRef),
-		VirtualAccountBank: utils.ToPgText(req.BankName),
-	})
-	if err != nil {
-		return nil, err
+func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
+	var accounts []*account.Account
+
+	for _, a := range req.Accounts {
+		sqlcAcct, err := r.queries(ctx).CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
+			UserID:             utils.ToPgUUID(req.UserId),
+			Username:           req.Username,
+			AccountNumber:      a.AccountNumber,
+			AccountType:        req.AccountType,
+			MonnifyCustomerRef: utils.ToPgText(req.MonnifyCustRef),
+			VirtualAccountBank: utils.ToPgText(a.BankName),
+		})
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, toDomain(sqlcAcct))
 	}
 
-	return toDomain(sqlcAcct), nil
+	return accounts, nil
 }
 
 func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct string) (*account.GetUserDetailsWithAccountRow, error) {

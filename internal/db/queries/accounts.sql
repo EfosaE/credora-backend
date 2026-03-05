@@ -19,6 +19,8 @@ WHERE a.account_number = $1
 LIMIT 1;
 
 
+
+
 -- name: GetUserByAccountNumber :one
 SELECT u.id, u.password, u.full_name, u.email, u.phone_number,u.is_verified, a.account_number, a.account_type, a.balance, a.currency, a.virtual_account_bank
 FROM accounts a

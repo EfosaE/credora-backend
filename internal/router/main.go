@@ -9,6 +9,7 @@ import (
 	"github.com/EfosaE/credora-backend/infrastructure"
 	"github.com/EfosaE/credora-backend/internal/config"
 	"github.com/EfosaE/credora-backend/internal/handler"
+	"github.com/EfosaE/credora-backend/internal/metrics"
 	custmiddleware "github.com/EfosaE/credora-backend/internal/middleware"
 	"github.com/EfosaE/credora-backend/internal/response"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
@@ -19,6 +20,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	// "github.com/go-chi/jwtauth/v5"
 )
 
@@ -41,6 +44,9 @@ type RouterSetupParams struct {
 
 func SetupRouter(params RouterSetupParams) chi.Router {
 	log := logger.Get()
+	registry := prometheus.NewRegistry()
+
+	metrics.Register(registry) //Run your apop specific registry
 
 	r := chi.NewRouter()
 
@@ -48,6 +54,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(custmiddleware.RequestLogger(log))
+	r.Use(custmiddleware.MetricsMiddleware)
 
 	// Basic CORS
 	r.Use(cors.Handler(cors.Options{
@@ -63,6 +70,10 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 
 	r.NotFound(response.NotFoundHandler())
 	r.MethodNotAllowed(response.MethodNotAllowedHandler())
+
+	r.Handle("/metrics",
+		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}),
+	)
 
 	r.Route("/api/v1", func(api chi.Router) {
 		RegisterOpenAPIRoutes(api)

@@ -43,7 +43,7 @@ func RegisterOpenAPIRoutes(api chi.Router) {
 		w.Write([]byte(html))
 	})
 
-	// 📌 Serve static Swagger UI (optional, if you copy dist files)
-	fs := http.FileServer(http.Dir("./public/swagger"))
-	api.Handle("/documentation/*", http.StripPrefix("/documentation", fs))
+	// // 📌 Serve static Swagger UI (optional, if you copy dist files)
+	// fs := http.FileServer(http.Dir("./public/swagger"))
+	// api.Handle("/documentation/*", http.StripPrefix("/documentation", fs))
 }

@@ -1,6 +1,7 @@
 package queues
 
 import (
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/user"
 )
@@ -18,8 +19,7 @@ const (
 
 type AccountNumberEmailPayload struct {
 	To            string
-	Bank          string
-	AccountNumber string
+	Accounts []monnify.ReservedAccount
 }
 
 type WelcomeEmailPayload struct {

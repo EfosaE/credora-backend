@@ -9,6 +9,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/auth"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/test"
 	"github.com/EfosaE/credora-backend/test/fakes"
 
@@ -70,10 +71,16 @@ func TestAuthService_Login(t *testing.T) {
 			m.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
 				UserId:         userID,
 				Username:       "John Doe",
-				AccountNumber:  "1111111111",
 				AccountType:    "savings",
-				BankName:       "Zenith",
 				MonnifyCustRef: "auth_ref",
+				Accounts: []monnify.ReservedAccount{
+					{
+						AccountNumber: "1111111111",
+						BankName:      "Zenith",
+						AccountName:   "John Doe",
+						BankCode:      "057",
+					},
+				},
 			})
 
 			service := authsvc.NewAuthService(

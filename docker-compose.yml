@@ -1,20 +1,48 @@
 services:
   app:
     container_name: credora-server
-    image: credora-backend:v1.00 # or build: . if you have a Dockerfile in the same directory
+    image: credora-backend:v1.00
     restart: unless-stopped
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     ports:
-      - "8080:8080" # change to your Go app port
+      - "8080:8080"
     networks:
       - app-network
-    command: ./server # or whatever your Go binary entrypoint is
     volumes:
       - ./credora-backend-firebase-adminsdk.json:/app/firebase.json
       - ./config.yaml:/app/config.yaml
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./Docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - 3050:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
 
   redis:
     container_name: redis
@@ -26,9 +54,16 @@ services:
       - app-network
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   redis-data:
+  prometheus_data:
+  grafana_data:
 
 
 networks:

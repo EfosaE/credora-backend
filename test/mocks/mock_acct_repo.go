@@ -16,7 +16,7 @@ type MockAccountRepository struct {
 func (m *MockAccountRepository) CreateAcct(
 	ctx context.Context,
 	req *account.CreateAccountRequest,
-) (*account.Account, error) {
+) ([]*account.Account, error) {
 
 	args := m.Called(ctx, req)
 
@@ -24,7 +24,7 @@ func (m *MockAccountRepository) CreateAcct(
 		return nil, args.Error(1)
 	}
 
-	return args.Get(0).(*account.Account), args.Error(1)
+	return args.Get(0).([]*account.Account), args.Error(1)
 }
 
 func (m *MockAccountRepository) GetUserByAccountNumber(

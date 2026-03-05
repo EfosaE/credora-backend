@@ -6,6 +6,7 @@ import (
 
 	// "github.com/EfosaE/credora-backend/domain/email"
 	// "github.com/EfosaE/credora-backend/domain/event"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
 )
 
@@ -13,7 +14,7 @@ type MockEmailService struct {
 	mu sync.Mutex
 
 	// Optional overrides
-	SendAccountNumberEmailFunc func(ctx context.Context, to, bank, accountNumber string) error
+	SendAccountNumberEmailFunc func(ctx context.Context, to string, accounts []monnify.ReservedAccount) error
 	SendPasswordResetEmailFunc func(ctx context.Context, to, resetLink string) error
 	SendWelcomeEmailFunc       func(ctx context.Context, user user.User) error
 
@@ -25,7 +26,8 @@ type MockEmailService struct {
 
 func (m *MockEmailService) SendAccountNumberEmail(
 	ctx context.Context,
-	to, bank, accountNumber string,
+	to string,
+	accounts []monnify.ReservedAccount,
 ) error {
 
 	m.mu.Lock()
@@ -33,7 +35,7 @@ func (m *MockEmailService) SendAccountNumberEmail(
 	m.mu.Unlock()
 
 	if m.SendAccountNumberEmailFunc != nil {
-		return m.SendAccountNumberEmailFunc(ctx, to, bank, accountNumber)
+		return m.SendAccountNumberEmailFunc(ctx, to, accounts)
 	}
 
 	return nil

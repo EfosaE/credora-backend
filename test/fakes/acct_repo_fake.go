@@ -14,22 +14,19 @@ import (
 )
 
 type MockAcctRepo struct {
-	// Optional overrides
-	CreateAcctFunc                func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error)
+	CreateAcctFunc                func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error)
 	GetUserByAccountNumberFunc    func(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error)
 	GetAccountByAccountNumberFunc func(ctx context.Context, accountNumber string) (*account.Account, error)
 	CreditFunc                    func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 	DebitFunc                     func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 
-	// In-memory storage (default behavior)
 	Accounts map[string]*account.Account
-	// Users    map[uuid.UUID]*user.User
 }
 
 func (m *MockAcctRepo) CreateAcct(
 	ctx context.Context,
 	req *account.CreateAccountRequest,
-) (*account.Account, error) {
+) ([]*account.Account, error) {
 
 	if m.CreateAcctFunc != nil {
 		return m.CreateAcctFunc(ctx, req)
@@ -39,21 +36,20 @@ func (m *MockAcctRepo) CreateAcct(
 		m.Accounts = make(map[string]*account.Account)
 	}
 
-	acct := &account.Account{
-		UserId:        req.UserId.String(),
-		AccountNumber: req.AccountNumber,
-		UserName:      req.Username,
-		AccountType:   req.AccountType,
-		BankName:      req.BankName,
+	var accounts []*account.Account
+	for _, a := range req.Accounts {
+		acct := &account.Account{
+			UserId:        req.UserId.String(),
+			AccountNumber: a.AccountNumber,
+			UserName:      req.Username,
+			AccountType:   req.AccountType,
+			BankName:      a.BankName,
+		}
+		m.Accounts[a.AccountNumber] = acct
+		accounts = append(accounts, acct)
 	}
 
-	m.Accounts[req.AccountNumber] = acct
-	// m.Users[req.UserId] = &user.User{
-	// 	ID:       req.UserId,
-	// 	Password: "test",
-	// }
-
-	return acct, nil
+	return accounts, nil
 }
 
 func (m *MockAcctRepo) GetAccountByAccountNumber(

@@ -75,11 +75,10 @@ func (h *Handlers) HandleSendAccountNumberEmail(ctx context.Context, t *asynq.Ta
 	h.logger.Info().
 		Str("task", "HandleSendAccountNumberEmail").
 		Str("to", p.To).
-		Str("bank", p.Bank).
-		Str("accountNumber", p.AccountNumber).
+		Int("accounts", len(p.Accounts)).
 		Msg("sending account number email")
 
-	if err := h.EmailSvc.SendAccountNumberEmail(ctx, p.To, p.Bank, p.AccountNumber); err != nil {
+	if err := h.EmailSvc.SendAccountNumberEmail(ctx, p.To, p.Accounts); err != nil {
 		h.logger.Error().
 			Err(err).
 			Str("task", "HandleSendAccountNumberEmail").

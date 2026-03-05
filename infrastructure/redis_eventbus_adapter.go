@@ -64,6 +64,7 @@ func (s *StreamEventBus) Subscribe(
 	}
 
 	go func() {
+
 		for {
 			res, err := s.client.XReadGroup(ctx, &redis.XReadGroupArgs{
 				Group:    group,
@@ -112,7 +113,6 @@ func (s *StreamEventBus) Subscribe(
 func isBusyGroupErr(err error) bool {
 	return err != nil && (err.Error() == "BUSYGROUP Consumer Group name already exists")
 }
-
 
 // To ensure this repo satisfies the interface defined in the domain.
 var _ event.EventBus = (*StreamEventBus)(nil)

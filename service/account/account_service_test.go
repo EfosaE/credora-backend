@@ -8,6 +8,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/utils"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
@@ -33,8 +34,8 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		{
 			name: "CreateAccount success",
 			setup: func(repo *fakes.MockAcctRepo) {
-				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
-					return &account.Account{ID: acctID}, nil
+				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
+					return []*account.Account{{ID: acctID}}, nil
 				}
 			},
 			exec: func(svc *accountsvc.AccountService) (any, error) {
@@ -48,7 +49,7 @@ func TestAccountService_CoreMethods(t *testing.T) {
 		{
 			name: "CreateAccount failure",
 			setup: func(repo *fakes.MockAcctRepo) {
-				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
+				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
 					return nil, errors.New("db error")
 				}
 			},
@@ -204,24 +205,32 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 			setupRepo:   func(repo *fakes.MockAcctRepo) {},
 			expectError: true,
 		},
+		// Update the UserCreatedEvent struct usage
 		{
 			name:      "successfully creates account",
 			eventType: event.EventUserCreated,
 			payload: event.UserCreatedEvent{
-				UserID:        userID,
-				Name:          "John Doe",
-				AccountNumber: "12345",
-				BankName:      "Test Bank",
+				UserID: userID,
+				Name:   "John Doe",
+				Accounts: []monnify.ReservedAccount{
+					{
+						AccountNumber: "12345",
+						BankName:      "Test Bank",
+						AccountName:   "John Doe",
+						BankCode:      "057",
+					},
+				},
 			},
 			setupRepo: func(repo *fakes.MockAcctRepo) {
-				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
+				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
 					require.Equal(t, userID, req.UserId)
 					require.Equal(t, "John Doe", req.Username)
-					require.Equal(t, "12345", req.AccountNumber)
-					require.Equal(t, "Test Bank", req.BankName)
 					require.Equal(t, "RESERVED ACCOUNT", req.AccountType)
 					require.Equal(t, userID.String(), req.MonnifyCustRef)
-					return &account.Account{}, nil
+					// require.Len(t, req.Accounts, 1)
+					require.Equal(t, "12345", req.Accounts[0].AccountNumber)
+					require.Equal(t, "Test Bank", req.Accounts[0].BankName)
+					return []*account.Account{{}}, nil
 				}
 			},
 			expectError: false,
@@ -230,13 +239,17 @@ func TestAccountService_SubscribeToUserCreatedEvents(t *testing.T) {
 			name:      "repository failure bubbles up",
 			eventType: event.EventUserCreated,
 			payload: event.UserCreatedEvent{
-				UserID:        userID,
-				Name:          "John Doe",
-				AccountNumber: "12345",
-				BankName:      "Test Bank",
+				UserID: userID,
+				Name:   "John Doe",
+				Accounts: []monnify.ReservedAccount{
+					{
+						AccountNumber: "12345",
+						BankName:      "Test Bank",
+					},
+				},
 			},
 			setupRepo: func(repo *fakes.MockAcctRepo) {
-				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
+				repo.CreateAcctFunc = func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
 					return nil, errors.New("db error")
 				}
 			},

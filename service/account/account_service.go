@@ -32,24 +32,23 @@ func NewAccountService(acctRepo account.AccountRepository, logger zerolog.Logger
 	}
 }
 
-func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateAccountRequest) (*account.Account, error) {
+func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error) {
 
 	logCtx := a.logger.With().
 		Str("user_id", req.UserId.String()).
-		Str("account_number", req.AccountNumber).
 		Str("account_type", req.AccountType).
 		Logger()
 
 	logCtx.Info().Msg("creating account")
 
-	acct, err := a.AcctRepo.CreateAcct(ctx, req)
+	accts, err := a.AcctRepo.CreateAcct(ctx, req)
 	if err != nil {
 		logCtx.Error().Err(err).Msg("failed to create account")
 		return nil, err
 	}
 
 	logCtx.Info().Msg("account created successfully")
-	return acct, nil
+	return accts, nil
 }
 
 func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) (*user.User, error) {
@@ -132,16 +131,13 @@ func (a *AccountService) SubscribeToUserCreatedEvents(ctx context.Context) error
 			logCtx := a.logger.With().
 				Str("user_id", evt.UserID.String()).
 				Str("user_name", evt.Name).
-				Str("account_number", evt.AccountNumber).
-				Str("bank_name", evt.BankName).
 				Logger()
 
 			_, err := a.AcctRepo.CreateAcct(ctx, &account.CreateAccountRequest{
 				UserId:         evt.UserID,
 				Username:       evt.Name,
-				AccountNumber:  evt.AccountNumber,
+				Accounts:       evt.Accounts,
 				AccountType:    "RESERVED ACCOUNT",
-				BankName:       evt.BankName,
 				MonnifyCustRef: evt.UserID.String(),
 			})
 

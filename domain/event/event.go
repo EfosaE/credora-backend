@@ -4,6 +4,7 @@ import (
 	// "github.com/EfosaE/credora-backend/domain/user"
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -17,11 +18,10 @@ const (
 )
 
 type UserCreatedEvent struct {
-	UserID        uuid.UUID `json:"userId"`
-	AccountNumber string    `json:"accountNumber"`
-	Name          string    `json:"name"`
-	Email         string    `json:"email"`
-	BankName      string    `json:"bankName"`
+	UserID   uuid.UUID                 `json:"userId"`
+	Accounts []monnify.ReservedAccount `json:"accounts"`
+	Name     string                    `json:"name"`
+	Email    string                    `json:"email"`
 }
 
 type InternalTransferEvent struct {

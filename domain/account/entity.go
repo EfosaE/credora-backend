@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/monnify"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -28,12 +29,11 @@ type Account struct {
 }
 
 type CreateAccountRequest struct {
-	UserId         uuid.UUID `json:"userId" validate:"required,uuid4"`
-	Username       string    `json:"userName" validate:"required"`
-	AccountNumber  string    `json:"accountNumber" validate:"required,len=10,numeric"`
-	AccountType    string    `json:"accountType" validate:"required,oneof=savings current"`
-	BankName       string    `json:"bankName" validate:"required,min=2,max=100"`
-	MonnifyCustRef string    `json:"monnifyCustRef" validate:"required,min=5,max=50"`
+	UserId      uuid.UUID                 `json:"userId" validate:"required,uuid4"`
+	Username    string                    `json:"userName" validate:"required"`
+	Accounts    []monnify.ReservedAccount `json:"accounts"`
+	AccountType string                    `json:"accountType" validate:"required,oneof=savings current"`
+	MonnifyCustRef string `json:"monnifyCustRef" validate:"required,min=5,max=50"`
 }
 
 type TransferRequest struct {

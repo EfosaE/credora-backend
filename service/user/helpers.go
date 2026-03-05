@@ -38,13 +38,12 @@ func (s *UserService) SendWelcomeEmailAsync(user user.User) error {
 	return s.queue.EnqueueWelcomeEmail(payload)
 }
 
-func (s *UserService) SendAccountNumberEmailAsync(to, bank, accountNumber string) error {
+func (s *UserService) SendAccountNumberEmailAsync(to string, accounts []monnify.ReservedAccount) error {
 	payload := queues.AccountNumberEmailPayload{
-		To:            to,
-		Bank:          bank,
-		AccountNumber: accountNumber,
+		To:       to,
+		Accounts: accounts,
 	}
-	s.logger.Info().Msgf("Enqueueing email containing account number for: %s", accountNumber)
+	s.logger.Info().Msgf("Enqueueing email containing account info for: %s", to)
 	return s.queue.EnqueueAccountNumberEmail(payload)
 }
 

@@ -78,30 +78,27 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 		return nil, err
 	}
 
-	accountNumber := monnifyCustResp.ResponseBody.Accounts[0].AccountNumber
-	bankName := monnifyCustResp.ResponseBody.Accounts[0].BankName
 	accountRef := monnifyCustResp.ResponseBody.AccountReference
+	accounts := monnifyCustResp.ResponseBody.Accounts
 
 	log = log.With().
 		Str("account_reference", accountRef).
-		Str("bank_name", bankName).
-		Str("account_number", accountNumber).
+		Str("reservation_ref", monnifyCustResp.ResponseBody.ReservationReference).
 		Logger()
 
 	log.Info().Msg("virtual account created successfully")
 
-	if err := s.SendAccountNumberEmailAsync(result.Email, bankName, accountNumber); err != nil {
+	if err := s.SendAccountNumberEmailAsync(result.Email, accounts); err != nil {
 		log.Error().Err(err).Msg("failed to enqueue account number email")
 	} else {
 		log.Info().Msg("account number email enqueued successfully")
 	}
 
 	evt := event.UserCreatedEvent{
-		UserID:        result.ID,
-		AccountNumber: accountNumber,
-		Name:          result.Name,
-		BankName:      bankName,
-		Email:         result.Email,
+		UserID:   result.ID,
+		Accounts: accounts,
+		Name:     result.Name,
+		Email:    result.Email,
 	}
 
 	payload, err := utils.StructToMap(evt)
