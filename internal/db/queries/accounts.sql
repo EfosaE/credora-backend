@@ -13,20 +13,23 @@ RETURNING *;
 
 
 -- name: GetAccountByAccountNumber :one
-SELECT a.id, a.account_number, a.balance, a.virtual_account_bank
+SELECT 
+    a.id,
+    a.user_id,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
 FROM accounts a
 WHERE a.account_number = $1
 LIMIT 1;
-
-
-
 
 -- name: GetUserByAccountNumber :one
 SELECT u.id, u.password, u.full_name, u.email, u.phone_number,u.is_verified, a.account_number, a.account_type, a.balance, a.currency, a.virtual_account_bank
 FROM accounts a
 JOIN users u ON a.user_id = u.id
 WHERE a.account_number = $1;
-
 
 -- name: TransferMoneyInternal :one
 WITH debit AS (
@@ -80,7 +83,7 @@ WHERE account_number = ANY($1::text[])
 ORDER BY account_number ASC
 FOR UPDATE NOWAIT;
 
--- name: GetAccountForUpdate :one
-SELECT * FROM accounts 
-WHERE account_number = @account_number
-FOR UPDATE NOWAIT;
+-- -- name: GetAccountForUpdate :one
+-- SELECT * FROM accounts 
+-- WHERE account_number = @account_number
+-- FOR UPDATE NOWAIT;

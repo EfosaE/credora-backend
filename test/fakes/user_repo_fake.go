@@ -13,16 +13,22 @@ type MockUserRepo struct {
 	mu sync.Mutex
 
 	// Function overrides
-	CreateFunc         func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error)
-	GetByIDFunc        func(ctx context.Context, id uuid.UUID) (*user.User, error)
-	GetByEmailFunc     func(ctx context.Context, email string) (*user.User, error)
-	UpdatePasswordFunc func(ctx context.Context, id uuid.UUID, hashedPassword string) error
+	CreateFunc                         func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error)
+	GetByIDFunc                        func(ctx context.Context, id uuid.UUID) (*user.User, error)
+	GetByEmailFunc                     func(ctx context.Context, email string) (*user.User, error)
+	UpdatePasswordFunc                 func(ctx context.Context, id uuid.UUID, hashedPassword string) error
+	GetUserAccountsByAccountNumberFunc func(ctx context.Context, accountNumber string) (*user.User, error)
+	GetUserAccountsByEmailFunc         func(ctx context.Context, email string) (*user.User, error)
+	VerifyUserFunc                     func(ctx context.Context, id uuid.UUID) error
 
 	// Call tracking
-	CreateCalled         bool
-	GetByIDCalled        bool
-	GetByEmailCalled     bool
-	UpdatePasswordCalled bool
+	GetUserAccountsByAccountNumberCalled bool
+	GetUserAccountsByEmailCalled         bool
+	VerifyUserCalled                     bool
+	CreateCalled                         bool
+	GetByIDCalled                        bool
+	GetByEmailCalled                     bool
+	UpdatePasswordCalled                 bool
 
 	Users map[uuid.UUID]*user.User
 }
@@ -125,5 +131,81 @@ func (m *MockUserRepo) UpdatePassword(
 	}
 
 	u.Password = hashedPassword
+	return nil
+}
+
+func (m *MockUserRepo) GetUserAccountsByAccountNumber(
+	ctx context.Context,
+	accountNumber string,
+) (*user.User, error) {
+
+	m.mu.Lock()
+	m.GetUserAccountsByAccountNumberCalled = true
+	defer m.mu.Unlock()
+
+	if m.GetUserAccountsByAccountNumberFunc != nil {
+		return m.GetUserAccountsByAccountNumberFunc(ctx, accountNumber)
+	}
+
+	if m.Users == nil {
+		return nil, errors.New("no users in mock")
+	}
+
+	for _, u := range m.Users {
+		for _, acc := range u.Accounts {
+			if acc.AccountNumber == accountNumber {
+				return u, nil
+			}
+		}
+	}
+
+	return nil, errors.New("user not found")
+}
+
+func (m *MockUserRepo) GetUserAccountsByEmail(
+	ctx context.Context,
+	email string,
+) (*user.User, error) {
+
+	m.mu.Lock()
+	m.GetUserAccountsByEmailCalled = true
+	defer m.mu.Unlock()
+
+	if m.GetUserAccountsByEmailFunc != nil {
+		return m.GetUserAccountsByEmailFunc(ctx, email)
+	}
+
+	if m.Users == nil {
+		return nil, errors.New("no users in mock")
+	}
+
+	for _, u := range m.Users {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+
+	return nil, errors.New("user not found")
+}
+
+func (m *MockUserRepo) VerifyUser(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+
+	m.mu.Lock()
+	m.VerifyUserCalled = true
+	defer m.mu.Unlock()
+
+	if m.VerifyUserFunc != nil {
+		return m.VerifyUserFunc(ctx, id)
+	}
+
+	u, ok := m.Users[id]
+	if !ok {
+		return errors.New("user verification failed:user not found")
+	}
+
+	u.IsVerified = true
 	return nil
 }

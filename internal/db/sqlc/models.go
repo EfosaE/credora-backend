@@ -13,7 +13,7 @@ import (
 
 type Account struct {
 	ID                 uuid.UUID        `json:"id"`
-	UserID             pgtype.UUID      `json:"user_id"`
+	UserID             uuid.UUID        `json:"user_id"`
 	AccountNumber      string           `json:"account_number"`
 	AccountType        string           `json:"account_type"`
 	Balance            pgtype.Numeric   `json:"balance"`
@@ -68,7 +68,7 @@ type Transaction struct {
 type User struct {
 	ID                 uuid.UUID        `json:"id"`
 	FullName           string           `json:"full_name"`
-	Email              pgtype.Text      `json:"email"`
+	Email              string           `json:"email"`
 	PhoneNumber        string           `json:"phone_number"`
 	Password           string           `json:"password"`
 	IsVerified         pgtype.Bool      `json:"is_verified"`

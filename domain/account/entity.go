@@ -16,24 +16,23 @@ type TxResult struct {
 }
 
 type Account struct {
-	ID             uuid.UUID       `json:"id"`
-	UserId         string          `json:"userId"`
-	UserName       string          `json:"userName"`
-	AccountNumber  string          `json:"accountNumber"`
-	AccountType    string          `json:"accountType"`
-	MonnifyCustRef string          `json:"monnifyCustRef"`
-	BankName       string          `json:"bankName"`
-	CreatedAt      time.Time       `json:"createdAt"`
-	UpdatedAt      time.Time       `json:"updatedAt"`
-	Balance        decimal.Decimal `json:"balance"`
+	ID             uuid.UUID
+	UserId         uuid.UUID
+	UserName       string
+	AccountNumber  string
+	AccountType    string
+	MonnifyCustRef string
+	BankName       string
+	Balance        decimal.Decimal
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
-
 type CreateAccountRequest struct {
-	UserId      uuid.UUID                 `json:"userId" validate:"required,uuid4"`
-	Username    string                    `json:"userName" validate:"required"`
-	Accounts    []monnify.ReservedAccount `json:"accounts"`
-	AccountType string                    `json:"accountType" validate:"required,oneof=savings current"`
-	MonnifyCustRef string `json:"monnifyCustRef" validate:"required,min=5,max=50"`
+	UserId         uuid.UUID                 `json:"userId" validate:"required,uuid4"`
+	Username       string                    `json:"userName" validate:"required"`
+	Accounts       []monnify.ReservedAccount `json:"accounts"`
+	AccountType    string                    `json:"accountType" validate:"required,oneof=savings current"`
+	MonnifyCustRef string                    `json:"monnifyCustRef" validate:"required,min=5,max=50"`
 }
 
 type TransferRequest struct {
@@ -58,7 +57,7 @@ type InternalTransferResp struct {
 	FromUserId    uuid.UUID
 }
 
-type GetUserDetailsWithAccountRow struct {
+type GetAccountWithUserInfo struct {
 	UserId        uuid.UUID `json:"userId"`
 	Password      string    `json:"-"`
 	FullName      string    `json:"fullName"`
@@ -70,3 +69,4 @@ type GetUserDetailsWithAccountRow struct {
 	Balance       string    `json:"balance"`
 	Currency      string    `json:"currency"`
 }
+

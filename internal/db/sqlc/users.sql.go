@@ -19,11 +19,11 @@ RETURNING id, full_name, email, phone_number, password, is_verified, created_at,
 `
 
 type CreateUserParams struct {
-	Email       pgtype.Text `json:"email"`
-	FullName    string      `json:"full_name"`
-	PhoneNumber string      `json:"phone_number"`
-	Password    string      `json:"password"`
-	Nin         string      `json:"nin"`
+	Email       string `json:"email"`
+	FullName    string `json:"full_name"`
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
+	Nin         string `json:"nin"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -66,7 +66,7 @@ SELECT id, full_name, email, phone_number, password, is_verified, created_at, up
 WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
@@ -107,6 +107,139 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phoneNumber string) (User,
 		&i.MonnifyCustomerRef,
 	)
 	return i, err
+}
+
+const getUserWithAccountsByAccountNumber = `-- name: GetUserWithAccountsByAccountNumber :many
+SELECT 
+    u.id,
+    u.password,
+    u.full_name,
+    u.email,
+    u.phone_number,
+    u.is_verified,
+    a.id AS account_id,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
+FROM accounts acc
+JOIN users u ON u.id = acc.user_id
+JOIN accounts a ON a.user_id = u.id
+WHERE acc.account_number = $1
+ORDER BY a.created_at
+`
+
+type GetUserWithAccountsByAccountNumberRow struct {
+	ID                 uuid.UUID      `json:"id"`
+	Password           string         `json:"password"`
+	FullName           string         `json:"full_name"`
+	Email              string         `json:"email"`
+	PhoneNumber        string         `json:"phone_number"`
+	IsVerified         pgtype.Bool    `json:"is_verified"`
+	AccountID          uuid.UUID      `json:"account_id"`
+	AccountNumber      string         `json:"account_number"`
+	AccountType        string         `json:"account_type"`
+	Balance            pgtype.Numeric `json:"balance"`
+	Currency           string         `json:"currency"`
+	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
+}
+
+func (q *Queries) GetUserWithAccountsByAccountNumber(ctx context.Context, accountNumber string) ([]GetUserWithAccountsByAccountNumberRow, error) {
+	rows, err := q.db.Query(ctx, getUserWithAccountsByAccountNumber, accountNumber)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserWithAccountsByAccountNumberRow
+	for rows.Next() {
+		var i GetUserWithAccountsByAccountNumberRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Password,
+			&i.FullName,
+			&i.Email,
+			&i.PhoneNumber,
+			&i.IsVerified,
+			&i.AccountID,
+			&i.AccountNumber,
+			&i.AccountType,
+			&i.Balance,
+			&i.Currency,
+			&i.VirtualAccountBank,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserWithAccountsByEmail = `-- name: GetUserWithAccountsByEmail :many
+SELECT 
+    u.id,
+    u.password,
+    u.full_name,
+    u.email,
+    u.phone_number,
+    u.is_verified,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
+FROM users u
+LEFT JOIN accounts a ON a.user_id = u.id
+WHERE u.email = $1
+`
+
+type GetUserWithAccountsByEmailRow struct {
+	ID                 uuid.UUID      `json:"id"`
+	Password           string         `json:"password"`
+	FullName           string         `json:"full_name"`
+	Email              string         `json:"email"`
+	PhoneNumber        string         `json:"phone_number"`
+	IsVerified         pgtype.Bool    `json:"is_verified"`
+	AccountNumber      pgtype.Text    `json:"account_number"`
+	AccountType        pgtype.Text    `json:"account_type"`
+	Balance            pgtype.Numeric `json:"balance"`
+	Currency           pgtype.Text    `json:"currency"`
+	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
+}
+
+func (q *Queries) GetUserWithAccountsByEmail(ctx context.Context, email string) ([]GetUserWithAccountsByEmailRow, error) {
+	rows, err := q.db.Query(ctx, getUserWithAccountsByEmail, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserWithAccountsByEmailRow
+	for rows.Next() {
+		var i GetUserWithAccountsByEmailRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Password,
+			&i.FullName,
+			&i.Email,
+			&i.PhoneNumber,
+			&i.IsVerified,
+			&i.AccountNumber,
+			&i.AccountType,
+			&i.Balance,
+			&i.Currency,
+			&i.VirtualAccountBank,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUsers = `-- name: ListUsers :many
@@ -160,9 +293,9 @@ RETURNING id, full_name, email, phone_number, password, is_verified, created_at,
 `
 
 type UpdateUserFullNameAndEmailParams struct {
-	ID       uuid.UUID   `json:"id"`
-	FullName string      `json:"full_name"`
-	Email    pgtype.Text `json:"email"`
+	ID       uuid.UUID `json:"id"`
+	FullName string    `json:"full_name"`
+	Email    string    `json:"email"`
 }
 
 func (q *Queries) UpdateUserFullNameAndEmail(ctx context.Context, arg UpdateUserFullNameAndEmailParams) (User, error) {
@@ -197,5 +330,16 @@ type UpdateUserPasswordParams struct {
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
 	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.Password)
+	return err
+}
+
+const verifyUser = `-- name: VerifyUser :exec
+UPDATE users
+SET is_verified = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) VerifyUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, verifyUser, id)
 	return err
 }

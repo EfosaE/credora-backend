@@ -3,18 +3,22 @@ package user
 import (
 	"time"
 
+	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/google/uuid"
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Nin       string    `json:"nin"`
-	Balance   string    `json:"balance"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Password  string    `json:"-"`
+	ID          uuid.UUID `json:"id"`
+	FullName    string
+	Email       string    `json:"email"`
+	Nin         string    `json:"nin"`
+	Balance     string    `json:"balance"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	Password    string    `json:"-"`
+	PhoneNumber string
+	IsVerified  bool
+	Accounts    []account.Account
 }
 
 type CreateUserRequest struct {

@@ -79,7 +79,7 @@ func (s *EmailServiceImpl) SendWelcomeEmail(ctx context.Context, user user.User)
 	log.Info().Msg("sending welcome email")
 
 	html, err := email.RenderTemplate("welcome_email", map[string]string{
-		"UserName":    user.Name,
+		"UserName":    user.FullName,
 		"CompanyName": "Credora",
 		"AccountID":   user.ID.String(),
 		"LoginURL":    "https://vaultix.osamwonyiefosa02.workers.dev",

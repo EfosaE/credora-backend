@@ -24,7 +24,7 @@ func TestSendWelcomeEmail_Success(t *testing.T) {
 
 	svc := service.NewEmailService(mockEmailAdapter, mockEventBus, testLogger)
 
-	user := user.User{ID: uuid.New(), Name: "Efosa", Email: "efosa@example.com"}
+	user := user.User{ID: uuid.New(), FullName: "Efosa", Email: "efosa@example.com"}
 
 	err := svc.SendWelcomeEmail(context.Background(), user)
 	assert.NoError(t, err)

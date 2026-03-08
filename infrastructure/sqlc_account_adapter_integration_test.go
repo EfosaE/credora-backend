@@ -35,7 +35,7 @@ func TestCreditAccount(t *testing.T) {
 	require.NoError(t, err)
 
 	acct, err := queries.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-		UserID:             utils.ToPgUUID(user.ID),
+		UserID:             user.ID,
 		AccountNumber:      "3822115398",
 		AccountType:        "TEST",
 		MonnifyCustomerRef: utils.ToPgText("ref123"),
@@ -61,7 +61,7 @@ func TestCreditAccount(t *testing.T) {
 	err = txManager.WithTx(ctx, func(txCtx context.Context) error {
 
 		// Fetch original balance inside the transaction
-		before, err := repo.GetAccountForUpdate(txCtx, acct.AccountNumber)
+		before, err := repo.GetAccountByAccountNumber(txCtx, acct.AccountNumber)
 		require.NoError(t, err)
 
 		beforeBal := before.Balance

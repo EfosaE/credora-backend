@@ -27,20 +27,6 @@ func (m *MockAccountRepository) CreateAcct(
 	return args.Get(0).([]*account.Account), args.Error(1)
 }
 
-func (m *MockAccountRepository) GetUserByAccountNumber(
-	ctx context.Context,
-	accountNumber string,
-) (*account.GetUserDetailsWithAccountRow, error) {
-
-	args := m.Called(ctx, accountNumber)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-
-	return args.Get(0).(*account.GetUserDetailsWithAccountRow), args.Error(1)
-}
-
 func (m *MockAccountRepository) CreditAccount(
 	ctx context.Context,
 	amount decimal.Decimal,
@@ -111,6 +97,20 @@ func (m *MockAccountRepository) GetAccountsForUpdate(
 	}
 
 	return args.Get(0).([]*account.Account), args.Error(1)
+}
+
+func (m *MockAccountRepository) GetAccountWithUserInfoByAcctNum(
+	ctx context.Context,
+	accountNumbers string,
+) (*account.GetAccountWithUserInfo, error) {
+
+	args := m.Called(ctx, accountNumbers)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*account.GetAccountWithUserInfo), args.Error(1)
 }
 
 func (m *MockAccountRepository) InternalMoneyTransfer(

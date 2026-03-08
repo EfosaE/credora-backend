@@ -26,7 +26,7 @@ RETURNING id, user_id, account_number, account_type, balance, currency, created_
 `
 
 type CreateAccountWithMonnifyParams struct {
-	UserID             pgtype.UUID `json:"user_id"`
+	UserID             uuid.UUID   `json:"user_id"`
 	Username           string      `json:"username"`
 	AccountNumber      string      `json:"account_number"`
 	AccountType        string      `json:"account_type"`
@@ -109,7 +109,14 @@ func (q *Queries) DebitAccountBalance(ctx context.Context, arg DebitAccountBalan
 }
 
 const getAccountByAccountNumber = `-- name: GetAccountByAccountNumber :one
-SELECT a.id, a.account_number, a.balance, a.virtual_account_bank
+SELECT 
+    a.id,
+    a.user_id,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
 FROM accounts a
 WHERE a.account_number = $1
 LIMIT 1
@@ -117,8 +124,11 @@ LIMIT 1
 
 type GetAccountByAccountNumberRow struct {
 	ID                 uuid.UUID      `json:"id"`
+	UserID             uuid.UUID      `json:"user_id"`
 	AccountNumber      string         `json:"account_number"`
+	AccountType        string         `json:"account_type"`
 	Balance            pgtype.Numeric `json:"balance"`
+	Currency           string         `json:"currency"`
 	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
 }
 
@@ -127,34 +137,12 @@ func (q *Queries) GetAccountByAccountNumber(ctx context.Context, accountNumber s
 	var i GetAccountByAccountNumberRow
 	err := row.Scan(
 		&i.ID,
-		&i.AccountNumber,
-		&i.Balance,
-		&i.VirtualAccountBank,
-	)
-	return i, err
-}
-
-const getAccountForUpdate = `-- name: GetAccountForUpdate :one
-SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username FROM accounts 
-WHERE account_number = $1
-FOR UPDATE NOWAIT
-`
-
-func (q *Queries) GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error) {
-	row := q.db.QueryRow(ctx, getAccountForUpdate, accountNumber)
-	var i Account
-	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountNumber,
 		&i.AccountType,
 		&i.Balance,
 		&i.Currency,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 		&i.VirtualAccountBank,
-		&i.MonnifyCustomerRef,
-		&i.Username,
 	)
 	return i, err
 }
@@ -249,7 +237,7 @@ type GetUserByAccountNumberRow struct {
 	ID                 uuid.UUID      `json:"id"`
 	Password           string         `json:"password"`
 	FullName           string         `json:"full_name"`
-	Email              pgtype.Text    `json:"email"`
+	Email              string         `json:"email"`
 	PhoneNumber        string         `json:"phone_number"`
 	IsVerified         pgtype.Bool    `json:"is_verified"`
 	AccountNumber      string         `json:"account_number"`
@@ -311,10 +299,10 @@ type TransferMoneyInternalParams struct {
 
 type TransferMoneyInternalRow struct {
 	FromID      uuid.UUID      `json:"from_id"`
-	FromUserID  pgtype.UUID    `json:"from_user_id"`
+	FromUserID  uuid.UUID      `json:"from_user_id"`
 	FromBalance pgtype.Numeric `json:"from_balance"`
 	ToID        uuid.UUID      `json:"to_id"`
-	ToUserID    pgtype.UUID    `json:"to_user_id"`
+	ToUserID    uuid.UUID      `json:"to_user_id"`
 	ToBalance   pgtype.Numeric `json:"to_balance"`
 }
 

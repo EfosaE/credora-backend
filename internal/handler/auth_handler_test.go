@@ -33,7 +33,7 @@ func TestCreateUserHandler_Success(t *testing.T) {
 		CreateFunc: func(ctx context.Context, req *user.CreateUserRequest) (*user.User, error) {
 			return &user.User{
 				ID:   uuid.New(),
-				Name: req.Name,
+				FullName: req.Name,
 			}, nil
 		},
 	}

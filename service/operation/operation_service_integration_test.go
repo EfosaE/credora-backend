@@ -76,7 +76,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 
 			// ---- Seed accounts ----
 			fromAcct, err := queries.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-				UserID:             utils.ToPgUUID(user1.ID),
+				UserID:             user1.ID,
 				Username:           "John Doe",
 				AccountNumber:      "1111111111",
 				AccountType:        "TESTING ACCOUNT",
@@ -86,7 +86,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 			require.NoError(t, err)
 
 			toAcct, err := queries.CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-				UserID:             utils.ToPgUUID(user2.ID),
+				UserID:             user2.ID,
 				Username:           "Jane Doe",
 				AccountNumber:      "2222222222",
 				AccountType:        "TESTING ACCOUNT",

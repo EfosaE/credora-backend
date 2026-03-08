@@ -78,7 +78,7 @@ func (h *UserHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	user, err := h.acctService.FindUserByAccount(r.Context(), userAcctNum)
+	user, err := h.acctService.FindUserByAccountNumber(r.Context(), userAcctNum)
 
 	if err != nil {
 		fmt.Println("Error retrieving user balance:", err)
@@ -105,7 +105,7 @@ func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
 
 	// Call service
 	// user, token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
-	user, err := h.acctService.FindUserByAccount(r.Context(), acctNum)
+	user, err := h.acctService.FindUserByAccountNumber(r.Context(), acctNum)
 	if err != nil {
 		fmt.Println("Error retrieving recipient name:", err)
 		response.SendError(w, r, response.BadRequest(nil, err.Error()))

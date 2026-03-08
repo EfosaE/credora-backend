@@ -3,6 +3,7 @@ package authsvc
 import (
 	"context"
 	"fmt"
+	"net/mail"
 	"time"
 
 	"github.com/EfosaE/credora-backend/domain/account"
@@ -50,38 +51,123 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (*account.GetUserDetailsWithAccountRow, string, error) {
+func (s *AuthService) Login(
+	ctx context.Context,
+	identifier string,
+	password string,
+) (*user.User, string, error) {
 
 	logCtx := s.logger.With().
-		Str("account_number", accountNumber).
+		Str("identifier", identifier).
 		Logger()
 
 	logCtx.Info().Msg("login attempt")
 
-	u, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
-	if err != nil {
-		logCtx.Warn().Err(err).Msg("user not found for login")
-		return nil, "", fmt.Errorf("login: %w", domainerr.ErrUserNotFound)
+	var (
+		user *user.User
+		// accounts []account.Account
+		err error
+	)
+
+	// 1️⃣ Determine identifier type
+	if isEmail(identifier) {
+
+		logCtx.Debug().Msg("email login detected")
+
+		// Fetch user + accounts
+		user, err = s.userRepo.GetUserAccountsByEmail(ctx, identifier)
+		if err != nil {
+			logCtx.Warn().Err(err).Msg("user not found")
+			return nil, "", domainerr.ErrInvalidCredentials
+		}
+
+		// 2️⃣ Reject email login if not verified
+		if !user.IsVerified {
+			logCtx.Warn().Msg("email login attempted before activation")
+			return nil, "", domainerr.ErrAccountNotActivated
+		}
+
+	} else {
+
+		logCtx.Debug().Msg("account number login detected")
+
+		// Fetch user via account number (should return ALL accounts)
+		user, err = s.userRepo.GetUserAccountsByAccountNumber(ctx, identifier)
+		if err != nil {
+			logCtx.Warn().Err(err).Msg("account not found")
+			return nil, "", domainerr.ErrInvalidCredentials
+		}
 	}
 
-	if !CheckPasswordHash(password, u.Password) {
+	// 3️⃣ Check password
+	if !CheckPasswordHash(password, user.Password) {
 		logCtx.Warn().Msg("invalid password attempt")
 		return nil, "", domainerr.ErrInvalidCredentials
 	}
 
+	// 4️⃣ First login activation
+	if !user.IsVerified {
+
+		logCtx.Info().Msg("first login detected, activating user")
+
+		err := s.userRepo.VerifyUser(ctx, user.ID)
+		if err != nil {
+			logCtx.Error().Err(err).Msg("failed to activate user")
+			return nil, "", err
+		}
+
+		user.IsVerified = true
+	}
+
+	// 5️⃣ Generate token
 	token, err := s.tokenService.GenerateToken(ctx, auth.TokenPayload{
-		UserID:        u.UserId,
-		AccountNumber: u.AccountNumber,
-		Name:          u.FullName,
+		UserID: user.ID,
+		Name:   user.FullName,
 	})
 	if err != nil {
 		logCtx.Error().Err(err).Msg("failed to generate auth token")
-		return nil, "", fmt.Errorf("login: %w", err)
+		return nil, "", err
 	}
 
-	logCtx.Info().Str("user_id", u.UserId.String()).Msg("login successful")
-	return u, token, nil
+	logCtx.Info().
+		Str("user_id", user.ID.String()).
+		Msg("login successful")
+
+	return user, token, nil
 }
+
+// func (s *AuthService) Login(ctx context.Context, accountNumber, password string) (*account.GetUserDetailsWithAccountRow, string, error) {
+
+// 	logCtx := s.logger.With().
+// 		Str("account_number", accountNumber).
+// 		Logger()
+
+// 	logCtx.Info().Msg("login attempt")
+
+// 	u, err := s.acctRepo.GetUserByAccountNumber(ctx, accountNumber)
+// 	if err != nil {
+// 		logCtx.Warn().Err(err).Msg("user not found for login")
+// 		return nil, "", fmt.Errorf("login: %w", domainerr.ErrUserNotFound)
+// 	}
+
+// 	if !CheckPasswordHash(password, u.Password) {
+// 		logCtx.Warn().Msg("invalid password attempt")
+// 		return nil, "", domainerr.ErrInvalidCredentials
+// 	}
+
+// 	token, err := s.tokenService.GenerateToken(ctx, auth.TokenPayload{
+// 		UserID:        u.UserId,
+// 		AccountNumber: u.AccountNumber,
+// 		Name:          u.FullName,
+// 	})
+// 	if err != nil {
+// 		logCtx.Error().Err(err).Msg("failed to generate auth token")
+// 		return nil, "", fmt.Errorf("login: %w", err)
+// 	}
+
+// 	logCtx.Info().Str("user_id", u.UserId.String()).Msg("login successful")
+// 	return u, token, nil
+// }
 
 func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
 
@@ -174,4 +260,9 @@ func (s *AuthService) ValidatePasswordResetRequest(ctx context.Context, email, t
 
 	logCtx.Info().Msg("password reset successfully completed")
 	return nil
+}
+
+func isEmail(s string) bool {
+	_, err := mail.ParseAddress(s)
+	return err == nil
 }

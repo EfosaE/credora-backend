@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -41,7 +42,7 @@ LIMIT $4
 `
 
 type GetUserTransactionHistoryParams struct {
-	UserID          pgtype.UUID        `json:"user_id"`
+	UserID          uuid.UUID          `json:"user_id"`
 	CursorCreatedAt pgtype.Timestamptz `json:"cursor_created_at"`
 	CursorID        int64              `json:"cursor_id"`
 	PageLimit       int32              `json:"page_limit"`

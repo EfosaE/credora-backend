@@ -5,8 +5,6 @@ import (
 	"errors"
 
 	"github.com/EfosaE/credora-backend/domain/account"
-	authsvc "github.com/EfosaE/credora-backend/service/auth"
-	"github.com/google/uuid"
 
 	// "github.com/EfosaE/credora-backend/domain/user"
 	// "github.com/google/uuid"
@@ -15,7 +13,6 @@ import (
 
 type MockAcctRepo struct {
 	CreateAcctFunc                func(ctx context.Context, req *account.CreateAccountRequest) ([]*account.Account, error)
-	GetUserByAccountNumberFunc    func(ctx context.Context, accountNumber string) (*account.GetUserDetailsWithAccountRow, error)
 	GetAccountByAccountNumberFunc func(ctx context.Context, accountNumber string) (*account.Account, error)
 	CreditFunc                    func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
 	DebitFunc                     func(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error)
@@ -39,7 +36,7 @@ func (m *MockAcctRepo) CreateAcct(
 	var accounts []*account.Account
 	for _, a := range req.Accounts {
 		acct := &account.Account{
-			UserId:        req.UserId.String(),
+			UserId:        req.UserId,
 			AccountNumber: a.AccountNumber,
 			UserName:      req.Username,
 			AccountType:   req.AccountType,
@@ -71,33 +68,6 @@ func (m *MockAcctRepo) GetAccountByAccountNumber(
 	}
 
 	return acct, nil
-}
-
-func (m *MockAcctRepo) GetUserByAccountNumber(
-	ctx context.Context,
-	accountNumber string,
-) (*account.GetUserDetailsWithAccountRow, error) {
-
-	if m.GetUserByAccountNumberFunc != nil {
-		return m.GetUserByAccountNumberFunc(ctx, accountNumber)
-	}
-
-	if m.Accounts == nil {
-		return nil, errors.New("no accounts in mock")
-	}
-
-	acct, ok := m.Accounts[accountNumber]
-	if !ok {
-		return nil, errors.New("account not found")
-	}
-
-	hash, _ := authsvc.HashPassword(CorrectPassword)
-	return &account.GetUserDetailsWithAccountRow{
-		UserId:        uuid.MustParse(acct.UserId),
-		AccountNumber: acct.AccountNumber,
-		FullName:      acct.UserName,
-		Password:      hash,
-	}, nil
 }
 
 func (m *MockAcctRepo) CreditAccount(
@@ -175,6 +145,11 @@ func (m *MockAcctRepo) GetAccountsDetails(ctx context.Context, accountNumbers []
 	return nil, nil
 }
 func (m *MockAcctRepo) InternalMoneyTransfer(ctx context.Context, amount decimal.Decimal, fromAcctNum, toAcctNum string) (*account.InternalTransferResp, error) {
+	//for now, just return nil
+	return nil, nil
+}
+
+func (m *MockAcctRepo) GetAccountWithUserInfoByAcctNum(ctx context.Context, accountNumber string) (*account.GetAccountWithUserInfo, error) {
 	//for now, just return nil
 	return nil, nil
 }

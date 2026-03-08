@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/user"
@@ -51,22 +50,22 @@ func (a *AccountService) CreateAccount(ctx context.Context, req *account.CreateA
 	return accts, nil
 }
 
-func (a *AccountService) FindUserByAccount(ctx context.Context, acctNum string) (*user.User, error) {
+func (a *AccountService) FindUserByAccountNumber(ctx context.Context, acctNum string) (*user.User, error) {
 
 	logCtx := a.logger.With().Str("account_number", acctNum).Logger()
 	logCtx.Info().Msg("fetching user by account number")
 
-	acct, err := a.AcctRepo.GetUserByAccountNumber(ctx, acctNum)
+	acct, err := a.AcctRepo.GetAccountWithUserInfoByAcctNum(ctx, acctNum)
 	if err != nil {
 		logCtx.Error().Err(err).Msg("failed to find user by account number")
 		return nil, err
 	}
 
 	return &user.User{
-		ID:      acct.UserId,
-		Email:   acct.Email,
-		Name:    acct.FullName,
-		Balance: acct.Balance,
+		ID:       acct.UserId,
+		Email:    acct.Email,
+		FullName: acct.FullName,
+		Balance:  acct.Balance,
 	}, nil
 }
 

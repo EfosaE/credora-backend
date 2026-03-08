@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -25,16 +24,17 @@ type Querier interface {
 	DeletePasswordReset(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
-	GetAccountForUpdate(ctx context.Context, accountNumber string) (Account, error)
 	GetAccounts(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetActivePasswordReset(ctx context.Context, userID uuid.UUID) (PasswordReset, error)
 	GetDeviceTokensByUserID(ctx context.Context, userID uuid.UUID) ([]DeviceToken, error)
 	GetIdempotencyKey(ctx context.Context, idemKey string) (IdempotencyKey, error)
 	GetUserByAccountNumber(ctx context.Context, accountNumber string) (GetUserByAccountNumberRow, error)
-	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByPhone(ctx context.Context, phoneNumber string) (User, error)
 	GetUserTransactionHistory(ctx context.Context, arg GetUserTransactionHistoryParams) ([]Transaction, error)
+	GetUserWithAccountsByAccountNumber(ctx context.Context, accountNumber string) ([]GetUserWithAccountsByAccountNumberRow, error)
+	GetUserWithAccountsByEmail(ctx context.Context, email string) ([]GetUserWithAccountsByEmailRow, error)
 	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
@@ -51,6 +51,7 @@ type Querier interface {
 	// VALUES ($1, $2, $3, $4)
 	// ON CONFLICT (idem_key) DO NOTHING;
 	UpsertIdempotencyKey(ctx context.Context, arg UpsertIdempotencyKeyParams) error
+	VerifyUser(ctx context.Context, id uuid.UUID) error
 }
 
 var _ Querier = (*Queries)(nil)

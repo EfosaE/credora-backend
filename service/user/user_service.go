@@ -97,7 +97,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *user.CreateUserReques
 	evt := event.UserCreatedEvent{
 		UserID:   result.ID,
 		Accounts: accounts,
-		Name:     result.Name,
+		Name:     result.FullName,
 		Email:    result.Email,
 	}
 

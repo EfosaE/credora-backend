@@ -11,6 +11,11 @@ WHERE phone_number = $1;
 SELECT * FROM users
 WHERE email = $1;
 
+-- name: VerifyUser :exec
+UPDATE users
+SET is_verified = TRUE
+WHERE id = $1;
+
 -- name: GetUserWithAccountsByEmail :many
 SELECT 
     u.id,
@@ -27,6 +32,26 @@ SELECT
 FROM users u
 LEFT JOIN accounts a ON a.user_id = u.id
 WHERE u.email = $1;
+
+-- name: GetUserWithAccountsByAccountNumber :many
+SELECT 
+    u.id,
+    u.password,
+    u.full_name,
+    u.email,
+    u.phone_number,
+    u.is_verified,
+    a.id AS account_id,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
+FROM accounts acc
+JOIN users u ON u.id = acc.user_id
+JOIN accounts a ON a.user_id = u.id
+WHERE acc.account_number = $1
+ORDER BY a.created_at;
 
 
 -- name: ListUsers :many

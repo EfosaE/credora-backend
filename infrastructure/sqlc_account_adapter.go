@@ -9,7 +9,6 @@ import (
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
-	"github.com/google/uuid"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,7 +43,7 @@ func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.Cre
 
 	for _, a := range req.Accounts {
 		sqlcAcct, err := r.queries(ctx).CreateAccountWithMonnify(ctx, sqlc.CreateAccountWithMonnifyParams{
-			UserID:             utils.ToPgUUID(req.UserId),
+			UserID:             req.UserId,
 			Username:           req.Username,
 			AccountNumber:      a.AccountNumber,
 			AccountType:        req.AccountType,
@@ -54,29 +53,11 @@ func (r *SqlcAccountRepository) CreateAcct(ctx context.Context, req *account.Cre
 		if err != nil {
 			return nil, err
 		}
+
 		accounts = append(accounts, toDomain(sqlcAcct))
 	}
 
 	return accounts, nil
-}
-
-func (r *SqlcAccountRepository) GetUserByAccountNumber(ctx context.Context, acct string) (*account.GetUserDetailsWithAccountRow, error) {
-	row, err := r.queries(ctx).GetUserByAccountNumber(ctx, acct)
-	if err != nil {
-		return nil, err
-	}
-	return &account.GetUserDetailsWithAccountRow{
-		UserId:        row.ID,
-		Password:      row.Password,
-		FullName:      row.FullName,
-		Email:         row.Email.String,
-		PhoneNumber:   row.PhoneNumber,
-		IsVerified:    row.IsVerified.Bool,
-		AccountNumber: row.AccountNumber,
-		AccountType:   row.AccountType,
-		Balance:       utils.MustPgNumericToDecimal(row.Balance).String(),
-		Currency:      row.Currency,
-	}, nil
 }
 
 func (r *SqlcAccountRepository) GetAccountByAccountNumber(ctx context.Context, acct string) (*account.Account, error) {
@@ -107,7 +88,7 @@ func (r *SqlcAccountRepository) GetAccountsDetails(
 		accounts = append(accounts, &account.Account{
 			ID:            row.ID,
 			UserName:      row.Username,
-			UserId:        row.UserID.String(),
+			UserId:        row.UserID,
 			AccountNumber: row.AccountNumber,
 			Balance:       utils.MustPgNumericToDecimal(row.Balance),
 		})
@@ -115,6 +96,25 @@ func (r *SqlcAccountRepository) GetAccountsDetails(
 
 	// No strict validation needed for notification context
 	return accounts, nil
+}
+
+func (r *SqlcAccountRepository) GetAccountWithUserInfoByAcctNum(ctx context.Context, acct string) (*account.GetAccountWithUserInfo, error) {
+	row, err := r.queries(ctx).GetUserByAccountNumber(ctx, acct)
+	if err != nil {
+		return nil, err
+	}
+	return &account.GetAccountWithUserInfo{
+		UserId:        row.ID,
+		Password:      row.Password,
+		FullName:      row.FullName,
+		Email:         row.Email,
+		PhoneNumber:   row.PhoneNumber,
+		IsVerified:    row.IsVerified.Bool,
+		AccountNumber: row.AccountNumber,
+		AccountType:   row.AccountType,
+		Balance:       utils.MustPgNumericToDecimal(row.Balance).String(),
+		Currency:      row.Currency,
+	}, nil
 }
 
 // ------------------------------------
@@ -137,7 +137,7 @@ func (r *SqlcAccountRepository) GetAccountsForUpdate(
 		accounts = append(accounts, &account.Account{
 			ID:            row.ID,
 			UserName:      row.Username,
-			UserId:        row.UserID.String(),
+			UserId:        row.UserID,
 			AccountNumber: row.AccountNumber,
 			Balance:       utils.MustPgNumericToDecimal(row.Balance),
 		})
@@ -149,20 +149,6 @@ func (r *SqlcAccountRepository) GetAccountsForUpdate(
 	}
 
 	return accounts, nil
-}
-
-func (r *SqlcAccountRepository) GetAccountForUpdate(ctx context.Context, accountNumber string) (*account.Account, error) {
-	row, err := r.queries(ctx).GetAccountForUpdate(ctx, accountNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	return &account.Account{
-		ID:            row.ID,
-		UserId:        row.UserID.String(),
-		AccountNumber: row.AccountNumber,
-		Balance:       utils.MustPgNumericToDecimal(row.Balance),
-	}, nil
 }
 
 func (r *SqlcAccountRepository) CreditAccount(ctx context.Context, amount decimal.Decimal, accountNumber string) (*account.CreditAcctResp, error) {
@@ -227,28 +213,14 @@ func (r *SqlcAccountRepository) InternalMoneyTransfer(
 
 		return nil, err
 	}
-	var toUserID uuid.UUID
-	var fromUserID uuid.UUID
-
-	if result.ToUserID.Valid {
-		toUserID = result.ToUserID.Bytes
-	} else {
-		return nil, errors.New("to_user_id is null")
-	}
-
-	if result.FromUserID.Valid {
-		fromUserID = result.FromUserID.Bytes
-	} else {
-		return nil, errors.New("from_user_id is null")
-	}
 
 	return &account.InternalTransferResp{
 		FromAccountId: result.FromID,
 		ToAccountId:   result.ToID,
 		FromBalance:   utils.MustPgNumericToDecimal(result.FromBalance),
 		ToBalance:     utils.MustPgNumericToDecimal(result.ToBalance),
-		ToUserId:      toUserID,
-		FromUserId:    fromUserID,
+		ToUserId:      result.ToUserID,
+		FromUserId:    result.FromUserID,
 	}, nil
 }
 
@@ -257,9 +229,10 @@ func (r *SqlcAccountRepository) InternalMoneyTransfer(
 // ------------------------------------
 
 func toDomain(a sqlc.Account) *account.Account {
+
 	return &account.Account{
 		ID:             a.ID,
-		UserId:         a.UserID.String(),
+		UserId:         a.UserID,
 		AccountNumber:  a.AccountNumber,
 		AccountType:    a.AccountType,
 		MonnifyCustRef: a.MonnifyCustomerRef.String,
@@ -268,3 +241,6 @@ func toDomain(a sqlc.Account) *account.Account {
 		UpdatedAt:      a.UpdatedAt.Time,
 	}
 }
+
+// To ensure this repo satisfies the interface defined in the domain.
+var _ account.AccountRepository = (*SqlcAccountRepository)(nil)

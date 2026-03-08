@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"github.com/EfosaE/credora-backend/domain/user"
 
+	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/google/uuid"
 	// "time"
 )
@@ -10,20 +12,19 @@ import (
 // AuthService handles authentication operations
 type AuthService interface {
 	Login(ctx context.Context, accountNumber, password string) error
-	// Register(ctx context.Context, req RegisterRequest) (*AuthResult, error)
-	// RefreshToken(ctx context.Context, refreshToken string) (*AuthResult, error)
-	// Logout(ctx context.Context, token string) error
-	// ValidateToken(ctx context.Context, token string) (*TokenPayload, error)
 }
 
 type TokenService interface {
 	GenerateToken(ctx context.Context, payload TokenPayload) (string, error)
-	// ParseToken(ctx context.Context, tokenString string) (TokenPayload, error)
-	// GenerateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
 type TokenPayload struct {
 	AccountNumber string    `json:"accountNumber"`
 	Name          string    `json:"name"`
 	UserID        uuid.UUID `json:"userId"`
+}
+
+type LoginResponse struct {
+	User     *user.User
+	Accounts []account.Account
 }

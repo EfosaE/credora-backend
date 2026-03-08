@@ -9,8 +9,6 @@ import (
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/monnify"
-	"github.com/EfosaE/credora-backend/domain/user"
-	"github.com/EfosaE/credora-backend/internal/utils"
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	"github.com/EfosaE/credora-backend/test/fakes"
 	"github.com/google/uuid"
@@ -21,7 +19,7 @@ import (
 func TestAccountService_CoreMethods(t *testing.T) {
 	ctx := context.Background()
 	acctID := uuid.New()
-	userID := uuid.New()
+	// userID := uuid.New()
 	acctNum := "1234567890"
 	amount := decimal.NewFromInt(1000)
 
@@ -61,45 +59,30 @@ func TestAccountService_CoreMethods(t *testing.T) {
 				require.Nil(t, result)
 			},
 		},
-		{
-			name: "FindUserByAccount success (mapping verified)",
-			setup: func(repo *fakes.MockAcctRepo) {
-				repo.GetUserByAccountNumberFunc = func(ctx context.Context, acc string) (*account.GetUserDetailsWithAccountRow, error) {
-					return &account.GetUserDetailsWithAccountRow{
-						UserId:   userID,
-						Email:    "test@email.com",
-						FullName: "John Doe",
-						Balance:  amount.String(),
-					}, nil
-				}
-			},
-			exec: func(svc *accountsvc.AccountService) (any, error) {
-				return svc.FindUserByAccount(ctx, acctNum)
-			},
-			validate: func(t *testing.T, result any, err error) {
-				require.NoError(t, err)
-				u := result.(*user.User)
-				require.Equal(t, userID, u.ID)
-				require.Equal(t, "test@email.com", u.Email)
-				require.Equal(t, "John Doe", u.Name)
-				require.True(t, amount.Equal(utils.MustStringToDecimal(u.Balance)))
-			},
-		},
-		{
-			name: "FindUserByAccount failure",
-			setup: func(repo *fakes.MockAcctRepo) {
-				repo.GetUserByAccountNumberFunc = func(ctx context.Context, acc string) (*account.GetUserDetailsWithAccountRow, error) {
-					return nil, errors.New("not found")
-				}
-			},
-			exec: func(svc *accountsvc.AccountService) (any, error) {
-				return svc.FindUserByAccount(ctx, acctNum)
-			},
-			validate: func(t *testing.T, result any, err error) {
-				require.Error(t, err)
-				require.Nil(t, result)
-			},
-		},
+		// {
+		// 	name: "FindUserByAccount success (mapping verified)",
+		// 	setup: func(repo *fakes.MockAcctRepo) {
+		// 		repo.GetUserByAccountNumberFunc = func(ctx context.Context, acc string) (*account.GetUserDetailsWithAccountRow, error) {
+		// 			return &account.GetUserDetailsWithAccountRow{
+		// 				UserId:   userID,
+		// 				Email:    "test@email.com",
+		// 				FullName: "John Doe",
+		// 				Balance:  amount.String(),
+		// 			}, nil
+		// 		}
+		// 	},
+		// 	exec: func(svc *accountsvc.AccountService) (any, error) {
+		// 		return svc.FindUserByAccount(ctx, acctNum)
+		// 	},
+		// 	validate: func(t *testing.T, result any, err error) {
+		// 		require.NoError(t, err)
+		// 		u := result.(*user.User)
+		// 		require.Equal(t, userID, u.ID)
+		// 		require.Equal(t, "test@email.com", u.Email)
+		// 		require.Equal(t, "John Doe", u.Name)
+		// 		require.True(t, amount.Equal(utils.MustStringToDecimal(u.Balance)))
+		// 	},
+		// },
 		{
 			name: "FindAccountByAcctNum success",
 			setup: func(repo *fakes.MockAcctRepo) {

@@ -67,7 +67,7 @@ func (t *SqlcTransactionRepository) GetUserTransactions(
 ) (*[]transaction.Transaction, *transaction.Cursor, error) {
 
 	params := sqlc.GetUserTransactionHistoryParams{
-		UserID:    utils.ToPgUUID(userID),
+		UserID:    userID,
 		PageLimit: limit,
 	}
 
