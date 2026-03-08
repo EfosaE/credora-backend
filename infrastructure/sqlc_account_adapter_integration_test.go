@@ -27,6 +27,7 @@ func TestCreditAccount(t *testing.T) {
 
 	// ---------- Seed user + account ----------
 	user, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
+		Email:       "test@example.com",
 		FullName:    "Test User",
 		PhoneNumber: "08011112222",
 		Password:    "pass",

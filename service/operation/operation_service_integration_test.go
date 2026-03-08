@@ -60,6 +60,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 			// ---- Seed users ----
 			user1, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
 				FullName:    "John Doe",
+				Email:       "john@example.com",
 				PhoneNumber: "08011112222",
 				Password:    "hashed",
 				Nin:         "12345678908",
@@ -68,6 +69,7 @@ func TestInternalTransfer_Integration(t *testing.T) {
 
 			user2, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
 				FullName:    "Jane Doe",
+				Email:       "jane@example.com",
 				PhoneNumber: "08033334444",
 				Password:    "hashed",
 				Nin:         "12345678956",
