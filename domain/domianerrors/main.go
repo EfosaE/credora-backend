@@ -13,6 +13,7 @@ var (
 	ErrTokenExpired        = errors.New("token expired")
 	ErrNoRowsFound         = errors.New("no rows found")
 	ErrAccountNotActivated = errors.New("account not yet activated, email login disabled")
+	ErrAccountNotFound     = errors.New("account not found")
 
 	ErrTooManyPendingJobs = errors.New("Service temporarily unavailable")
 )

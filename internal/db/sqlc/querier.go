@@ -23,6 +23,7 @@ type Querier interface {
 	DeleteIdempotencyKey(ctx context.Context, idemKey string) error
 	DeletePasswordReset(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	FindAccountByOwner(ctx context.Context, arg FindAccountByOwnerParams) (Account, error)
 	GetAccountByAccountNumber(ctx context.Context, accountNumber string) (GetAccountByAccountNumberRow, error)
 	GetAccounts(ctx context.Context, dollar_1 []string) ([]Account, error)
 	GetAccountsForUpdate(ctx context.Context, dollar_1 []string) ([]Account, error)
@@ -36,6 +37,24 @@ type Querier interface {
 	GetUserWithAccountsByAccountNumber(ctx context.Context, accountNumber string) ([]GetUserWithAccountsByAccountNumberRow, error)
 	GetUserWithAccountsByEmail(ctx context.Context, email string) ([]GetUserWithAccountsByEmailRow, error)
 	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
+	// SELECT
+	//     u.id,
+	//     u.password,
+	//     u.full_name,
+	//     u.email,
+	//     u.phone_number,
+	//     u.is_verified,
+	//     a.id AS account_id,
+	//     a.account_number,
+	//     a.account_type,
+	//     a.balance,
+	//     a.currency,
+	//     a.virtual_account_bank
+	// FROM accounts acc
+	// JOIN users u ON u.id = acc.user_id
+	// JOIN accounts a ON a.user_id = u.id
+	// WHERE acc.account_number = $1
+	// ORDER BY a.created_at;
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RecordNewTransaction(ctx context.Context, arg RecordNewTransactionParams) (Transaction, error)
 	SaveIdempotencyFailure(ctx context.Context, idemKey string) error

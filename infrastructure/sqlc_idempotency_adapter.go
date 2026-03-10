@@ -3,12 +3,15 @@ package infrastructure
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/EfosaE/credora-backend/domain/idempotency"
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/domain/transaction"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,11 +58,13 @@ func (i *SqlcIdempotencyRepository) Insert(ctx context.Context, key string, opTy
 	})
 }
 
-// Get an idempotency record
 func (i *SqlcIdempotencyRepository) Get(ctx context.Context, key string) (*idempotency.IdempotencyData, error) {
 	data, err := i.queries(ctx).GetIdempotencyKey(ctx, key)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get idempotency record: %w", err)
 	}
 
 	return &idempotency.IdempotencyData{

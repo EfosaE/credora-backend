@@ -3,11 +3,15 @@ package accountsvc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+
 	"github.com/EfosaE/credora-backend/domain/account"
+	domainerr "github.com/EfosaE/credora-backend/domain/domianerrors"
 	"github.com/EfosaE/credora-backend/domain/event"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
@@ -61,11 +65,16 @@ func (a *AccountService) FindUserByAccountNumber(ctx context.Context, acctNum st
 		return nil, err
 	}
 
+	balance, err := decimal.NewFromString(acct.Balance)
+	if err != nil {
+		return nil, err
+	}
+
 	return &user.User{
 		ID:       acct.UserId,
 		Email:    acct.Email,
 		FullName: acct.FullName,
-		Balance:  acct.Balance,
+		Balance:  balance,
 	}, nil
 }
 
@@ -81,6 +90,26 @@ func (a *AccountService) FindAccountByAcctNum(ctx context.Context, acctNum strin
 	}
 
 	logCtx.Info().Msg("account retrieved successfully")
+	return acct, nil
+}
+
+func (a *AccountService) FindAccountByOwner(ctx context.Context, userID uuid.UUID, accountNumber string) (*account.Account, error) {
+	logCtx := a.logger.With().
+		Str("user_id", userID.String()).
+		Str("account_number", accountNumber).
+		Logger()
+
+	acct, err := a.AcctRepo.FindAccountByOwner(ctx, userID, accountNumber)
+	if err != nil {
+		if errors.Is(err, domainerr.ErrAccountNotFound) {
+			logCtx.Warn().Msg("account not found or does not belong to user")
+			return nil, domainerr.ErrAccountNotFound
+		}
+		logCtx.Error().Err(err).Msg("failed to find account by owner")
+		return nil, fmt.Errorf("unable to find account by owner: %w", err)
+	}
+
+	logCtx.Debug().Msg("account ownership verified successfully")
 	return acct, nil
 }
 

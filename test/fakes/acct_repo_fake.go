@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/EfosaE/credora-backend/domain/account"
+	"github.com/google/uuid"
 
 	// "github.com/EfosaE/credora-backend/domain/user"
 	// "github.com/google/uuid"
@@ -150,6 +151,11 @@ func (m *MockAcctRepo) InternalMoneyTransfer(ctx context.Context, amount decimal
 }
 
 func (m *MockAcctRepo) GetAccountWithUserInfoByAcctNum(ctx context.Context, accountNumber string) (*account.GetAccountWithUserInfo, error) {
+	//for now, just return nil
+	return nil, nil
+}
+
+func (m *MockAcctRepo) FindAccountByOwner(ctx context.Context, userID uuid.UUID, accountNumber string) (*account.Account, error) {
 	//for now, just return nil
 	return nil, nil
 }

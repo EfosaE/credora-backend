@@ -34,7 +34,7 @@ LEFT JOIN accounts a ON a.user_id = u.id
 WHERE u.email = $1;
 
 -- name: GetUserWithAccountsByAccountNumber :many
-SELECT 
+SELECT
     u.id,
     u.password,
     u.full_name,
@@ -47,11 +47,34 @@ SELECT
     a.balance,
     a.currency,
     a.virtual_account_bank
-FROM accounts acc
-JOIN users u ON u.id = acc.user_id
+FROM users u
 JOIN accounts a ON a.user_id = u.id
-WHERE acc.account_number = $1
+WHERE u.id = (
+    SELECT user_id
+    FROM accounts as acc
+    WHERE acc.account_number = $1
+)
 ORDER BY a.created_at;
+
+
+-- SELECT 
+--     u.id,
+--     u.password,
+--     u.full_name,
+--     u.email,
+--     u.phone_number,
+--     u.is_verified,
+--     a.id AS account_id,
+--     a.account_number,
+--     a.account_type,
+--     a.balance,
+--     a.currency,
+--     a.virtual_account_bank
+-- FROM accounts acc
+-- JOIN users u ON u.id = acc.user_id
+-- JOIN accounts a ON a.user_id = u.id
+-- WHERE acc.account_number = $1
+-- ORDER BY a.created_at;
 
 
 -- name: ListUsers :many

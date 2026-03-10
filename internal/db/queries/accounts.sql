@@ -10,6 +10,12 @@ INSERT INTO accounts (
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
+-- name: FindAccountByOwner :one
+SELECT *
+FROM accounts
+WHERE account_number = $1
+  AND user_id = $2
+LIMIT 1;
 
 
 -- name: GetAccountByAccountNumber :one

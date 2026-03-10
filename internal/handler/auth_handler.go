@@ -2,11 +2,11 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	domainerr "github.com/EfosaE/credora-backend/domain/domianerrors"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
@@ -93,10 +93,33 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call service
-	user, token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
+	user, token, err := h.authService.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
-		fmt.Println("Error during login:", err)
-		response.SendError(w, r, response.BadRequest(errors.New("Login Failed"), "Invalid credentials"))
+
+		switch err {
+
+		case domainerr.ErrInvalidCredentials:
+			response.SendError(
+				w,
+				r,
+				response.Unauthorized(err.Error()),
+			)
+
+		case domainerr.ErrAccountNotActivated:
+			response.SendError(
+				w,
+				r,
+				response.Forbidden(err.Error()),
+			)
+
+		default:
+			response.SendError(
+				w,
+				r,
+				response.InternalServerError(err, "Login failed"),
+			)
+		}
+
 		return
 	}
 

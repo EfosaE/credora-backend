@@ -11,6 +11,7 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/auth"
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/go-chi/jwtauth/v5"
 )
 
@@ -26,10 +27,10 @@ func NewJWTTokenService(secret string, expiry time.Duration) *JWTTokenService {
 }
 
 func (j *JWTTokenService) GenerateToken(ctx context.Context, payload auth.TokenPayload) (string, error) {
+	utils.PrintJSON(payload)
 	_, tokenString, err := j.tokenAuth.Encode(map[string]any{
 		"userId":        payload.UserID,
 		"name":          payload.Name,
-		"accountNumber": payload.AccountNumber,
 		"iat":           time.Now().Unix(),
 		"exp":           time.Now().Add(j.expiryDur).Unix(),
 	})

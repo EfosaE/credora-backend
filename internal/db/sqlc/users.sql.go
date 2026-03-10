@@ -110,7 +110,7 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phoneNumber string) (User,
 }
 
 const getUserWithAccountsByAccountNumber = `-- name: GetUserWithAccountsByAccountNumber :many
-SELECT 
+SELECT
     u.id,
     u.password,
     u.full_name,
@@ -123,10 +123,13 @@ SELECT
     a.balance,
     a.currency,
     a.virtual_account_bank
-FROM accounts acc
-JOIN users u ON u.id = acc.user_id
+FROM users u
 JOIN accounts a ON a.user_id = u.id
-WHERE acc.account_number = $1
+WHERE u.id = (
+    SELECT user_id
+    FROM accounts as acc
+    WHERE acc.account_number = $1
+)
 ORDER BY a.created_at
 `
 
@@ -243,6 +246,8 @@ func (q *Queries) GetUserWithAccountsByEmail(ctx context.Context, email string) 
 }
 
 const listUsers = `-- name: ListUsers :many
+
+
 SELECT id, full_name, email, phone_number, password, is_verified, created_at, updated_at, nin, expires_at, monnify_customer_ref FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -253,6 +258,24 @@ type ListUsersParams struct {
 	Offset int32 `json:"offset"`
 }
 
+// SELECT
+//     u.id,
+//     u.password,
+//     u.full_name,
+//     u.email,
+//     u.phone_number,
+//     u.is_verified,
+//     a.id AS account_id,
+//     a.account_number,
+//     a.account_type,
+//     a.balance,
+//     a.currency,
+//     a.virtual_account_bank
+// FROM accounts acc
+// JOIN users u ON u.id = acc.user_id
+// JOIN accounts a ON a.user_id = u.id
+// WHERE acc.account_number = $1
+// ORDER BY a.created_at;
 func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error) {
 	rows, err := q.db.Query(ctx, listUsers, arg.Limit, arg.Offset)
 	if err != nil {

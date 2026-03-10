@@ -108,6 +108,38 @@ func (q *Queries) DebitAccountBalance(ctx context.Context, arg DebitAccountBalan
 	return i, err
 }
 
+const findAccountByOwner = `-- name: FindAccountByOwner :one
+SELECT id, user_id, account_number, account_type, balance, currency, created_at, updated_at, virtual_account_bank, monnify_customer_ref, username
+FROM accounts
+WHERE account_number = $1
+  AND user_id = $2
+LIMIT 1
+`
+
+type FindAccountByOwnerParams struct {
+	AccountNumber string    `json:"account_number"`
+	UserID        uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) FindAccountByOwner(ctx context.Context, arg FindAccountByOwnerParams) (Account, error) {
+	row := q.db.QueryRow(ctx, findAccountByOwner, arg.AccountNumber, arg.UserID)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountNumber,
+		&i.AccountType,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VirtualAccountBank,
+		&i.MonnifyCustomerRef,
+		&i.Username,
+	)
+	return i, err
+}
+
 const getAccountByAccountNumber = `-- name: GetAccountByAccountNumber :one
 SELECT 
     a.id,

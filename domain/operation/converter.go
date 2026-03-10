@@ -5,7 +5,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (dto *InternalTransferDTO) ToDomain(fromAcctNum string) (*InternalTransferReq, error) {
+func (dto *InternalTransferDTO) ToDomain() (*InternalTransferReq, error) {
 
 	amount, err := decimal.NewFromString(dto.Amount)
 	if err != nil {
@@ -13,7 +13,7 @@ func (dto *InternalTransferDTO) ToDomain(fromAcctNum string) (*InternalTransferR
 	}
 
 	return &InternalTransferReq{
-		FromAcctNum: fromAcctNum,
+		FromAcctNum: dto.FromAccount,
 		ToAcctNum:   dto.ToAccount,
 		Amount:      amount,
 	}, nil

@@ -36,9 +36,9 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 	// Retrieve domain request injected by middleware
 	req, ok := r.Context().Value(custmiddleware.ContextKeyInternalTransfer).(*operation.InternalTransferReq)
 	if !ok || req == nil {
-		response.SendError(w, r, response.BadRequest(
-			errors.New("missing transfer request"),
-			"Request was not parsed correctly",
+		response.SendError(w, r, response.InternalServerError(
+			errors.New("transfer request missing from context"),
+			"An internal error occurred",
 		))
 		return
 	}

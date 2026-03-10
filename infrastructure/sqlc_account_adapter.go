@@ -6,9 +6,11 @@ import (
 	"fmt"
 
 	"github.com/EfosaE/credora-backend/domain/account"
+	domainerr "github.com/EfosaE/credora-backend/domain/domianerrors"
 	"github.com/EfosaE/credora-backend/domain/operation"
 	"github.com/EfosaE/credora-backend/internal/db/sqlc"
 	"github.com/EfosaE/credora-backend/internal/utils"
+	"github.com/google/uuid"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -115,6 +117,20 @@ func (r *SqlcAccountRepository) GetAccountWithUserInfoByAcctNum(ctx context.Cont
 		Balance:       utils.MustPgNumericToDecimal(row.Balance).String(),
 		Currency:      row.Currency,
 	}, nil
+}
+
+func (r *SqlcAccountRepository) FindAccountByOwner(ctx context.Context, userID uuid.UUID, accountNumber string) (*account.Account, error) {
+	row, err := r.queries(ctx).FindAccountByOwner(ctx, sqlc.FindAccountByOwnerParams{
+		UserID:        userID,
+		AccountNumber: accountNumber,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domainerr.ErrAccountNotFound
+		}
+		return nil, fmt.Errorf("failed to find account by owner: %w", err)
+	}
+	return toDomain(row), nil
 }
 
 // ------------------------------------
@@ -235,6 +251,7 @@ func toDomain(a sqlc.Account) *account.Account {
 		UserId:         a.UserID,
 		AccountNumber:  a.AccountNumber,
 		AccountType:    a.AccountType,
+		Balance:        utils.MustPgNumericToDecimal(a.Balance),
 		MonnifyCustRef: a.MonnifyCustomerRef.String,
 		BankName:       a.VirtualAccountBank.String,
 		CreatedAt:      a.CreatedAt.Time,

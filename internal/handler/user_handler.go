@@ -51,9 +51,8 @@ func (h *UserHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := auth.TokenPayload{
-		UserID:        userID,
-		Name:          claims["name"].(string),
-		AccountNumber: claims["accountNumber"].(string),
+		UserID: userID,
+		Name:   claims["name"].(string),
 	}
 
 	response.SendSuccess(w, r, response.OK(

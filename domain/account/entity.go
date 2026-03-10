@@ -16,16 +16,16 @@ type TxResult struct {
 }
 
 type Account struct {
-	ID             uuid.UUID
-	UserId         uuid.UUID
-	UserName       string
-	AccountNumber  string
-	AccountType    string
-	MonnifyCustRef string
-	BankName       string
-	Balance        decimal.Decimal
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID             uuid.UUID       `json:"id"`
+	UserId         uuid.UUID       `json:"userId"`
+	UserName       string          `json:"userName"`
+	AccountNumber  string          `json:"accountNumber"`
+	AccountType    string          `json:"accountType"`
+	MonnifyCustRef string          `json:"monnifyCustomerReference"`
+	BankName       string          `json:"bankName"`
+	Balance        decimal.Decimal `json:"balance"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
 }
 type CreateAccountRequest struct {
 	UserId         uuid.UUID                 `json:"userId" validate:"required,uuid4"`
@@ -69,4 +69,3 @@ type GetAccountWithUserInfo struct {
 	Balance       string    `json:"balance"`
 	Currency      string    `json:"currency"`
 }
-

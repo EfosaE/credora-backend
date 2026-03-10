@@ -19,9 +19,8 @@ type TokenService interface {
 }
 
 type TokenPayload struct {
-	AccountNumber string    `json:"accountNumber"`
-	Name          string    `json:"name"`
-	UserID        uuid.UUID `json:"userId"`
+	Name   string    `json:"name"`
+	UserID uuid.UUID `json:"userId"`
 }
 
 type LoginResponse struct {

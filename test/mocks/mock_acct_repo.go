@@ -3,6 +3,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/EfosaE/credora-backend/domain/account"
@@ -111,6 +112,17 @@ func (m *MockAccountRepository) GetAccountWithUserInfoByAcctNum(
 	}
 
 	return args.Get(0).(*account.GetAccountWithUserInfo), args.Error(1)
+}
+
+func (m *MockAccountRepository) FindAccountByOwner(ctx context.Context, userId uuid.UUID, accountNumber string) (*account.Account, error) {
+
+	args := m.Called(ctx, userId, accountNumber)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*account.Account), args.Error(1)
 }
 
 func (m *MockAccountRepository) InternalMoneyTransfer(

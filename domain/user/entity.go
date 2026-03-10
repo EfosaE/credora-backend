@@ -5,22 +5,22 @@ import (
 
 	"github.com/EfosaE/credora-backend/domain/account"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type User struct {
-	ID          uuid.UUID `json:"id"`
-	FullName    string
-	Email       string    `json:"email"`
-	Nin         string    `json:"nin"`
-	Balance     string    `json:"balance"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Password    string    `json:"-"`
-	PhoneNumber string
-	IsVerified  bool
-	Accounts    []account.Account
+	ID          uuid.UUID         `json:"id"`
+	FullName    string            `json:"fullName"`
+	Email       string            `json:"email"`
+	Nin         string            `json:"nin"`
+	Balance     decimal.Decimal   `json:"balance"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
+	Password    string            `json:"-"`
+	PhoneNumber string            `json:"phoneNumber"`
+	IsVerified  bool              `json:"isVerified"`
+	Accounts    []account.Account `json:"accounts"`
 }
-
 type CreateUserRequest struct {
 	Name        string `json:"name" validate:"required,min=2,max=100"`
 	Email       string `json:"email" validate:"required,email,max=255"`
@@ -30,8 +30,8 @@ type CreateUserRequest struct {
 }
 
 type LoginUserRequest struct {
-	AccountNumber string `json:"accountNumber" validate:"required,min=10,max=10"`
-	Password      string `json:"password" validate:"required,min=8,max=100"`
+	Identifier string `json:"identifier" validate:"required"`
+	Password   string `json:"password" validate:"required,min=8,max=100"`
 }
 
 type ResetPasswordRequest struct {

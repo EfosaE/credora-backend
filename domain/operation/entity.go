@@ -25,8 +25,9 @@ type InternalTransferReq struct {
 }
 
 type InternalTransferDTO struct {
-	ToAccount string `json:"toAccount" validate:"required"`
-	Amount    string `json:"amount" validate:"required,decimal"`
+	FromAccount string `json:"fromAccount" validate:"required"`
+	ToAccount   string `json:"toAccount" validate:"required"`
+	Amount      string `json:"amount" validate:"required,decimal"`
 }
 
 var ErrInsufficientFunds = errors.New("insufficient funds")

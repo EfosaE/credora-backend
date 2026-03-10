@@ -101,6 +101,8 @@ func (s *AuthService) Login(
 
 	// 3️⃣ Check password
 	if !CheckPasswordHash(password, user.Password) {
+		// fmt.Println(password, user.Password)
+		// fmt.Println("Compare:", CheckPasswordHash(password, user.Password))
 		logCtx.Warn().Msg("invalid password attempt")
 		return nil, "", domainerr.ErrInvalidCredentials
 	}
