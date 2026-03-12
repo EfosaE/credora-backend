@@ -1,6 +1,0 @@
-type: object
-properties:
-  reference:
-    type: string
-  type:
-    type: string

@@ -25,18 +25,24 @@ func NewHealthHandler(inspector *asynq.Inspector, queueName string, queueCapacit
 	}
 }
 
-type healthData struct {
-	Status        string `json:"status"`
-	PendingJobs   int    `json:"pending_jobs"`
-	ActiveJobs    int    `json:"active_jobs"`
-	QueueCapacity int    `json:"queue_capacity"`
-	UptimeSeconds int64  `json:"uptime_seconds"`
+type HealthData struct {
+	Status        string `json:"status,omitempty"`
+	PendingJobs   int    `json:"pending_jobs,omitempty"`
+	ActiveJobs    int    `json:"active_jobs,omitempty"`
+	QueueCapacity int    `json:"queue_capacity,omitempty"`
+	UptimeSeconds int64  `json:"uptime_seconds,omitempty"`
 }
 
 // Liveness — app is running
 func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
+
+	data, err := utils.StructToMap(HealthData{Status: "ok"})
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
 	response.SendSuccess(w, r, response.OK(
-		response.Obj("status", "ok"),
+		data,
 		nil,
 		"Service is alive",
 	))
@@ -46,7 +52,7 @@ func (h *HealthHandler) Liveness(w http.ResponseWriter, r *http.Request) {
 func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
 	info, err := h.inspector.GetQueueInfo(h.queueName)
 	if err != nil {
-		data, err := utils.StructToMap(healthData{
+		data, err := utils.StructToMap(HealthData{
 			Status:        "degraded",
 			QueueCapacity: h.queueCapacity,
 			UptimeSeconds: int64(time.Since(h.startTime).Seconds()),
@@ -64,7 +70,7 @@ func (h *HealthHandler) Readiness(w http.ResponseWriter, r *http.Request) {
 		status = "degraded"
 	}
 
-	data, err := utils.StructToMap(healthData{
+	data, err := utils.StructToMap(HealthData{
 		Status:        status,
 		PendingJobs:   info.Pending,
 		ActiveJobs:    info.Active,

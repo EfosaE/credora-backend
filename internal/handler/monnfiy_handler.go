@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -41,9 +42,14 @@ func (h *MonnifyHandler) DeleteCustomerHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	data, err := utils.StructToMap(result)
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, "could not process response data"))
+		return
+	}
 	// Success
 	response.SendSuccess(w, r, response.OK(
-		response.Obj("result", result),
+		data,
 		nil,
 		"Reserved account deleted successfully",
 	))

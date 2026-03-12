@@ -3,16 +3,9 @@
 package openapi
 
 import (
-	// "encoding/json"
 	"net/http"
-	"sync"
 
 	"github.com/go-chi/chi/v5"
-)
-
-var (
-	specBytes []byte
-	specOnce  sync.Once
 )
 
 func RegisterOpenAPIRoutes(r chi.Router) {

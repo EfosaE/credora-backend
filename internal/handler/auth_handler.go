@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/EfosaE/credora-backend/domain/auth"
 	domainerr "github.com/EfosaE/credora-backend/domain/domianerrors"
 	"github.com/EfosaE/credora-backend/domain/user"
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	"github.com/EfosaE/credora-backend/internal/validation"
 
 	authsvc "github.com/EfosaE/credora-backend/service/auth"
@@ -58,11 +60,12 @@ func (h *AuthHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	data, _ := utils.StructToMap(user)
 	response.SendSuccess(
 		w,
 		r,
 		response.Created(
-			response.Obj("user", user),
+			data,
 			nil,
 			"The account details have been sent to your email, Login with it to verify your email",
 		),
@@ -71,7 +74,7 @@ func (h *AuthHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
-	var req user.LoginUserRequest
+	var req auth.LoginUserRequest
 
 	// Decode JSON
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -134,21 +137,21 @@ func (h *AuthHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 	// 	MaxAge:   86400,
 	// })
 
-	response.SendSuccess(
-		w,
-		r,
-		response.OK(
-			// Return an object with multiple key-value pairs using ObjKV e.g {"name": "Alice", "age": 30} nside the data field of the response
-			response.ObjKV(response.KV{Key: "accessToken", Value: token}, response.KV{Key: "user", Value: user}),
-			nil,
-			"Login successful",
-		),
-	)
+	data, err := utils.StructToMap(auth.LoginResponse{
+		AccessToken: token,
+		User:        *user,
+	})
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(data, nil, "Login successful"))
 
 }
 
 func (h *AuthHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
-	var req user.ResetPasswordRequest
+	var req auth.ResetPasswordRequest
 
 	// Decode JSON
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -187,7 +190,7 @@ func (h *AuthHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *AuthHandler) ValidatePasswordRequestHandler(w http.ResponseWriter, r *http.Request) {
-	var req user.ValidatePasswordRequest
+	var req auth.ValidatePasswordRequest
 
 	// Decode JSON
 	if err := render.DecodeJSON(r.Body, &req); err != nil {

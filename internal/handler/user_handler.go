@@ -15,6 +15,7 @@ import (
 	"github.com/EfosaE/credora-backend/domain/user"
 
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 
 	accountsvc "github.com/EfosaE/credora-backend/service/account"
 	transactionsvc "github.com/EfosaE/credora-backend/service/transaction"
@@ -54,14 +55,16 @@ func (h *UserHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 		UserID: userID,
 		Name:   claims["name"].(string),
 	}
+	data, err := utils.StructToMap(user)
 
 	response.SendSuccess(w, r, response.OK(
-		response.Obj("user", user),
+		data,
 		nil,
 		"User info retrieved successfully",
 	))
 }
 
+// ACCOUNT NUMBER IS NO LONGER STORED IN TOKEN PAYLOAD JUST THE USERID, GET THE ID AND CALL THE DB ON THE ID
 func (h *UserHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	_, claims, _ := jwtauth.FromContext(r.Context())
 
@@ -71,25 +74,21 @@ func (h *UserHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// userID, err := uuid.Parse(userIDStr)
-	// if err != nil {
-	// 	http.Error(w, "invalid UUID format", http.StatusUnauthorized)
-	// 	return
-	// }
-
 	user, err := h.acctService.FindUserByAccountNumber(r.Context(), userAcctNum)
-
 	if err != nil {
 		fmt.Println("Error retrieving user balance:", err)
 		response.SendError(w, r, response.BadRequest(nil, err.Error()))
 		return
 	}
 
-	response.SendSuccess(w, r, response.OK(
-		response.Obj("user", user),
-		nil,
-		"User info retrieved successfully",
-	))
+	data, err := utils.StructToMap(user)
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+	
+
+	response.SendSuccess(w, r, response.OK(data, nil, "User info retrieved successfully"))
 }
 
 func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
@@ -102,8 +101,6 @@ func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call service
-	// user, token, err := h.authService.Login(r.Context(), req.AccountNumber, req.Password)
 	user, err := h.acctService.FindUserByAccountNumber(r.Context(), acctNum)
 	if err != nil {
 		fmt.Println("Error retrieving recipient name:", err)
@@ -111,16 +108,13 @@ func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.SendSuccess(
-		w,
-		r,
-		response.OK(
-			response.ObjKV(response.KV{Key: "user", Value: user}),
-			nil,
-			"Recipient name retrieved successfully",
-		),
-	)
+	data, err := utils.StructToMap(user)
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
 
+	response.SendSuccess(w, r, response.OK(data, nil, "Recipient name retrieved successfully"))
 }
 
 func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +132,6 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Read cursor from query param
 	cursorStr := r.URL.Query().Get("cursor")
 	limitStr := r.URL.Query().Get("limit")
 
@@ -153,15 +146,11 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 			))
 			return
 		}
-
-		cursor = &transaction.Cursor{
-			CreatedAt: createdAt,
-			ID:        id,
-		}
+		cursor = &transaction.Cursor{CreatedAt: createdAt, ID: id}
 	}
 
 	if limitStr == "" {
-		limitStr = "50" // default limit
+		limitStr = "50"
 	}
 
 	limit, err := strconv.ParseInt(limitStr, 10, 32)
@@ -173,49 +162,51 @@ func (h *UserHandler) GetTransactionHistoryHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Call service
-	txns, nextCursorStruct, err := h.trxSvc.GetUserTransactions(
-		r.Context(),
-		userID,
-		cursor,
-		int32(limit),
-	)
+	txns, nextCursorStruct, err := h.trxSvc.GetUserTransactions(r.Context(), userID, cursor, int32(limit))
 	if err != nil {
 		fmt.Println("Error retrieving transaction history:", err)
 		response.SendError(w, r, response.BadRequest(nil, err.Error()))
 		return
 	}
 
-	// Encode next cursor before sending
-	// var nextCursor string
-	// if nextCursorStruct != nil {
-	// 	nextCursor = EncodeCursor(
-	// 		nextCursorStruct.CreatedAt,
-	// 		nextCursorStruct.ID,
-	// 	)
-	// }
-
 	var nextCursor *string
-
 	if nextCursorStruct != nil {
-		encoded := EncodeCursor(
-			nextCursorStruct.CreatedAt,
-			nextCursorStruct.ID,
-		)
+		encoded := EncodeCursor(nextCursorStruct.CreatedAt, nextCursorStruct.ID)
 		nextCursor = &encoded
 	}
-	response.SendSuccess(
-		w,
-		r,
-		response.OK(
-			response.ObjKV(
-				response.KV{Key: "transactions", Value: txns},
-				response.KV{Key: "nextCursor", Value: nextCursor},
-			),
-			nil,
-			fmt.Sprintf("%d records retrieved successfully", len(*txns)),
-		),
-	)
+
+	data, err := utils.StructToMap(transaction.TransactionHistoryResponse{
+		Transactions: *txns,
+		NextCursor:   nextCursor,
+	})
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(data, nil, fmt.Sprintf("%d records retrieved successfully", len(*txns))))
+}
+
+func (h *UserHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
+	email := chi.URLParam(r, "email")
+	if email == "" {
+		response.SendError(w, r, response.BadRequest(nil, "email is required"))
+		return
+	}
+
+	user, err := h.userService.GetUserByEmail(r.Context(), email)
+	if err != nil {
+		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		return
+	}
+
+	data, err := utils.StructToMap(user)
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.OK(data, nil, "User info retrieved successfully"))
 }
 
 func (h *UserHandler) RegisterDeviceToken(w http.ResponseWriter, r *http.Request) {
@@ -263,26 +254,6 @@ func (h *UserHandler) RegisterDeviceToken(w http.ResponseWriter, r *http.Request
 		nil,
 		nil,
 		"Device token registered successfully",
-	))
-}
-
-func (h *UserHandler) GetUserByEmailHandler(w http.ResponseWriter, r *http.Request) {
-	email := chi.URLParam(r, "email")
-	if email == "" {
-		response.SendError(w, r, response.BadRequest(nil, "email is required"))
-		return
-	}
-
-	user, err := h.userService.GetUserByEmail(r.Context(), email)
-	if err != nil {
-		response.SendError(w, r, response.BadRequest(nil, err.Error()))
-		return
-	}
-
-	response.SendSuccess(w, r, response.OK(
-		response.Obj("user", user),
-		nil,
-		"User info retrieved successfully",
 	))
 }
 

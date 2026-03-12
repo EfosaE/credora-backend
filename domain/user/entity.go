@@ -29,20 +29,8 @@ type CreateUserRequest struct {
 	PhoneNumber string `json:"phoneNumber" validate:"required,min=11,max=15"`
 }
 
-type LoginUserRequest struct {
-	Identifier string `json:"identifier" validate:"required"`
-	Password   string `json:"password" validate:"required,min=8,max=100"`
-}
 
-type ResetPasswordRequest struct {
-	Email string `json:"email" validate:"required,email,max=255"`
-}
 
-type ValidatePasswordRequest struct {
-	Email              string `json:"email" validate:"required,email,max=255"`
-	PasswordResetToken string `json:"passwordResetToken" validate:"required"`
-	NewPassword        string `json:"newPassword" validate:"required,min=8,max=100"`
-}
 
 type CreateUserResponse struct {
 	ID               uuid.UUID `json:"id"`

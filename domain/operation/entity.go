@@ -30,6 +30,11 @@ type InternalTransferDTO struct {
 	Amount      string `json:"amount" validate:"required,decimal"`
 }
 
+type InternalTransferResponse struct {
+	Status     string `json:"status"`
+	TransferID string `json:"transferId"`
+}
+
 var ErrInsufficientFunds = errors.New("insufficient funds")
 var ErrAccountNotFound = errors.New("account not found")
 var ErrDuplicateRequest = errors.New("duplicate request detected")

@@ -13,6 +13,7 @@ import (
 	"github.com/EfosaE/credora-backend/internal/pgerrors"
 	"github.com/EfosaE/credora-backend/internal/queues"
 	"github.com/EfosaE/credora-backend/internal/response"
+	"github.com/EfosaE/credora-backend/internal/utils"
 	idempotencysvc "github.com/EfosaE/credora-backend/service/idempotency"
 	operationsvc "github.com/EfosaE/credora-backend/service/operation"
 	"github.com/go-chi/chi/v5"
@@ -72,8 +73,16 @@ func (h *OperationHandler) InternalTransfer(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response.SendSuccess(w, r, response.Accepted(
-		response.ObjKV(response.KV{Key: "status", Value: "pending"}, response.KV{Key: "transferId", Value: req.IdempotencyKey}),
+	data, err := utils.StructToMap(operation.InternalTransferResponse{
+		Status:     "pending",
+		TransferID: req.IdempotencyKey,
+	})
+	if err != nil {
+		response.SendError(w, r, response.InternalServerError(err, err.Error()))
+		return
+	}
+
+	response.SendSuccess(w, r, response.Accepted(data,
 		nil,
 		"Your request is being processed",
 	))
@@ -101,8 +110,10 @@ func (h *OperationHandler) GetTransferStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+
+	data, err := utils.StructToMap(record)
 	response.SendSuccess(w, r, response.OK(
-		response.Obj("status", &record),
+		data,
 		nil,
 		"Transfer status retrieved successfully",
 	))

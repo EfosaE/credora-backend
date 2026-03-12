@@ -1,124 +1,289 @@
 # Credora Backend
 
-A Go-based backend for financial simulations, virtual accounts and transaction processing with event-driven and queued workers.
+## Overview
 
-## Highlights (latest)
+Credora is a backend system that simulates core **fintech / digital banking infrastructure**. The project models how modern financial systems process payments, manage accounts, ensure transactional consistency, and handle asynchronous financial events.
+
+It is written in **Go** and designed using layered architecture with domain-driven concepts.
+
+This project demonstrates how backend systems in fintech handle:
+
+- Double-entry ledger accounting
+- Idempotent payment processing
+- Webhook event ingestion
+- Asynchronous background workers
+- Virtual account infrastructure
+- Transaction settlement
+- Extensive OpenAPI documentation
+
+---
+
+# Live Architecture
+
+Here is a textual architecture diagram that illustrates the system design:
+
+```
+          +------------------+
+          |      Client      |
+          +------------------+
+                   |
+                   v
+          +------------------+
+          |  HTTP API (Chi)  |
+          +------------------+
+                   |
+                   v
+          +------------------+
+          |   Service Layer  |
+          +------------------+
+                   |
+                   v
+          +------------------+
+          | Repository Layer |
+          +------------------+
+                   |
+                   v
++-----------------------+       +-------------------+
+|    PostgreSQL DB      |       |  Redis Event Bus  |
++-----------------------+       +-------------------+
+                                           |
+                                           v
+                                   +----------------+
+                                   | Asynq Workers  |
+                                   +----------------+
+```
+
+This diagram helps recruiters and engineers immediately understand how requests flow and how asynchronous processing is handled.
+
+---
+
+# Key Engineering Concepts Implemented
+
+## Double-Entry Ledger System
+
+Financial transactions are modeled using a double-entry accounting system.
+
+Every transfer generates:
+
+- a **debit ledger entry**
+- a **credit ledger entry**
+
+This guarantees balance consistency and mirrors how real banking ledgers operate.
+
+## Idempotent Transfers
+
+Transfers are designed to be **idempotent**, preventing duplicate financial transactions when clients retry requests.
+
+## Idempotent Webhook Processing
+
+External payment providers can retry webhook deliveries.
+
+Credora ensures each webhook event is processed **exactly once** using idempotency tracking.
+
+## Event-Driven Processing
+
+The system publishes domain events to Redis which are processed asynchronously by background workers.
+
+Examples:
+
+- email notifications
+- transfer processing
+- account creation events
+- sending noticiations via Firebase Cloud Messaging
+
+---
+
+# Core Features
+
+## Authentication
+
+- JWT authentication
+- Account registration
+- Login system
+
+## Virtual Accounts
+
+Integration with **Monnify** for reserved / virtual bank accounts.
+
+Features:
+
+- account reservation
+- payment webhooks
+- reconciliation
+
+## Transaction Processing
+
+- Internal transfers
+- Ledger accounting
+- Transaction history
+- Settlement calculations
+
+## Asynchronous Processing
+
+Redis + Asynq workers power background jobs including:
+
+- email notifications
+- financial event handling
+
+---
+
+# API Documentation
+
+```
+/docs/swagger
+```
+
+or
+
+```
+http://localhost:8080/api/v1/documentation
+```
+
+---
+
+# Transaction Flow
+
+Here is a textual sequence diagram for internal transfers:
+
+```
+Client submits transfer request
+        |
+        v
+API validates accounts
+        |
+        v
+Create idempotency record
+        |
+        v
+Create debit + credit ledger entries
+        |
+        v
+Publish event to Redis
+        |
+        v
+Worker processes notifications
+```
+
+<!-- ADD A MORE POLISHED DIAGRAM LATER -->
+
+---
+
+# Tech Stack
+
+Language
+
+- Go
+
+Database
+
+- PostgreSQL
+
+Infrastructure
+
+- Redis
+- Firebase Cloud Messaging
+- Mailtrap
+
+Libraries
+
+- Chi Router
+- pgx
+- SQLC
+- Asynq
+
+---
+
+# Project Structure
+
+```
+cmd/
+   server/
+   worker/
+   cli/
+
+internal/
+   config/
+   router/
+   handlers/
+   queues/
+
+service/
+   business logic
+
+infrastructure/
+   repository implementations/ adapters to the 3rd parties like Firebase
+
+ domain/
+   models and shared utilities
+```
+
+---
+
+# Running Locally
+
+### Requirements
+
 - Go 1.24+
-- JWT authentication + account management
-- Monnify integration for virtual/reserved accounts
-- PostgreSQL (pgx) + SQLC for typed SQL
-- Redis-based Event Bus + Asynq workers for background jobs
-- Email delivery adapters (Resend / Mailtrap) and event-driven welcome/account emails
-- Structured JSON logging with file rotation support
+- PostgreSQL
+- Redis
 
-## Features
-- Authentication & Authorization
-  - JWT token service
-  - Register / Login endpoints
-- Virtual Accounts
-  - Reserved virtual accounts via Monnify
-  - Virtual account bookkeeping and webhooks
-- Transactions & Transfers
-  - Internal transfer processing with idempotency
-  - Webhook handling for Monnify payment events
-  - Transaction history and settlement calculation
-- Asynchronous Processing
-  - Redis + Asynq queue for email, account notifications and internal transfer tasks
-- Developer tooling
-  - Database migrations (golang-migrate)
-  - SQLC for generating query code
-  - Makefile helpers for common operations
+### Setup
 
-## Tech stack & key libraries
-- Language: Go (>= 1.24)
-- Router: github.com/go-chi/chi
-- DB driver: github.com/jackc/pgx/v5
-- SQL generation: github.com/kyleconroy/sqlc
-- Migrations: golang-migrate/migrate
-- Redis client: github.com/redis/go-redis/v9
-- Queue: github.com/hibiken/asynq
-- Logging: custom structured logger (domain/logger)
-- Monnify client: internal/infrastructure adapter (monnify)
-- Utilities: github.com/shopspring/decimal, github.com/google/uuid, github.com/brianvoe/gofakeit, github.com/joho/godotenv
+```
+make migrate-up
+make run
+```
 
-## Environment (example)
-Create a `.env` with at least:
-- DATABASE_URL (postgres url)
-- TEST_DATABASE_URL
-- PORT (e.g., 8080)
-- JWT_SECRET
-- REDIS_ADDR (e.g., localhost:6379)
-- MONNIFY_API_KEY, MONNIFY_SECRET_KEY, MONNIFY_CONTRACT_CODE, MONNIFY_BASE_URL
-- RESEND_API_KEY (or Mailtrap settings)
-- WEBHOOK_URL
+Start background worker
 
-## Quick start — local development
+```
+make start-worker
+```
 
-1. Install dependencies:
-   - Go 1.24+
-   - PostgreSQL
-   - Redis
-   - golang-migrate (for migrations)
-   - sqlc (if you need to regenerate queries)
+---
 
-2. Prepare DB & Redis and set environment variables (.env).
+# Testing
 
-3. Run migrations:
-   - make migrate-up
-   - or provide DATABASE_URL interactively: make migrate-up
+Run tests:
 
-4. Generate SQLC code (if needed):
-   - make sqlc-generate
+```
+make test
+```
 
-5. Run the HTTP server:
-   - make run
-   - or: go run cmd/server/main.go
-   - The server listens on PORT from config (default 8080). API root: /api/v1
+Integration tests:
 
-6. Run the worker (background job processor):
-   - make start-worker
-   - or: go run cmd/worker/main.go
-   - Ensure REDIS_ADDR is reachable; the worker processes Asynq tasks (email, internal transfer, etc.)
+```
+make test-integration
+```
 
-7. CLI utilities:
-   - Seed database with fake data:
-     go run cmd/cli/main.go -seed
-   - The CLI uses TEST_DATABASE_URL from env for seeding by default.
+---
 
-## Docker
-Build and run a container (example):
-- Build:
-  docker build -t credora:latest .
-- Run (provide envs):
-  docker run -e DATABASE_URL="postgres://..." -e REDIS_ADDR="redis:6379" -p 8080:8080 credora:latest
+# Future Improvements
 
-Notes:
-- Use a separate worker container for Asynq workers (run the worker binary / cmd/worker).
-- The Dockerfile builds a "server" binary under /app and exposes 8080.
+⚠️ Add links to technical write-ups about the system
 
-## Testing
-- Unit tests:
-  make test
-- Integration tests:
-  make test-integration
-- Run all:
-  make test-all
+Example articles I could write:
 
-## Useful Makefile targets
-- make run            — run server
-- make build          — build server binary
-- make start-worker   — run worker (go run cmd/worker/main.go)
-- make migrate-up     — run DB migrations (interactive or use DATABASE_URL)
-- make migrate-create — scaffold a new SQL migration
-- make sqlc-generate  — regenerate SQLC code
-- make test           — run unit tests
-- make test-integration — run integration tests
+- "Designing a Double-Entry Ledger in Go"
+- "Handling Idempotent Payment Webhooks"
+- "Building Event-Driven Systems with Redis and Go"
 
-## Project layout (short)
-- cmd/         — server, worker, cli entrypoints
-- internal/    — config, router, server, handlers, queues, seeder, db
-- infrastructure/ — adapters and repo implementations
-- service/     — business logic
-- domain/      — domain models and shared utilities
+## Articles already published
 
+- [The math behind scaling job processors](https://medium.com/@osamwonyiefosa02/understanding-queue-backlogs-worker-saturation-and-the-math-behind-scaling-job-processors-0136599eb48e)
+- [Deploying a Dockerized Golang Server on EC2 and ECR](https://efosae.hashnode.dev/deploying-a-containerized-app-to-aws-ec2)
+- [I Built My Own OpenAPI Generator in Go (Without a Single Library)](https://medium.com/@osamwonyiefosa02/i-built-my-own-openapi-generator-in-go-without-a-single-library-dabf21804794)
 
+---
+
+# Author
+
+Efosa Osamwonyi
+
+Backend Engineer
+
+Focus areas:
+
+- Backend systems
+- Fintech infrastructure
+- Event-driven architecture

@@ -83,8 +83,12 @@ type InternalTransferInput struct {
 	Meta          json.RawMessage
 }
 
-
 type Cursor struct {
 	CreatedAt time.Time `json:"created_at"`
 	ID        int64     `json:"id"`
+}
+
+type TransactionHistoryResponse struct {
+	Transactions []Transaction `json:"transactions"`
+	NextCursor   *string       `json:"nextCursor"`
 }

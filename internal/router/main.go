@@ -92,6 +92,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 			r.Use(params.Auth.Verifier())
 			r.Use(params.Auth.Authenticator())
 
+			// register handler normally
 			r.Get("/users/info", params.UserHandler.GetUserInfo)
 			r.Get("/users/balance", params.UserHandler.GetUserBalance)
 			r.Get("/users/{email}", params.UserHandler.GetUserByEmailHandler)
@@ -121,6 +122,7 @@ func SetupRouter(params RouterSetupParams) chi.Router {
 		})
 
 		api.Get("/", handler.LandingPageHandler)
+		openapi.RegisterOpenAPIRoutesMetaData()
 	})
 
 	// ── PASS 2: Now that all routes exist, generate the spec ───────────────

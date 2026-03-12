@@ -1,4 +1,0 @@
-CookieAuth:
-  type: apiKey
-  in: cookie
-  name: jwt

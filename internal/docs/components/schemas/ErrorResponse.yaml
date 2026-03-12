@@ -1,9 +1,0 @@
-type: object
-properties:
-  error:
-    oneOf:
-      - type: object
-      - type: string
-    description: Error details (can be an object or a string)
-  message:
-    type: string

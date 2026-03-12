@@ -72,7 +72,7 @@ func InternalTransferMiddleware(acctService accountsvc.AccountService,
 
 			// ---- Scope idempotency key to the authenticated user ----
 			// Prevents cross-user key collisions and activity probing.
-			scopedKey := fmt.Sprintf("%s:%s", userIdStr, key)
+			scopedKey := fmt.Sprintf("%s:%s", userIdStr[:8], key)
 
 			// ---- Idempotency check — error is no longer silently swallowed ----
 			existing, err := idemSvc.GetRecord(r.Context(), scopedKey)
@@ -85,11 +85,12 @@ func InternalTransferMiddleware(acctService accountsvc.AccountService,
 				return
 			}
 			if existing != nil {
-				response.SendSuccess(w, r, response.OK(
-					response.Obj("status", existing),
-					nil,
-					"This request has already been processed",
-				))
+				data, err := utils.StructToMap(existing)
+				if err != nil {
+					response.SendError(w, r, response.InternalServerError(err, err.Error()))
+					return
+				}
+				response.SendSuccess(w, r, response.OK(data, nil, "This request has already been processed"))
 				return
 			}
 
