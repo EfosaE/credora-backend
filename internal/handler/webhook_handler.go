@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"bytes"
+	// "bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,7 +41,6 @@ func (h *WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Req
 		response.SendError(w, r, response.BadRequest(err, "Could not read webhook body"))
 		return
 	}
-	r.Body = io.NopCloser(bytes.NewBuffer(rawBody))
 
 	// -----------------------------
 	// Validate signature
@@ -52,7 +51,7 @@ func (h *WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Req
 	}
 
 	// -----------------------------
-	// Parse wrapper body
+	// Parse wrapper payload
 	// -----------------------------
 	var payload monnify.MonnifyWebhook
 	if err := json.Unmarshal(rawBody, &payload); err != nil {
@@ -65,15 +64,31 @@ func (h *WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Req
 		"payload": payload,
 	})
 
-	// Ignore events other than successful transactions
-	if payload.EventType != webhook.EventSuccessfulTransaction {
+	// -----------------------------
+	// Route event type
+	// -----------------------------
+	switch payload.EventType {
+
+	case webhook.EventSuccessfulTransaction:
+		h.handleSuccessfulTransaction(w, r, rawBody, payload)
+
+	default:
+		log.Printf("Unhandled webhook event type: %s", payload.EventType)
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "ignored other this type of event (for now)")
-		return
+		fmt.Fprint(w, "ignored event type")
 	}
+}
+
+
+func (h *WebHookHandler) handleSuccessfulTransaction(
+	w http.ResponseWriter,
+	r *http.Request,
+	rawBody []byte,
+	payload monnify.MonnifyWebhook,
+) {
 
 	// -----------------------------
-	// Parse EventData (transaction)
+	// Parse EventData
 	// -----------------------------
 	var tx webhook.SuccessfulTransaction
 	if err := json.Unmarshal(payload.EventData, &tx); err != nil {
@@ -81,13 +96,10 @@ func (h *WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Parse paidOn field
+	// Parse paidOn
 	if paidOn, err := monnify.ParseMonnifyTime(tx.PaidOnRaw); err == nil {
 		tx.PaidOn = paidOn
 	}
-
-	// fmt.Println("✅ Successful Monnify payment:")
-	// utils.PrintJSON(tx)
 
 	// -----------------------------
 	// Idempotency check
@@ -101,65 +113,52 @@ func (h *WebHookHandler) HandleMonnifyWebhook(w http.ResponseWriter, r *http.Req
 	}
 
 	if exists {
-		fmt.Println("⚠️ Duplicate webhook ignored:", tx.PaymentReference)
+		log.Println("Duplicate webhook ignored:", tx.PaymentReference)
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "duplicate")
 		return
 	}
 
 	// -----------------------------
-	// Attempt to enqueue for worker
+	// Queue worker payload
 	// -----------------------------
 	inboundReq := &webhook.InboundTransferPayload{
 		TransactionDetails: tx,
 	}
 
-	fmt.Println("Worker Webhook Payload Sent...")
 	if err := h.queue.EnqueueWebhookInboundTransfer(inboundReq); err != nil {
 
-		log.Printf("⚠️ Failed to enqueue inbound transfer. Writing fallback to DB. error=%v", err)
+		log.Printf("Failed to enqueue inbound transfer. Writing fallback to DB. error=%v", err)
 
-		// ------------------------------------------------------
-		// STORE failed webhook in DB for retry later
-		// ------------------------------------------------------
 		saveErr := h.idemSvc.AddToIdempotencyTable(
 			r.Context(),
 			idemKey,
 			operation.OperationTypeWebhookInboundTransfer,
-			rawBody, // store original payload
+			rawBody,
 			transaction.StatusFailed,
 		)
 
 		if saveErr != nil {
-			log.Printf("❌ FAILED to persist failed webhook event: %v", saveErr)
+			log.Printf("FAILED to persist failed webhook event: %v", saveErr)
 		}
 
-		// Important: Still return 200 so Monnify does not retry forever
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "received-but-queued-failed")
+		fmt.Fprint(w, "received-but-queue-failed")
 		return
 	}
 
-	fmt.Println("Worker Webhook Payload Enqueued Successfully")
-
 	// -----------------------------
-	// Add idempotency and mark as pending, the worker would update the status because enqueue succeeded
+	// Save idempotency as pending
 	// -----------------------------
 	if err := h.idemSvc.AddToIdempotencyTable(
 		r.Context(),
 		idemKey,
 		operation.OperationTypeWebhookInboundTransfer,
-		rawBody, // store original payload
+		rawBody,
 		transaction.StatusPending,
 	); err != nil {
-		log.Printf("⚠️ Failed to store idempotency key after enqueue: %v", err)
-		// do NOT fail request, do NOT crash
+		log.Printf("Failed to store idempotency key: %v", err)
 	}
-	// if err := h.idemSvc.MarkProcessed(r.Context(), idemKey); err != nil {
-	// 	fmt.Printf("⚠️ Failed to store idempotency key after enqueue: %v\n", err)
-	// 	log.Printf("⚠️ Failed to store idempotency key after enqueue: %v", err)
-	// 	// do NOT fail request, do NOT crash
-	// }
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "received")

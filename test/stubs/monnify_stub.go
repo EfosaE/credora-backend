@@ -96,7 +96,7 @@ func BuildSimulatedSuccessEventWbHk(req simulator.TransferRequest) *monnify.Succ
 			Currency:         "NGN",
 			SettlementAmount: utils.CalculateSettlement(decimal.NewFromFloat(req.Amount)),
 			PaymentStatus:    "PAID",
-			Customer: webhook.Customer{ 
+			Customer: webhook.Customer{
 				Name:  "John Doe",
 				Email: "test@tester.com",
 			},

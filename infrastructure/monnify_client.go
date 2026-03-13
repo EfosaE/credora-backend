@@ -87,8 +87,8 @@ func (m *MonnifyClient) ValidateWebhookSignature(body []byte, signature string) 
 	mac := hmac.New(sha512.New, []byte(m.Config.SecretKey))
 	mac.Write(body)
 	expected := hex.EncodeToString(mac.Sum(nil))
-	fmt.Println("Expected Signature:", expected)
-	fmt.Println("Received Signature:", signature)
+	// fmt.Println("Expected Signature:", expected)
+	// fmt.Println("Received Signature:", signature)
 	return hmac.Equal([]byte(expected), []byte(signature))
 }
 

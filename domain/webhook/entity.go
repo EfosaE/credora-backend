@@ -1,18 +1,19 @@
 package webhook
 
 import (
-	"github.com/shopspring/decimal"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type EventType string
 
 const (
-	EventSuccessfulTransaction EventType = "SUCCESSFUL_TRANSACTION"
-	EventCancelledTransaction  EventType = "CANCELLED_TRANSACTION"
-	EventReversedTransaction   EventType = "TRANSACTION_REVERSED"
-	EventDisbursementSuccess   EventType = "DISBURSEMENT_SUCCESSFUL"
-	EventDisbursementFailure   EventType = "DISBURSEMENT_FAILED"
+	EventSuccessfulTransaction  EventType = "SUCCESSFUL_TRANSACTION"
+	EventCancelledTransaction   EventType = "CANCELLED_TRANSACTION"
+	EventReversedTransaction    EventType = "TRANSACTION_REVERSED"
+	EventSuccessfulDisbursement EventType = "SUCCESSFUL_DISBURSEMENT"
+	EventFailedDisbursement     EventType = "FAILED_DISBURSEMENT"
 )
 
 type SuccessfulTransaction struct {
@@ -61,4 +62,24 @@ type Customer struct {
 
 type InboundTransferPayload struct {
 	TransactionDetails SuccessfulTransaction `json:"transactionDetails"`
+}
+
+
+
+type SuccessfulDisbursementData struct {
+	Amount                   decimal.Decimal `json:"amount,omitempty"`
+	TransactionReference     string          `json:"transactionReference,omitempty"`
+	Fee                      decimal.Decimal `json:"fee,omitempty"`
+	TransactionDescription   string          `json:"transactionDescription,omitempty"`
+	DestinationAccountNumber string          `json:"destinationAccountNumber,omitempty"`
+	SessionID                string          `json:"sessionId,omitempty"`
+	CreatedOn                string          `json:"createdOn,omitempty"`
+	DestinationAccountName   string          `json:"destinationAccountName,omitempty"`
+	Reference                string          `json:"reference,omitempty"`
+	DestinationBankCode      string          `json:"destinationBankCode,omitempty"`
+	CompletedOn              string          `json:"completedOn,omitempty"`
+	Narration                string          `json:"narration,omitempty"`
+	Currency                 string          `json:"currency,omitempty"`
+	DestinationBankName      string          `json:"destinationBankName,omitempty"`
+	Status                   string          `json:"status,omitempty"`
 }

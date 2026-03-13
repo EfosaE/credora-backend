@@ -85,3 +85,8 @@ type SuccessfulTransactionEvent struct {
 	EventType webhook.EventType             `json:"eventType"`
 	EventData webhook.SuccessfulTransaction `json:"eventData"`
 }
+
+type SuccessfulDisbursementEvent struct {
+	EventType webhook.EventType                  `json:"eventType"`
+	EventData webhook.SuccessfulDisbursementData `json:"eventData"`
+}
