@@ -245,6 +245,74 @@ func (q *Queries) GetUserWithAccountsByEmail(ctx context.Context, email string) 
 	return items, nil
 }
 
+const getUserWithAccountsByUserID = `-- name: GetUserWithAccountsByUserID :many
+SELECT
+    u.id,
+    u.password,
+    u.full_name,
+    u.email,
+    u.phone_number,
+    u.is_verified,
+    a.id AS account_id,
+    a.account_number,
+    a.account_type,
+    a.balance,
+    a.currency,
+    a.virtual_account_bank
+FROM users u
+JOIN accounts a ON a.user_id = u.id
+WHERE u.id = $1
+ORDER BY a.created_at
+`
+
+type GetUserWithAccountsByUserIDRow struct {
+	ID                 uuid.UUID      `json:"id"`
+	Password           string         `json:"password"`
+	FullName           string         `json:"full_name"`
+	Email              string         `json:"email"`
+	PhoneNumber        string         `json:"phone_number"`
+	IsVerified         pgtype.Bool    `json:"is_verified"`
+	AccountID          uuid.UUID      `json:"account_id"`
+	AccountNumber      string         `json:"account_number"`
+	AccountType        string         `json:"account_type"`
+	Balance            pgtype.Numeric `json:"balance"`
+	Currency           string         `json:"currency"`
+	VirtualAccountBank pgtype.Text    `json:"virtual_account_bank"`
+}
+
+func (q *Queries) GetUserWithAccountsByUserID(ctx context.Context, id uuid.UUID) ([]GetUserWithAccountsByUserIDRow, error) {
+	rows, err := q.db.Query(ctx, getUserWithAccountsByUserID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserWithAccountsByUserIDRow
+	for rows.Next() {
+		var i GetUserWithAccountsByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Password,
+			&i.FullName,
+			&i.Email,
+			&i.PhoneNumber,
+			&i.IsVerified,
+			&i.AccountID,
+			&i.AccountNumber,
+			&i.AccountType,
+			&i.Balance,
+			&i.Currency,
+			&i.VirtualAccountBank,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 
 

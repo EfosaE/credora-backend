@@ -31,7 +31,7 @@ func extractColumnFromConstraint(constraintName, detail string) string {
 				if commaIdx := strings.Index(columnName, ","); commaIdx != -1 {
 					columnName = strings.TrimSpace(columnName[:commaIdx])
 				}
-				return columnName // returns "phone_number" ✅
+				return columnName // returns "phone_number" 
 			}
 		}
 	}

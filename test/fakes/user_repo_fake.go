@@ -20,7 +20,8 @@ type MockUserRepo struct {
 	GetUserAccountsByAccountNumberFunc func(ctx context.Context, accountNumber string) (*user.User, error)
 	GetUserAccountsByEmailFunc         func(ctx context.Context, email string) (*user.User, error)
 	VerifyUserFunc                     func(ctx context.Context, id uuid.UUID) error
-
+	GetUserAccountsByUserIDFunc        func(ctx context.Context, userID uuid.UUID) (*user.User, error)
+	
 	// Call tracking
 	GetUserAccountsByAccountNumberCalled bool
 	GetUserAccountsByEmailCalled         bool
@@ -29,6 +30,7 @@ type MockUserRepo struct {
 	GetByIDCalled                        bool
 	GetByEmailCalled                     bool
 	UpdatePasswordCalled                 bool
+	GetUserAccountsByUserIDCalled        bool
 
 	Users map[uuid.UUID]*user.User
 }
@@ -208,4 +210,29 @@ func (m *MockUserRepo) VerifyUser(
 
 	u.IsVerified = true
 	return nil
+}
+
+func (m *MockUserRepo) GetUserAccountsByUserID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*user.User, error) {
+
+	m.mu.Lock()
+	m.GetUserAccountsByUserIDCalled = true
+	defer m.mu.Unlock()
+
+	if m.GetUserAccountsByUserIDFunc != nil {
+		return m.GetUserAccountsByUserIDFunc(ctx, userID)
+	}
+
+	if m.Users == nil {
+		return nil, errors.New("no users in mock")
+	}
+
+	u, ok := m.Users[userID]
+	if !ok {
+		return nil, errors.New("user not found")
+	}
+
+	return u, nil
 }

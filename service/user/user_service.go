@@ -162,3 +162,27 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*user.U
 	log.Info().Str("user_id", usr.ID.String()).Msg("user fetched successfully")
 	return usr, nil
 }
+
+func (s *UserService) GetUserAccountsByUserID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*user.User, error) {
+
+	log := logger.FromCtx(ctx, s.logger).With().
+		Str("user_id", userID.String()).
+		Logger()
+
+	log.Info().Msg("fetching user accounts by user ID")
+
+	usr, err := s.userRepo.GetUserAccountsByUserID(ctx, userID)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to fetch user accounts")
+		return nil, err
+	}
+
+	log.Info().
+		Int("accounts_count", len(usr.Accounts)).
+		Msg("user accounts fetched successfully")
+
+	return usr, nil
+}

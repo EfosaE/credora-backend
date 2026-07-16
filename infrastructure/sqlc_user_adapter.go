@@ -97,6 +97,19 @@ func (r *SqlcUserRepository) GetUserAccountsByEmail(
 	return mapUserAccountsEmailMethod(rows)
 }
 
+func (r *SqlcUserRepository) GetUserAccountsByUserID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*user.User, error) {
+
+	rows, err := r.queries(ctx).GetUserWithAccountsByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapUserAccountsByUserID(rows)
+}
+
 // ------------------------------------
 // Helpers
 // ------------------------------------
@@ -132,10 +145,45 @@ func mapUserAccounts(rows []sqlc.GetUserWithAccountsByAccountNumberRow) (*user.U
 			ID:            r.AccountID,
 			UserId:        r.ID,
 			AccountNumber: r.AccountNumber,
-			UserName: r.FullName,
+			UserName:      r.FullName,
 			AccountType:   r.AccountType,
 			Balance:       utils.MustPgNumericToDecimal(r.Balance),
 			BankName:      r.VirtualAccountBank.String,
+			Currency:      r.Currency,
+		}
+
+		u.Accounts = append(u.Accounts, acc)
+	}
+
+	return u, nil
+}
+
+func mapUserAccountsByUserID(rows []sqlc.GetUserWithAccountsByUserIDRow) (*user.User, error) {
+
+	if len(rows) == 0 {
+		return nil, domainerr.ErrNoRowsFound
+	}
+
+	u := &user.User{
+		ID:          rows[0].ID,
+		Password:    rows[0].Password,
+		FullName:    rows[0].FullName,
+		Email:       rows[0].Email,
+		PhoneNumber: rows[0].PhoneNumber,
+		IsVerified:  rows[0].IsVerified.Bool,
+		Accounts:    make([]account.Account, 0, len(rows)),
+	}
+
+	for _, r := range rows {
+		acc := account.Account{
+			ID:            r.AccountID,
+			UserId:        r.ID,
+			UserName:      r.FullName,
+			AccountNumber: r.AccountNumber,
+			AccountType:   r.AccountType,
+			Balance:       utils.MustPgNumericToDecimal(r.Balance),
+			BankName:      r.VirtualAccountBank.String,
+			Currency:      r.Currency,
 		}
 
 		u.Accounts = append(u.Accounts, acc)
@@ -174,6 +222,7 @@ func mapUserAccountsEmailMethod(rows []sqlc.GetUserWithAccountsByEmailRow) (*use
 			AccountType:   r.AccountType.String,
 			Balance:       utils.MustPgNumericToDecimal(r.Balance),
 			BankName:      r.VirtualAccountBank.String,
+			Currency:      r.Currency.String,
 		}
 
 		u.Accounts = append(u.Accounts, acc)

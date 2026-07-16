@@ -64,17 +64,22 @@ func (h *UserHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	))
 }
 
-// ACCOUNT NUMBER IS NO LONGER STORED IN TOKEN PAYLOAD JUST THE USERID, GET THE ID AND CALL THE DB ON THE ID
+
 func (h *UserHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	_, claims, _ := jwtauth.FromContext(r.Context())
 
-	userAcctNum, ok := claims["accountNumber"].(string)
+	userId, ok := claims["userId"].(string)
 	if !ok {
-		http.Error(w, "invalid account number in token", http.StatusUnauthorized)
+		response.SendError(w, r, response.BadRequest(nil, "Invalid token payload"))
 		return
 	}
 
-	user, err := h.acctService.FindUserByAccountNumber(r.Context(), userAcctNum)
+	parsedUuid, err := uuid.Parse(userId)
+	if err != nil {
+		response.SendError(w, r, response.BadRequest(nil, "Invalid user ID format"))
+		return
+	}
+	user, err := h.userService.GetUserAccountsByUserID(r.Context(), parsedUuid)
 	if err != nil {
 		fmt.Println("Error retrieving user balance:", err)
 		response.SendError(w, r, response.BadRequest(nil, err.Error()))
@@ -86,7 +91,6 @@ func (h *UserHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		response.SendError(w, r, response.InternalServerError(err, err.Error()))
 		return
 	}
-	
 
 	response.SendSuccess(w, r, response.OK(data, nil, "User info retrieved successfully"))
 }
@@ -104,7 +108,7 @@ func (h *UserHandler) GetRecipientName(w http.ResponseWriter, r *http.Request) {
 	user, err := h.acctService.FindUserByAccountNumber(r.Context(), acctNum)
 	if err != nil {
 		fmt.Println("Error retrieving recipient name:", err)
-		response.SendError(w, r, response.BadRequest(nil, err.Error()))
+		response.SendError(w, r, response.NotFound("No name for this account was found"))
 		return
 	}
 

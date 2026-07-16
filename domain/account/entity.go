@@ -26,6 +26,7 @@ type Account struct {
 	Balance        decimal.Decimal `json:"balance"`
 	CreatedAt      time.Time       `json:"createdAt"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
+	Currency       string          `json:"currency"`
 }
 type CreateAccountRequest struct {
 	UserId         uuid.UUID                 `json:"userId" validate:"required,uuid4"`

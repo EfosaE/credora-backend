@@ -36,6 +36,7 @@ type Querier interface {
 	GetUserTransactionHistory(ctx context.Context, arg GetUserTransactionHistoryParams) ([]Transaction, error)
 	GetUserWithAccountsByAccountNumber(ctx context.Context, accountNumber string) ([]GetUserWithAccountsByAccountNumberRow, error)
 	GetUserWithAccountsByEmail(ctx context.Context, email string) ([]GetUserWithAccountsByEmailRow, error)
+	GetUserWithAccountsByUserID(ctx context.Context, id uuid.UUID) ([]GetUserWithAccountsByUserIDRow, error)
 	InsertIdempotencyKey(ctx context.Context, arg InsertIdempotencyKeyParams) error
 	// SELECT
 	//     u.id,

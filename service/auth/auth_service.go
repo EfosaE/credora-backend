@@ -69,7 +69,7 @@ func (s *AuthService) Login(
 		err error
 	)
 
-	// 1️⃣ Determine identifier type
+	//  Determine identifier type
 	if isEmail(identifier) {
 
 		logCtx.Debug().Msg("email login detected")
@@ -81,7 +81,7 @@ func (s *AuthService) Login(
 			return nil, "", domainerr.ErrInvalidCredentials
 		}
 
-		// 2️⃣ Reject email login if not verified
+		//  Reject email login if not verified
 		if !user.IsVerified {
 			logCtx.Warn().Msg("email login attempted before activation")
 			return nil, "", domainerr.ErrAccountNotActivated
@@ -99,7 +99,7 @@ func (s *AuthService) Login(
 		}
 	}
 
-	// 3️⃣ Check password
+	//  Check password
 	if !CheckPasswordHash(password, user.Password) {
 		// fmt.Println(password, user.Password)
 		// fmt.Println("Compare:", CheckPasswordHash(password, user.Password))

@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetUserAccountsByAccountNumber(ctx context.Context, accountNumber string) (*User, error)
 	GetUserAccountsByEmail(ctx context.Context, email string) (*User, error)
 	VerifyUser(ctx context.Context, userId uuid.UUID) error
+	GetUserAccountsByUserID(ctx context.Context, userID uuid.UUID) (*User, error)
 	// GetByNIN(ctx context.Context, nin string) (*User, error)
 	// GetByID(ctx context.Context, id uuid.UUID) (*User, error)
 	// ListUsers(ctx context.Context, query *ListUsersQuery) ([]*sqlc.User, error)
