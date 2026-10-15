@@ -1,4 +1,5 @@
 FROM golang:1.24-bullseye AS builder
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -13,8 +14,15 @@ RUN go build -o server ./cmd/server
 RUN go build -o worker ./cmd/worker
 
 
-FROM debian:bullseye-slim
+FROM debian:bullseye-slim AS runtime
+
 WORKDIR /app
+
+# Install trusted root certificates for outbound HTTPS requests
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/server .
 COPY --from=builder /app/worker .
@@ -22,42 +30,3 @@ COPY --from=builder /app/worker .
 EXPOSE 8080
 
 CMD ["./server"]
-
-
-# FROM golang:1.24-bullseye AS builder
-
-# # Set working directory inside the container
-# WORKDIR /app
-
-# # Copy go mod files first for better caching
-# COPY go.mod go.sum ./
-
-# # Download dependencies (this layer will be cached if go.mod/go.sum don't change)
-# RUN go mod download
-
-# # Copy all source code
-# COPY . .
-
-# # Build the Go application from cmd folder
-# # Note: Building from ./cmd and outputting as 'server' (not 'main')
-# RUN go build -o server ./cmd/server
-
-# # Use a minimal base image for the final build
-# FROM debian:bullseye-slim
-
-
-# # Set working directory in the final container
-# WORKDIR /app
-
-# # Copy the built binary from builder stage
-# COPY --from=builder /app/server .
-
-# # Set version label
-# ARG VERSION=latest
-# LABEL app.version=$VERSION
-
-# # Expose the port the server listens on (change if needed)
-# EXPOSE 8080
-
-# # Run the server binary
-# CMD ["./server"]
