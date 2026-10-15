@@ -1,24 +1,42 @@
 package main
 
 import (
-    "log"
-
-    "github.com/hibiken/asynq"
+	app "github.com/EfosaE/credora-backend/di"
+	"github.com/EfosaE/credora-backend/internal/config"
+	"github.com/EfosaE/credora-backend/internal/queues"
+	"github.com/hibiken/asynq"
 )
 
 func main() {
-    scheduler := asynq.NewScheduler(
-        asynq.RedisClientOpt{
-            Addr: "localhost:6379",
-        },
-        &asynq.SchedulerOpts{},
-    )
+	config.Load()
+	builder := app.NewAppBuilder(config.App)
 
-    defer scheduler.Shutdown()
+	deps, err := builder.BuildForWorker()
+	schedulerLogger := deps.Logger
+	if err != nil {
+		// fallback because logger not yet available
+		panic(err)
+	}
 
-    // register cron jobs here
+	scheduler := asynq.NewScheduler(
+		asynq.RedisClientOpt{
+			Addr: config.App.RedisAddr,
+		},
+		&asynq.SchedulerOpts{},
+	)
 
-    if err := scheduler.Run(); err != nil {
-        log.Fatal(err)
-    }
+	defer scheduler.Shutdown()
+
+	// register cron jobs here
+	task := asynq.NewTask(queues.TypeReconciliationReport, nil)
+	// You can use "@every <duration>" to specify the interval.
+	entryID, err := scheduler.Register("@every 30s", task)
+	if err != nil {
+		schedulerLogger.Fatal().Err(err).Msg("Failed to register cron job")
+	}
+	schedulerLogger.Info().Str("entryID", entryID).Msg("Cron job registered")
+
+	if err := scheduler.Run(); err != nil {
+		schedulerLogger.Fatal().Err(err).Msg("Failed to run scheduler")
+	}
 }

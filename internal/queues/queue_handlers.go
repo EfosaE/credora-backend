@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/EfosaE/credora-backend/domain/operation"
@@ -242,5 +243,19 @@ func (h *Handlers) HandleInboundTransferWebhook(ctx context.Context, t *asynq.Ta
 		Str("reference", p.TransactionDetails.PaymentReference).
 		Msg("inbound transfer processed successfully")
 
+	return nil
+}
+
+
+func (h *Handlers) HandleReconciliationReport(ctx context.Context, t *asynq.Task) error {
+	log.Println("===================================")
+	log.Println("Running reconciliation report...")
+	log.Println("Task Type:", t.Type())
+	log.Printf("Payload: %s\n", string(t.Payload())) // Will be empty
+	log.Println("===================================")
+
+	// Your reconciliation logic here
+
+	log.Println("Reconciliation report completed")
 	return nil
 }

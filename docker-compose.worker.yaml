@@ -1,10 +1,7 @@
 services:
   worker:
-    # container_name: credora-worker
-    image: credora-backend:v1.00
+    image: ${CREDORA_IMAGE:-ghcr.io/efosae/credora-backend}:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    depends_on:
-      - redis
     env_file:
       - .env
     networks:
@@ -12,24 +9,9 @@ services:
     command: ./worker
     volumes:
       - ./config.yaml:/app/config.yaml
-    deploy:
-      replicas: 3
-
-  redis:
-    container_name: redis
-    image: redis:latest
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    networks:
-      - app-network
-    volumes:
-      - redis-data:/data
-
-volumes:
-  redis-data:
-
+      - ./credora-backend-firebase-adminsdk.json:/app/firebase.json
 
 networks:
   app-network:
-    driver: bridge
+    external: true
+    name: backend_app-network

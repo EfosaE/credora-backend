@@ -1,7 +1,7 @@
 services:
   app:
     container_name: credora-server
-    image: credora-backend:v1.00
+    image: ${CREDORA_IMAGE:-ghcr.io/efosae/credora-backend}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       redis:
@@ -64,7 +64,6 @@ volumes:
   redis-data:
   prometheus_data:
   grafana_data:
-
 
 networks:
   app-network:

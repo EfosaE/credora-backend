@@ -78,6 +78,7 @@ func main() {
 	mux.HandleFunc(queues.TypeAccountNumberEmail, handlers.HandleSendAccountNumberEmail)
 	mux.HandleFunc(queues.TypeInternalTransfer, handlers.HandleInternalTransfer)
 	mux.HandleFunc(queues.TypeWebhookInboundTransfer, handlers.HandleInboundTransferWebhook)
+	mux.HandleFunc(queues.TypeReconciliationReport, handlers.HandleReconciliationReport)
 
 	workerLogger.Info().
 		Int("concurrency", config.App.Worker.ConcurrencyLimit).

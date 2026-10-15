@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("Failed to initialize dependencies:", err)
 	}
 	defer deps.DB.Pool.Close()
-	log.Println("✅ Dependencies initialized")
+	log.Println("____Dependencies initialized____")
 
 	logger := deps.Logger
 	// Router

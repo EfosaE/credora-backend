@@ -575,3 +575,11 @@ func (b *AppBuilder) BuildForTests() (*AppDependencies, error) {
 		WithRepositories().
 		Build()
 }
+
+// func (b *AppBuilder) BuildForScheduler() (*AppDependencies, error) {
+// 	return b.
+// 		WithLogger("scheduler").
+// 		WithDB().
+// 		WithRepositories().
+// 		Build()
+// }

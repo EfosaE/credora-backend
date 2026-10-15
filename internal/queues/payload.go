@@ -12,13 +12,14 @@ const (
 	TypeAccountNumberEmail     = "email:account_number"
 	TypeInternalTransfer       = "operation:internal_transfer"
 	TypeWebhookInboundTransfer = "webhook:inbound_transfer"
+	TypeReconciliationReport   = "report:reconciliation"
 	// TypeExternalTransfer = "operation:external_transfer"
 	// TypeVACredit         = "webhook:va_credit"
 	// TypeImageResize     = "image:resize"
 )
 
 type AccountNumberEmailPayload struct {
-	To            string
+	To       string
 	Accounts []monnify.ReservedAccount
 }
 
@@ -30,4 +31,8 @@ type WelcomeEmailPayload struct {
 type InternalTransferTaskPayload struct {
 	Req      *operation.InternalTransferReq `json:"req"`
 	QueuedAt int64                          `json:"queued_at"` // unix nano
+}
+
+type ReconciliationReportPayload struct {
+	ReportDate string `json:"report_date"`
 }
