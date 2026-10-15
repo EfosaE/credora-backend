@@ -7,18 +7,14 @@ RUN go mod download
 
 COPY . .
 
-# Build server
 RUN go build -o server ./cmd/server
-
-# Build worker
 RUN go build -o worker ./cmd/worker
 
 
-FROM debian:bullseye-slim AS runtime
+FROM debian:bookworm-slim AS runtime
 
 WORKDIR /app
 
-# Install trusted root certificates for outbound HTTPS requests
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && update-ca-certificates \
