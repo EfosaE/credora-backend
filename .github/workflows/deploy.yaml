@@ -127,6 +127,15 @@ jobs:
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Debug known_hosts (temporary)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          echo "lines: $(wc -l < ~/.ssh/known_hosts)"
+          echo "fields per line:"; awk '{print NF, $2}' ~/.ssh/known_hosts
+          echo "fingerprint:"; ssh-keygen -lf ~/.ssh/known_hosts || true
+          echo "host lookup:"; ssh-keygen -F "$VPS_HOST" >/dev/null && echo "FOUND" || echo "NOT FOUND"
+
       - name: Deploy API and workers
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
